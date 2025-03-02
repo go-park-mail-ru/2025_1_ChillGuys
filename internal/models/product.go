@@ -11,3 +11,4 @@ type Product struct{
 	Rating float64
 }
 
+type Products []*Product
