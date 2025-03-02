@@ -10,5 +10,3 @@ type Product struct{
 	ReviewsCount uint
 	Rating float64
 }
-
-type Products []*Product
