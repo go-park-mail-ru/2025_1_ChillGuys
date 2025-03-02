@@ -8,13 +8,13 @@ import (
 )
 
 type UserRepo struct{
-	Storage map[int]*models.User
-	Mu sync.RWMutex
+	storage map[int]*models.User
+	mu sync.RWMutex
 }
 
 func NewUserRepo() *UserRepo {
 	return &UserRepo{
-		Storage: make(map[int]*models.User),
-		Mu: sync.RWMutex{},
+		storage: make(map[int]*models.User),
+		mu: sync.RWMutex{},
 	}
 }
