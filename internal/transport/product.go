@@ -9,21 +9,21 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/repository"
 )
 
-type EventsResponse struct {
-	total int
-	products []models.BriefProduct
+type ProductsResponse struct {
+	Total    int                   `json:"Total"`
+	Products []models.BriefProduct `json:"products"`
 }
 
-func convertToEventsResponse(products []*models.Product) EventsResponse {
+func convertToProductsResponse(products []*models.Product) ProductsResponse {
 	briefProducts := make([]models.BriefProduct, 0, len(products))
 	for _, product := range products {
 		briefProduct := models.ConvertToBriefProduct(product)
 		briefProducts = append(briefProducts, briefProduct)
 	}
 
-	response := EventsResponse{
-		total: len(briefProducts),
-		products: briefProducts,
+	response := ProductsResponse{
+		Total: len(briefProducts),
+		Products: briefProducts,
 	}
 
 	return response
@@ -46,16 +46,16 @@ func (h *ProductHandler) GetAllProducts(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	response := convertToEventsResponse(products)
+	response := convertToProductsResponse(products)
 
-	responseJson, err := json.Marshal(response)
+	resp, err := json.Marshal(response)
 	if err != nil {
 		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(responseJson)
+	w.Write(resp)
 }
 
 func (h *ProductHandler) GetProductByID(w http.ResponseWriter, r *http.Request) {

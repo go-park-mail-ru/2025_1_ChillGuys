@@ -9,8 +9,8 @@ type UserDTO struct {
 }
 
 type UserRepo struct {
-	ID           uuid.UUID
-	Email        string
-	PasswordHash []byte
-	Version      int
+	ID           uuid.UUID `json:"id"`
+	Email        string    `json:"email"`
+	PasswordHash []byte    `json:"-"`
+	Version      int       `json:"version"`
 }
