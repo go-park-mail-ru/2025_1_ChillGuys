@@ -82,6 +82,8 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	type Request struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
+		Name     string `json:"name"`
+		Surname  string `json:"surname"`
 	}
 
 	type Response struct {
@@ -106,6 +108,16 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := validateName(request.Name); err != nil {
+		utils.SendErrorResponse(w, http.StatusBadRequest, "Invalid name")
+		return
+	}
+
+	if err := validateName(request.Surname); err != nil {
+		utils.SendErrorResponse(w, http.StatusBadRequest, "Invalid surname")
+		return
+	}
+
 	// Создаём хэш пароля
 	passwordHash, err := generatePasswordHash(request.Password)
 	if err != nil {
@@ -124,9 +136,12 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	userRepo := models.UserRepo{
 		ID:           uuid.New(),
 		Email:        request.Email,
+		Name:         request.Name,
+		Surname:      request.Surname,
 		PasswordHash: passwordHash,
 		Version:      1,
 	}
+
 	if err := h.repo.CreateUser(userRepo); err != nil {
 		utils.SendErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
@@ -163,6 +178,7 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 
 // Helpers
 
+// validateEmail Функция для для валидации почты
 func validateEmail(email string) error {
 	if !regexp.MustCompile(`^[a-z0-9]+@[a-z0-9]+\.[a-z]{2,4}$`).MatchString(email) {
 		return errors.New("invalid email format")
@@ -178,6 +194,20 @@ func validatePassword(password string) error {
 	if !regexp.MustCompile(`^[a-zA-Z0-9]{8,}$`).MatchString(password) {
 		return errors.New("password must contain at least one letter and one number")
 	}
+	return nil
+}
+
+// validateName Функция валидации имени пользователя
+func validateName(name string) error {
+	if len(name) < 2 || len(name) > 50 {
+		return errors.New("name must be between 2 and 50 characters long")
+	}
+
+	re := regexp.MustCompile(`^[a-zA-Zа-яА-ЯёЁ\s-]+$`)
+	if !re.MatchString(name) {
+		return errors.New("name can only contain letters, spaces, and '-'")
+	}
+
 	return nil
 }
 
