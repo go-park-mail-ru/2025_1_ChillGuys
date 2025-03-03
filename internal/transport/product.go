@@ -72,9 +72,7 @@ func (h *ProductHandler) GetProductByID(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	briefProduct := models.ConvertToBriefProduct(product)
-
-	productJson, err := json.Marshal(briefProduct)
+	productJson, err := json.Marshal(product)
 	if err != nil{
 		http.Error(w, "Failed to encode", http.StatusInternalServerError)
 		return
