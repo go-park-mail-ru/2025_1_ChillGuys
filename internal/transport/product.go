@@ -5,8 +5,29 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/repository"
 )
+
+type EventsResponse struct {
+	total int
+	products []models.BriefProduct
+}
+
+func convertToEventsResponse(products []*models.Product) EventsResponse {
+	briefProducts := make([]models.BriefProduct, 0, len(products))
+	for _, product := range products {
+		briefProduct := models.ConvertToBriefProduct(product)
+		briefProducts = append(briefProducts, briefProduct)
+	}
+
+	response := EventsResponse{
+		total: len(briefProducts),
+		products: briefProducts,
+	}
+
+	return response
+}
 
 type ProductHandler struct {
 	Repo *repository.ProductRepo
@@ -25,13 +46,16 @@ func (h *ProductHandler) GetAllProducts(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	productsJson, err := json.Marshal(products)
-	if err != nil{
-		http.Error(w, "Failed to encode", http.StatusInternalServerError)
+	response := convertToEventsResponse(products)
+
+	responseJson, err := json.Marshal(response)
+	if err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 		return
 	}
+
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(productsJson)
+	w.Write(responseJson)
 }
 
 func (h *ProductHandler) GetProductByID(w http.ResponseWriter, r *http.Request) {
@@ -48,7 +72,9 @@ func (h *ProductHandler) GetProductByID(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	productJson, err := json.Marshal(product)
+	briefProduct := models.ConvertToBriefProduct(product)
+
+	productJson, err := json.Marshal(briefProduct)
 	if err != nil{
 		http.Error(w, "Failed to encode", http.StatusInternalServerError)
 		return
