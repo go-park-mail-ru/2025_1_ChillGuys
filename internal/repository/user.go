@@ -5,23 +5,41 @@ import (
 	"sync"
 )
 
+type IUserRepository interface {
+	CreateUser(user models.UserRepo) error
+	GetUserByEmail(email string) (*models.UserRepo, error)
+	IncrementUserVersion(userID string) error
+}
+
 type UserRepository struct {
-	users []models.UserRepo
+	users map[string]models.UserRepo
 	mu    sync.RWMutex
 }
 
 func NewUserRepository() *UserRepository {
 	return &UserRepository{
-		users: []models.UserRepo{},
+		users: map[string]models.UserRepo{},
 	}
 }
 
 func (r *UserRepository) CreateUser(user models.UserRepo) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	r.users = append(r.users, user)
+	r.users[user.ID.String()] = user
 
 	return nil
+}
+
+func (r *UserRepository) GetUserCurrentVersion(userID string) (int, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	user, ok := r.users[userID]
+	if !ok {
+		return 0, models.ErrUserNotFound
+	}
+
+	return user.Version, nil
 }
 
 func (r *UserRepository) GetUserByEmail(email string) (*models.UserRepo, error) {
@@ -41,12 +59,24 @@ func (r *UserRepository) IncrementUserVersion(userID string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	for index, user := range r.users {
-		if user.ID.String() == userID {
-			r.users[index].Version++
-			return nil
-		}
+	user, isExist := r.users[userID]
+	if !isExist {
+		return models.ErrUserNotFound
 	}
+	user.Version++
+	r.users[userID] = user
 
-	return models.ErrUserNotFound
+	return nil
+}
+
+func (r *UserRepository) CheckUserVersion(userID string, version int) bool {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	user, ok := r.users[userID]
+	if !ok {
+		return false
+	}
+	
+	return user.Version == version
 }

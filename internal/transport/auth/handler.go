@@ -7,6 +7,7 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils"
 	"github.com/google/uuid"
+	"github.com/mailru/easyjson"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
@@ -26,19 +27,14 @@ func NewAuthHandler(repo IUserRepository, log *logrus.Logger) *AuthHandler {
 }
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
-	type Request struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
-	}
-
 	type Response struct {
 		Token string `json:"token"`
 	}
 
 	// Парсим
-	var request Request
-	if errStatusCode, errMessage := utils.ParseData(r.Body, &request); errStatusCode != 0 && errMessage != "" {
-		utils.SendErrorResponse(w, errStatusCode, errMessage)
+	var request models.UserLoginRequestDTO
+	if err := easyjson.UnmarshalFromReader(r.Body, &request); err != nil {
+		utils.SendErrorResponse(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -79,19 +75,14 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
-	type Request struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
-	}
-
 	type Response struct {
 		Token string `json:"token"`
 	}
 
 	// Парсим
-	var request Request
-	if errStatusCode, errMessage := utils.ParseData(r.Body, &request); errStatusCode != 0 && errMessage != "" {
-		utils.SendErrorResponse(w, errStatusCode, errMessage)
+	var request models.UserRegisterRequestDTO
+	if err := easyjson.UnmarshalFromReader(r.Body, &request); err != nil {
+		utils.SendErrorResponse(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -103,6 +94,16 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 	if err := validatePassword(request.Password); err != nil {
 		utils.SendErrorResponse(w, http.StatusBadRequest, fmt.Sprintf("Invalid password: %v", err))
+		return
+	}
+
+	if err := validateName(request.Name); err != nil {
+		utils.SendErrorResponse(w, http.StatusBadRequest, "Invalid name")
+		return
+	}
+
+	if err := validateName(request.Surname); err != nil {
+		utils.SendErrorResponse(w, http.StatusBadRequest, "Invalid surname")
 		return
 	}
 
@@ -124,9 +125,12 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	userRepo := models.UserRepo{
 		ID:           uuid.New(),
 		Email:        request.Email,
+		Name:         request.Name,
+		Surname:      request.Surname,
 		PasswordHash: passwordHash,
 		Version:      1,
 	}
+
 	if err := h.repo.CreateUser(userRepo); err != nil {
 		utils.SendErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
@@ -163,6 +167,7 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 
 // Helpers
 
+// validateEmail Функция для для валидации почты
 func validateEmail(email string) error {
 	if !regexp.MustCompile(`^[a-z0-9]+@[a-z0-9]+\.[a-z]{2,4}$`).MatchString(email) {
 		return errors.New("invalid email format")
@@ -178,6 +183,20 @@ func validatePassword(password string) error {
 	if !regexp.MustCompile(`^[a-zA-Z0-9]{8,}$`).MatchString(password) {
 		return errors.New("password must contain at least one letter and one number")
 	}
+	return nil
+}
+
+// validateName Функция валидации имени пользователя
+func validateName(name string) error {
+	if len(name) < 2 || len(name) > 50 {
+		return errors.New("name must be between 2 and 50 characters long")
+	}
+
+	re := regexp.MustCompile(`^[a-zA-Zа-яА-ЯёЁ\s-]+$`)
+	if !re.MatchString(name) {
+		return errors.New("name can only contain letters, spaces, and '-'")
+	}
+
 	return nil
 }
 
