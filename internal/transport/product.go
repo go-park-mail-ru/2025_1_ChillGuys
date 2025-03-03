@@ -10,7 +10,7 @@ import (
 )
 
 type ProductsResponse struct {
-	Total    int                   `json:"Total"`
+	Total    int                   `json:"total"`
 	Products []models.BriefProduct `json:"products"`
 }
 

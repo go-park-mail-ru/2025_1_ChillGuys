@@ -25,7 +25,7 @@ func ConvertToBriefProduct(product *Product) BriefProduct{
 	return BriefProduct{
 		ID:           product.ID,
 		Name:         product.Name,
-		ImageURL:     fmt.Sprintf("media/products/product-%d.jpg", product.ID),
+		ImageURL:     fmt.Sprintf("media/products/product-%d.jpeg", product.ID),
 		Price:        product.Price,
 		ReviewsCount: product.ReviewsCount,
 		Rating:       product.Rating,
