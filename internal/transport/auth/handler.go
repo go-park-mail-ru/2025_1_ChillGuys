@@ -7,6 +7,7 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils"
 	"github.com/google/uuid"
+	"github.com/mailru/easyjson"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
@@ -26,19 +27,14 @@ func NewAuthHandler(repo IUserRepository, log *logrus.Logger) *AuthHandler {
 }
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
-	type Request struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
-	}
-
 	type Response struct {
 		Token string `json:"token"`
 	}
 
 	// Парсим
-	var request Request
-	if errStatusCode, errMessage := utils.ParseData(r.Body, &request); errStatusCode != 0 && errMessage != "" {
-		utils.SendErrorResponse(w, errStatusCode, errMessage)
+	var request models.UserLoginRequestDTO
+	if err := easyjson.UnmarshalFromReader(r.Body, &request); err != nil {
+		utils.SendErrorResponse(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -79,21 +75,14 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
-	type Request struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
-		Name     string `json:"name"`
-		Surname  string `json:"surname"`
-	}
-
 	type Response struct {
 		Token string `json:"token"`
 	}
 
 	// Парсим
-	var request Request
-	if errStatusCode, errMessage := utils.ParseData(r.Body, &request); errStatusCode != 0 && errMessage != "" {
-		utils.SendErrorResponse(w, errStatusCode, errMessage)
+	var request models.UserRegisterRequestDTO
+	if err := easyjson.UnmarshalFromReader(r.Body, &request); err != nil {
+		utils.SendErrorResponse(w, http.StatusBadRequest, err.Error())
 		return
 	}
 

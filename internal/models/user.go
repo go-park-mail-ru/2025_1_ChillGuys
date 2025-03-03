@@ -10,6 +10,18 @@ type UserDTO struct {
 	Version string    `json:"version"`
 }
 
+type UserLoginRequestDTO struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type UserRegisterRequestDTO struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+	Name     string `json:"name"`
+	Surname  string `json:"surname"`
+}
+
 type UserRepo struct {
 	ID           uuid.UUID
 	Email        string
