@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/repository"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/auth"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware"
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
@@ -16,8 +17,18 @@ func main() {
 	userRepo := repository.NewUserRepository()
 	authHandler := auth.NewAuthHandler(userRepo, logger)
 
+	productRepo := repository.NewProductRepo()
+	productHandler := transport.NewProductHandler(productRepo)
+
 	router := mux.NewRouter().PathPrefix("/api").Subrouter()
 	router.Use(middleware.CORSMiddleware)
+
+	productsRouter := router.PathPrefix("/products").Subrouter()
+	{
+		productsRouter.HandleFunc("/", productHandler.GetAllProducts).Methods("GET")
+		productsRouter.HandleFunc("/{id}", productHandler.GetProductByID).Methods("GET")
+	}
+
 
 	authRouter := router.PathPrefix("/auth").Subrouter()
 	{
@@ -30,7 +41,7 @@ func main() {
 
 	srv := &http.Server{
 		Handler:      router,
-		Addr:         ":8080",
+		Addr:         ":8081",
 		WriteTimeout: 10 * time.Second, // таймаут на запись данных в ответ на запрос
 		ReadTimeout:  10 * time.Second, // таймаут на чтение данных из запроса
 		IdleTimeout:  30 * time.Second, // время поддержания связи между клиентом и сервером
