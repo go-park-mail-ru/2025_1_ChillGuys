@@ -2,8 +2,23 @@ package utils
 
 import (
 	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
 )
+
+func ParseData(ioBody io.Reader, request any) (int, string) {
+	body, err := io.ReadAll(ioBody)
+	if err != nil {
+		return http.StatusInternalServerError, err.Error()
+	}
+
+	if err := json.Unmarshal(body, &request); err != nil {
+		return http.StatusBadRequest, fmt.Sprintf("Failed to parse request body: %v", err.Error())
+	}
+
+	return 0, ""
+}
 
 func SendErrorResponse(w http.ResponseWriter, statusCode int, message string) {
 	w.Header().Set("Content-Type", "application/json")
