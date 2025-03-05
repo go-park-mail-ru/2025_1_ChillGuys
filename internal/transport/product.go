@@ -1,12 +1,12 @@
 package transport
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strconv"
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/repository"
 	"github.com/gorilla/mux"
 )
 
@@ -30,11 +30,17 @@ func convertToProductsResponse(products []*models.Product) ProductsResponse {
 	return response
 }
 
-type ProductHandler struct {
-	Repo *repository.ProductRepo
+//go:generate mockgen -source=product.go -destination=../repository/mocks/product_repo_mock.go package=mocks IProductRepo
+type IProductRepo interface {
+	GetAllProducts(ctx context.Context) ([]*models.Product, error)
+	GetProductByID(ctx context.Context, id int) (*models.Product, error)
 }
 
-func NewProductHandler(repo *repository.ProductRepo) *ProductHandler {
+type ProductHandler struct {
+	Repo IProductRepo
+}
+
+func NewProductHandler(repo IProductRepo) *ProductHandler {
 	return &ProductHandler{
 		Repo: repo,
 	}

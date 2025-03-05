@@ -6,14 +6,15 @@ require (
 	github.com/golang-jwt/jwt/v4 v4.5.1
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/mux v1.8.1
-	github.com/josharian/intern v1.0.0 // indirect
-	github.com/mailru/easyjson v0.9.0
 	github.com/sirupsen/logrus v1.9.3
 	golang.org/x/crypto v0.35.0
 	golang.org/x/sys v0.30.0 // indirect
 )
 
-require github.com/stretchr/testify v1.7.0
+require (
+	github.com/golang/mock v1.6.0
+	github.com/stretchr/testify v1.7.0
+)
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
