@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/repository"
+	"github.com/gorilla/mux"
 )
 
 type ProductsResponse struct {
@@ -59,7 +60,8 @@ func (h *ProductHandler) GetAllProducts(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h *ProductHandler) GetProductByID(w http.ResponseWriter, r *http.Request) {
-	idStr := r.URL.Query().Get("id")
+	vars := mux.Vars(r)
+    idStr := vars["id"]
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		http.Error(w, "Invalid ID", http.StatusBadRequest)

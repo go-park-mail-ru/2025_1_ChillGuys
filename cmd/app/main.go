@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/repository"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/auth"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware"
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
@@ -16,8 +17,18 @@ func main() {
 	userRepo := repository.NewUserRepository()
 	authHandler := auth.NewAuthHandler(userRepo, logger)
 
+	productRepo := repository.NewProductRepo()
+	productHandler := transport.NewProductHandler(productRepo)
+
 	router := mux.NewRouter().PathPrefix("/api").Subrouter()
 	router.Use(middleware.CORSMiddleware)
+
+	productsRouter := router.PathPrefix("/products").Subrouter()
+	{
+		productsRouter.HandleFunc("/", productHandler.GetAllProducts).Methods("GET")
+		productsRouter.HandleFunc("/{id}", productHandler.GetProductByID).Methods("GET")
+	}
+
 
 	authRouter := router.PathPrefix("/auth").Subrouter()
 	{
