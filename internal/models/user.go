@@ -2,12 +2,13 @@ package models
 
 import "github.com/google/uuid"
 
-type UserDTO struct {
-	ID      uuid.UUID `json:"id"`
-	Email   string    `json:"email"`
-	Name    string    `json:"name"`
-	Surname string    `json:"surname"`
-	Version string    `json:"version"`
+type User struct {
+	ID              uuid.UUID `json:"id"`
+	Email           string    `json:"email"`
+	Name            string    `json:"name"`
+	Surname         string    `json:"surname"`
+	PhoneNumber string    `json:"telephone_number"`
+	Version         string    `json:"version"`
 }
 
 type UserLoginRequestDTO struct {
@@ -20,6 +21,10 @@ type UserRegisterRequestDTO struct {
 	Password string `json:"password"`
 	Name     string `json:"name"`
 	Surname  string `json:"surname"`
+}
+
+type UserResponseDTO struct {
+	Token string `json:"token"`
 }
 
 type UserRepo struct {

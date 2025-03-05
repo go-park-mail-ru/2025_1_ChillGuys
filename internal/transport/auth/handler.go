@@ -7,7 +7,6 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils"
 	"github.com/google/uuid"
-	"github.com/mailru/easyjson"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
@@ -27,14 +26,11 @@ func NewAuthHandler(repo IUserRepository, log *logrus.Logger) *AuthHandler {
 }
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
-	type Response struct {
-		Token string `json:"token"`
-	}
 
 	// Парсим
 	var request models.UserLoginRequestDTO
-	if err := easyjson.UnmarshalFromReader(r.Body, &request); err != nil {
-		utils.SendErrorResponse(w, http.StatusBadRequest, err.Error())
+	if errStatusCode, errMessage := utils.ParseData(r.Body, &request); errStatusCode != 0 && errMessage != "" {
+		utils.SendErrorResponse(w, errStatusCode, errMessage)
 		return
 	}
 
@@ -69,20 +65,17 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.SendSuccessResponse(w, http.StatusOK, Response{
+	utils.SendSuccessResponse(w, http.StatusOK, &models.UserResponseDTO{
 		Token: token,
 	})
 }
 
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
-	type Response struct {
-		Token string `json:"token"`
-	}
 
 	// Парсим
 	var request models.UserRegisterRequestDTO
-	if err := easyjson.UnmarshalFromReader(r.Body, &request); err != nil {
-		utils.SendErrorResponse(w, http.StatusBadRequest, err.Error())
+	if errStatusCode, errMessage := utils.ParseData(r.Body, &request); errStatusCode != 0 && errMessage != "" {
+		utils.SendErrorResponse(w, errStatusCode, errMessage)
 		return
 	}
 
@@ -143,8 +136,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Ответ сервиса
-	utils.SendSuccessResponse(w, http.StatusCreated, &Response{
+	utils.SendSuccessResponse(w, http.StatusOK, &models.UserResponseDTO{
 		Token: token,
 	})
 }
@@ -156,7 +148,6 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Повышаем версию пользователя в бд
 	if err := h.repo.IncrementUserVersion(userID); err != nil {
 		utils.SendErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
@@ -165,11 +156,15 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	utils.SendSuccessResponse(w, http.StatusOK, nil)
 }
 
-// Helpers
+var (
+	passwordRegexp = regexp.MustCompile(`^[a-zA-Z0-9]{8,}$`)
+	emailRegexp    = regexp.MustCompile(`^[a-z0-9]+@[a-z0-9]+\.[a-z]{2,4}$`)
+	nameRegexp     = regexp.MustCompile(`^[a-zA-Zа-яА-ЯёЁ\s-]+$`)
+)
 
-// validateEmail Функция для для валидации почты
+// validateEmail Функция валидации почты
 func validateEmail(email string) error {
-	if !regexp.MustCompile(`^[a-z0-9]+@[a-z0-9]+\.[a-z]{2,4}$`).MatchString(email) {
+	if !emailRegexp.MatchString(email) {
 		return errors.New("invalid email format")
 	}
 	return nil
@@ -180,7 +175,7 @@ func validatePassword(password string) error {
 	if len(password) < 8 {
 		return errors.New("password must be at least 8 characters")
 	}
-	if !regexp.MustCompile(`^[a-zA-Z0-9]{8,}$`).MatchString(password) {
+	if !passwordRegexp.MatchString(password) {
 		return errors.New("password must contain at least one letter and one number")
 	}
 	return nil
@@ -192,8 +187,7 @@ func validateName(name string) error {
 		return errors.New("name must be between 2 and 50 characters long")
 	}
 
-	re := regexp.MustCompile(`^[a-zA-Zа-яА-ЯёЁ\s-]+$`)
-	if !re.MatchString(name) {
+	if !nameRegexp.MatchString(name) {
 		return errors.New("name can only contain letters, spaces, and '-'")
 	}
 

@@ -41,10 +41,10 @@ func main() {
 
 	srv := &http.Server{
 		Handler:      router,
-		Addr:         ":8081",
-		WriteTimeout: 10 * time.Second, // таймаут на запись данных в ответ на запрос
-		ReadTimeout:  10 * time.Second, // таймаут на чтение данных из запроса
-		IdleTimeout:  30 * time.Second, // время поддержания связи между клиентом и сервером
+		Addr:         ":8080",
+		WriteTimeout: 10 * time.Second,
+		ReadTimeout:  10 * time.Second,
+		IdleTimeout:  30 * time.Second,
 	}
 
 	logger.Infof("starting server on port %s", srv.Addr)
