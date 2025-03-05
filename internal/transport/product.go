@@ -11,8 +11,8 @@ import (
 )
 
 type ProductsResponse struct {
-	Total int
-	Products []models.BriefProduct
+	Total    int                   `json:"total"`
+	Products []models.BriefProduct `json:"products"`
 }
 
 func convertToProductsResponse(products []*models.Product) ProductsResponse {
