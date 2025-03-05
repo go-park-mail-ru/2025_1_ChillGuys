@@ -26,7 +26,6 @@ func NewAuthHandler(repo IUserRepository, log *logrus.Logger) *AuthHandler {
 }
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
-	var response models.UserResponseDTO
 
 	// Парсим
 	var request models.UserLoginRequestDTO
@@ -66,13 +65,12 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.Token = token
-
-	utils.SendSuccessResponse(w, http.StatusOK, response)
+	utils.SendSuccessResponse(w, http.StatusOK, &models.UserResponseDTO{
+		Token: token,
+	})
 }
 
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
-	var response models.UserResponseDTO
 
 	// Парсим
 	var request models.UserRegisterRequestDTO
@@ -138,9 +136,9 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.Token = token
-
-	utils.SendSuccessResponse(w, http.StatusCreated, response)
+	utils.SendSuccessResponse(w, http.StatusOK, &models.UserResponseDTO{
+		Token: token,
+	})
 }
 
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
@@ -158,9 +156,11 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	utils.SendSuccessResponse(w, http.StatusOK, nil)
 }
 
-var passwordRegexp = regexp.MustCompile(`^[a-zA-Z0-9]{8,}$`)
-var emailRegexp = regexp.MustCompile(`^[a-z0-9]+@[a-z0-9]+\.[a-z]{2,4}$`)
-var nameRegexp = regexp.MustCompile(`^[a-zA-Zа-яА-ЯёЁ\s-]+$`)
+var (
+	passwordRegexp = regexp.MustCompile(`^[a-zA-Z0-9]{8,}$`)
+	emailRegexp    = regexp.MustCompile(`^[a-z0-9]+@[a-z0-9]+\.[a-z]{2,4}$`)
+	nameRegexp     = regexp.MustCompile(`^[a-zA-Zа-яА-ЯёЁ\s-]+$`)
+)
 
 // validateEmail Функция валидации почты
 func validateEmail(email string) error {
