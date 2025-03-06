@@ -2,14 +2,15 @@ package jwt
 
 import (
 	"errors"
+	"fmt"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/joho/godotenv"
-	"log"
+	"github.com/sirupsen/logrus"
 	"os"
 	"time"
 )
 
-// Claims структура для данных токена
+// JWTClaims структура для данных токена
 type JWTClaims struct {
 	UserID    string
 	Version   int
@@ -28,11 +29,14 @@ func NewTokenator() *Tokenator {
 
 // CreateJWT генерирует JWT токен для заданного userID и version
 func (t *Tokenator) CreateJWT(userID string, version int) (string, error) {
+	var logger = logrus.New()
+
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		logger.Errorf("failed to load .env file: %v", err)
+		return "", fmt.Errorf("failed to load .env file: %w", err)
 	}
-	secretKey := os.Getenv("TOKEN_SECRET")
+	secretKey := os.Getenv("JWT_SIGNATURE")
 
 	now := time.Now()
 	expiration := now.Add(time.Hour * 24)
@@ -56,11 +60,14 @@ func (t *Tokenator) CreateJWT(userID string, version int) (string, error) {
 
 // ParseJWT парсит и валидирует JWT-токен
 func (t *Tokenator) ParseJWT(tokenString string) (*JWTClaims, error) {
+	var logger = logrus.New()
+
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		logger.Errorf("failed to load .env file: %v", err)
+		return nil, fmt.Errorf("failed to load .env file: %w", err)
 	}
-	secretKey := os.Getenv("TOKEN_SECRET")
+	secretKey := os.Getenv("JWT_SIGNATURE")
 
 	token, err := jwt.ParseWithClaims(tokenString, &JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
 		// Проверяем, что метод подписи соответствует HMAC

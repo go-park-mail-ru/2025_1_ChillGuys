@@ -15,9 +15,7 @@ func main() {
 	logger := logrus.New()
 
 	userRepo := repository.NewUserRepository()
-
 	tokenator := jwt.NewTokenator()
-
 	authHandler := transport.NewAuthHandler(userRepo, logger, tokenator)
 
 	productRepo := repository.NewProductRepo()
@@ -43,7 +41,7 @@ func main() {
 
 	srv := &http.Server{
 		Handler:      router,
-		Addr:         ":8080",
+		Addr:         ":8081",
 		WriteTimeout: 10 * time.Second,
 		ReadTimeout:  10 * time.Second,
 		IdleTimeout:  30 * time.Second,
@@ -52,6 +50,6 @@ func main() {
 	logger.Infof("starting server on port %s", srv.Addr)
 	err := srv.ListenAndServe()
 	if err != nil {
-		return
+		logger.Errorf("server error: %v", err)
 	}
 }
