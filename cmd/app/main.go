@@ -48,8 +48,7 @@ func main() {
 	}
 
 	logger.Infof("starting server on port %s", srv.Addr)
-	err := srv.ListenAndServe()
-	if err != nil {
+	if err := srv.ListenAndServe(); err != nil {
 		logger.Errorf("server error: %v", err)
 	}
 }
