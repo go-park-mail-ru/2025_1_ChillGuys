@@ -1,4 +1,4 @@
-package auth
+package transport
 
 import (
 	"errors"
@@ -12,6 +12,14 @@ import (
 	"net/http"
 	"regexp"
 )
+
+//go:generate mockgen -source=auth.go -destination=../repository/mocks/user_repo_mock.go -package=mocks IUserRepository
+
+type IUserRepository interface {
+	CreateUser(user models.UserRepo) error
+	GetUserByEmail(email string) (*models.UserRepo, error)
+	IncrementUserVersion(userID string) error
+}
 
 type AuthHandler struct {
 	repo IUserRepository
