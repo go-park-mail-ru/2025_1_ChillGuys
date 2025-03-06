@@ -6,22 +6,35 @@ import (
 	"time"
 )
 
+// Секретный ключ для подписания токенов
 var (
 	SECRET = []byte("secret-key")
 )
 
-type Claims struct {
+// Claims структура для данных токена
+type JWTClaims struct {
 	UserID    string
 	Version   int
 	ExpiresAt int64
 	jwt.StandardClaims
 }
 
-func CreateJWT(userID string, version int) (string, error) {
+// Tokenator структура для создания и парсинга токенов
+type Tokenator struct {
+	secretKey []byte
+}
+
+// NewTokenator создает новый экземпляр Tokenator
+func NewTokenator(secretKey []byte) *Tokenator {
+	return &Tokenator{secretKey: secretKey}
+}
+
+// CreateJWT генерирует JWT токен для заданного userID и version
+func (t *Tokenator) CreateJWT(userID string, version int) (string, error) {
 	now := time.Now()
 	expiration := now.Add(time.Hour * 24)
 
-	claims := Claims{
+	claims := JWTClaims{
 		UserID:    userID,
 		Version:   version,
 		ExpiresAt: expiration.Unix(),
@@ -32,21 +45,21 @@ func CreateJWT(userID string, version int) (string, error) {
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	str, err := token.SignedString(SECRET)
+	tokenString, err := token.SignedString(t.secretKey)
 	if err != nil {
 		return "", err
 	}
-	return str, nil
+	return tokenString, nil
 }
 
 // ParseJWT Парсит и валидирует JWT-токен
-func ParseJWT(tokenString string) (*Claims, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
+func (t *Tokenator) ParseJWT(tokenString string) (*JWTClaims, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
 		// Проверяем, что метод подписи соответствует HMAC
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.New("unexpected signing method")
 		}
-		return SECRET, nil
+		return t.secretKey, nil
 	})
 
 	if err != nil {
@@ -54,7 +67,7 @@ func ParseJWT(tokenString string) (*Claims, error) {
 	}
 
 	// Преобразуем claims в структуру Claims
-	if claims, ok := token.Claims.(*Claims); ok && token.Valid {
+	if claims, ok := token.Claims.(*JWTClaims); ok && token.Valid {
 		return claims, nil
 	}
 

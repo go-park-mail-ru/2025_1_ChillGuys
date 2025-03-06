@@ -32,7 +32,11 @@ func JWTMiddleware(next http.Handler) http.Handler {
 
 		// Разбираем токен
 		tokenString := parts[1]
-		claims, err := jwt.ParseJWT(tokenString)
+
+		tokenator := jwt.NewTokenator([]byte("secret-key"))
+
+		// Вызываем ParseJWT через экземпляр Tokenator
+		claims, err := tokenator.ParseJWT(tokenString)
 		if err != nil {
 			logrus.Errorf("Invalid token: %v", err)
 			utils.SendErrorResponse(w, http.StatusUnauthorized, fmt.Sprintf("Invalid token: %v", err))

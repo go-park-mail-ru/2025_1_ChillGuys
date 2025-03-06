@@ -2,7 +2,6 @@ package main
 
 import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/repository"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/auth"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware"
 	"github.com/gorilla/mux"
@@ -15,7 +14,7 @@ func main() {
 	logger := logrus.New()
 
 	userRepo := repository.NewUserRepository()
-	authHandler := auth.NewAuthHandler(userRepo, logger)
+	authHandler := transport.NewAuthHandler(userRepo, logger)
 
 	productRepo := repository.NewProductRepo()
 	productHandler := transport.NewProductHandler(productRepo)
@@ -28,7 +27,6 @@ func main() {
 		productsRouter.HandleFunc("/", productHandler.GetAllProducts).Methods("GET")
 		productsRouter.HandleFunc("/{id}", productHandler.GetProductByID).Methods("GET")
 	}
-
 
 	authRouter := router.PathPrefix("/auth").Subrouter()
 	{

@@ -5,12 +5,6 @@ import (
 	"sync"
 )
 
-type IUserRepository interface {
-	CreateUser(user models.UserRepo) error
-	GetUserByEmail(email string) (*models.UserRepo, error)
-	IncrementUserVersion(userID string) error
-}
-
 type UserRepository struct {
 	users map[string]models.UserRepo
 	mu    sync.RWMutex
@@ -77,6 +71,6 @@ func (r *UserRepository) CheckUserVersion(userID string, version int) bool {
 	if !ok {
 		return false
 	}
-	
+
 	return user.Version == version
 }

@@ -13,7 +13,7 @@ import (
 	"regexp"
 )
 
-//go:generate mockgen -source=auth.go -destination=../repository/mocks/user_repo_mock.go -package=mocks IUserRepository
+//go:generate mockgen -source=user.go -destination=../repository/mocks/user_repo_mock.go -package=mocks IUserRepository
 
 type IUserRepository interface {
 	CreateUser(user models.UserRepo) error
@@ -21,15 +21,22 @@ type IUserRepository interface {
 	IncrementUserVersion(userID string) error
 }
 
-type AuthHandler struct {
-	repo IUserRepository
-	log  *logrus.Logger
+type ITokenator interface {
+	CreateJWT(userID string, version int) (string, error)
+	ParseJWT(tokenString string) (*jwt.JWTClaims, error)
 }
 
-func NewAuthHandler(repo IUserRepository, log *logrus.Logger) *AuthHandler {
+type AuthHandler struct {
+	repo  IUserRepository
+	token ITokenator
+	log   *logrus.Logger
+}
+
+func NewAuthHandler(repo IUserRepository, log *logrus.Logger, token ITokenator) *AuthHandler {
 	return &AuthHandler{
-		repo: repo,
-		log:  log,
+		repo:  repo,
+		token: token,
+		log:   log,
 	}
 }
 
@@ -67,7 +74,8 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := jwt.CreateJWT(userRepo.ID.String(), userRepo.Version)
+	// Вызываем CreateJWT
+	token, err := h.token.CreateJWT(userRepo.ID.String(), 1)
 	if err != nil {
 		utils.SendErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
@@ -109,7 +117,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Создаём хэш пароля
-	passwordHash, err := generatePasswordHash(request.Password)
+	passwordHash, err := GeneratePasswordHash(request.Password)
 	if err != nil {
 		utils.SendErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
@@ -137,8 +145,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Создаём jwt
-	token, err := jwt.CreateJWT(userRepo.ID.String(), 1)
+	token, err := h.token.CreateJWT(userRepo.ID.String(), 1)
 	if err != nil {
 		utils.SendErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
@@ -202,7 +209,7 @@ func validateName(name string) error {
 	return nil
 }
 
-// generatePasswordHash Генерация хэша пароля
-func generatePasswordHash(password string) ([]byte, error) {
+// GeneratePasswordHash Генерация хэша пароля
+func GeneratePasswordHash(password string) ([]byte, error) {
 	return bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
 }
