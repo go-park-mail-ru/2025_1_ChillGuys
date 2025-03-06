@@ -2,8 +2,8 @@ package main
 
 import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/repository"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/auth"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware"
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
@@ -15,7 +15,8 @@ func main() {
 	logger := logrus.New()
 
 	userRepo := repository.NewUserRepository()
-	authHandler := auth.NewAuthHandler(userRepo, logger)
+	tokenator := jwt.NewTokenator()
+	authHandler := transport.NewAuthHandler(userRepo, logger, tokenator)
 
 	productRepo := repository.NewProductRepo()
 	productHandler := transport.NewProductHandler(productRepo)
@@ -29,7 +30,6 @@ func main() {
 		productsRouter.HandleFunc("/{id}", productHandler.GetProductByID).Methods("GET")
 	}
 
-
 	authRouter := router.PathPrefix("/auth").Subrouter()
 	{
 		authRouter.HandleFunc("/login", authHandler.Login).Methods("POST")
@@ -41,7 +41,7 @@ func main() {
 
 	srv := &http.Server{
 		Handler:      router,
-		Addr:         ":8080",
+		Addr:         ":8081",
 		WriteTimeout: 10 * time.Second,
 		ReadTimeout:  10 * time.Second,
 		IdleTimeout:  30 * time.Second,
@@ -50,6 +50,6 @@ func main() {
 	logger.Infof("starting server on port %s", srv.Addr)
 	err := srv.ListenAndServe()
 	if err != nil {
-		return
+		logger.Errorf("server error: %v", err)
 	}
 }

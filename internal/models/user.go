@@ -3,12 +3,12 @@ package models
 import "github.com/google/uuid"
 
 type User struct {
-	ID              uuid.UUID `json:"id"`
-	Email           string    `json:"email"`
-	Name            string    `json:"name"`
-	Surname         string    `json:"surname"`
-	PhoneNumber string    `json:"telephone_number"`
-	Version         string    `json:"version"`
+	ID          uuid.UUID `json:"id"`
+	Email       string    `json:"email"`
+	Name        string    `json:"name"`
+	Surname     string    `json:"surname"`
+	PhoneNumber string    `json:"phone_number"`
+	Version     string    `json:"version"`
 }
 
 type UserLoginRequestDTO struct {

@@ -2,26 +2,46 @@ package jwt
 
 import (
 	"errors"
+	"fmt"
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/joho/godotenv"
+	"github.com/sirupsen/logrus"
+	"os"
 	"time"
 )
 
-var (
-	SECRET = []byte("secret-key")
-)
-
-type Claims struct {
+// JWTClaims структура для данных токена
+type JWTClaims struct {
 	UserID    string
 	Version   int
 	ExpiresAt int64
 	jwt.StandardClaims
 }
 
-func CreateJWT(userID string, version int) (string, error) {
+// Tokenator структура для создания и парсинга токенов
+type Tokenator struct {
+}
+
+// NewTokenator создает новый экземпляр Tokenator
+func NewTokenator() *Tokenator {
+	return &Tokenator{}
+}
+
+// CreateJWT генерирует JWT токен для заданного userID и version
+func (t *Tokenator) CreateJWT(userID string, version int) (string, error) {
+	var logger = logrus.New()
+
+	err := godotenv.Load()
+	if err != nil {
+		logger.Errorf("failed to load .env file: %v", err)
+		return "", fmt.Errorf("failed to load .env file: %w", err)
+	}
+	secretKey := os.Getenv("JWT_SIGNATURE")
+
 	now := time.Now()
 	expiration := now.Add(time.Hour * 24)
 
-	claims := Claims{
+	claims := JWTClaims{
 		UserID:    userID,
 		Version:   version,
 		ExpiresAt: expiration.Unix(),
@@ -30,31 +50,38 @@ func CreateJWT(userID string, version int) (string, error) {
 			ExpiresAt: expiration.Unix(),
 		},
 	}
-
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	str, err := token.SignedString(SECRET)
+	tokenString, err := token.SignedString([]byte(secretKey))
 	if err != nil {
 		return "", err
 	}
-	return str, nil
+	return tokenString, nil
 }
 
-// ParseJWT Парсит и валидирует JWT-токен
-func ParseJWT(tokenString string) (*Claims, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
+// ParseJWT парсит и валидирует JWT-токен
+func (t *Tokenator) ParseJWT(tokenString string) (*JWTClaims, error) {
+	var logger = logrus.New()
+
+	err := godotenv.Load()
+	if err != nil {
+		logger.Errorf("failed to load .env file: %v", err)
+		return nil, fmt.Errorf("failed to load .env file: %w", err)
+	}
+	secretKey := os.Getenv("JWT_SIGNATURE")
+
+	token, err := jwt.ParseWithClaims(tokenString, &JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
 		// Проверяем, что метод подписи соответствует HMAC
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.New("unexpected signing method")
 		}
-		return SECRET, nil
+		return []byte(secretKey), nil
 	})
 
 	if err != nil {
 		return nil, err
 	}
 
-	// Преобразуем claims в структуру Claims
-	if claims, ok := token.Claims.(*Claims); ok && token.Valid {
+	if claims, ok := token.Claims.(*JWTClaims); ok && token.Valid {
 		return claims, nil
 	}
 

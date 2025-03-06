@@ -13,6 +13,8 @@ import (
 
 // JWTMiddleware проверяет наличие и валидность JWT-токена
 func JWTMiddleware(next http.Handler) http.Handler {
+	tokenator := jwt.Tokenator{}
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Получаем заголовок Authorization
 		authHeader := r.Header.Get("Authorization")
@@ -32,7 +34,9 @@ func JWTMiddleware(next http.Handler) http.Handler {
 
 		// Разбираем токен
 		tokenString := parts[1]
-		claims, err := jwt.ParseJWT(tokenString)
+
+		// Вызываем ParseJWT через экземпляр Tokenator
+		claims, err := tokenator.ParseJWT(tokenString)
 		if err != nil {
 			logrus.Errorf("Invalid token: %v", err)
 			utils.SendErrorResponse(w, http.StatusUnauthorized, fmt.Sprintf("Invalid token: %v", err))
