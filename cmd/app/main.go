@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/repository"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware"
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
@@ -14,7 +15,10 @@ func main() {
 	logger := logrus.New()
 
 	userRepo := repository.NewUserRepository()
-	authHandler := transport.NewAuthHandler(userRepo, logger)
+
+	tokenator := jwt.NewTokenator()
+
+	authHandler := transport.NewAuthHandler(userRepo, logger, tokenator)
 
 	productRepo := repository.NewProductRepo()
 	productHandler := transport.NewProductHandler(productRepo)
