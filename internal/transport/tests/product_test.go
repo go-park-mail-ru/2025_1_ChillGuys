@@ -3,6 +3,7 @@ package tests
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -47,17 +48,17 @@ func TestGetAllProducts(t *testing.T) {
 	handler := transport.NewProductHandler(mockRepo)
 
 	t.Run("Success case", func(t *testing.T) {
-		// Настройка ожидаемого поведения мока.
-		// Ожидаем, что метод GetAllProducts будет вызван один раз с любым контекстом (gomock.Any()).
-		// В ответ мок вернет тестовые данные (testProducts) и nil в качестве ошибки.
-		mockRepo.EXPECT().GetAllProducts(gomock.Any()).Return(testProducts, nil).Times(1)
-
-		// Создание HTTP-запроса для эндпоинта /products/.
+				// Создание HTTP-запроса для эндпоинта /products/.
 		// Метод GET, тело запроса отсутствует.
 		req, err := http.NewRequest("GET", "/products/", nil)
 		if err != nil {
 			t.Fatalf("Failed to create request: %v", err)
 		}
+
+		// Настройка ожидаемого поведения мока.
+		// Ожидаем, что метод GetAllProducts будет вызван один раз с любым контекстом (gomock.Any()).
+		// В ответ мок вернет тестовые данные (testProducts) и nil в качестве ошибки.
+		mockRepo.EXPECT().GetAllProducts(req.Context()).Return(testProducts, nil).Times(1)
 
 		// Создание ResponseRecorder для записи ответа.
 		rr := httptest.NewRecorder()
@@ -70,10 +71,7 @@ func TestGetAllProducts(t *testing.T) {
 		assert.Equal(t, http.StatusOK, rr.Code, "Expected status code 200, got %d", rr.Code)
 
 		// Декодирование JSON-ответа.
-		var response struct {
-			Total    int                   `json:"total"`
-			Products []models.BriefProduct `json:"products"`
-		}
+		var response models.ProductsResponse
 		err = json.Unmarshal(rr.Body.Bytes(), &response)
 		// Проверка, что декодирование прошло без ошибок.
 		assert.NoError(t, err, "Failed to decode response")
@@ -84,16 +82,16 @@ func TestGetAllProducts(t *testing.T) {
 	})
 
 	t.Run("Repository error case", func(t *testing.T) {
-		// Настройка ожидаемого поведения мока.
-		// Ожидаем, что метод GetAllProducts будет вызван один раз с любым контекстом (gomock.Any()).
-		// В ответ мок вернет ошибку.
-		mockRepo.EXPECT().GetAllProducts(gomock.Any()).Return(nil, errors.New("repository error")).Times(1)
-
 		// Создание HTTP-запроса для эндпоинта /products/.
 		req, err := http.NewRequest("GET", "/products/", nil)
 		if err != nil {
 			t.Fatalf("Failed to create request: %v", err)
 		}
+
+		// Настройка ожидаемого поведения мока.
+		// Ожидаем, что метод GetAllProducts будет вызван один раз с любым контекстом (gomock.Any()).
+		// В ответ мок вернет ошибку.
+		mockRepo.EXPECT().GetAllProducts(req.Context()).Return(nil, errors.New("repository error")).Times(1)
 
 		// Создание ResponseRecorder для записи ответа.
 		rr := httptest.NewRecorder()
@@ -136,10 +134,6 @@ func TestGetProductByID(t *testing.T) {
 			Rating:      4.5,
 		}
 
-		// Настройка ожидаемого поведения мока.
-		// Ожидаем, что метод GetProductByID будет вызван один раз с любым контекстом и testID.
-		mockRepo.EXPECT().GetProductByID(gomock.Any(), testID).Return(testProduct, nil).Times(1)
-
 		// Создание HTTP-запроса с path-параметром.
 		req, err := http.NewRequest("GET", "/products/"+strconv.Itoa(testID), nil)
 		if err != nil {
@@ -152,6 +146,10 @@ func TestGetProductByID(t *testing.T) {
 		}
 		req = mux.SetURLVars(req, vars)
 
+		// Настройка ожидаемого поведения мока.
+		// Используем req.Context() вместо context.Background().
+		mockRepo.EXPECT().GetProductByID(req.Context(), testID).Return(testProduct, nil).Times(1)
+
 		// Создание ResponseRecorder для записи ответа.
 		rr := httptest.NewRecorder()
 
@@ -161,7 +159,7 @@ func TestGetProductByID(t *testing.T) {
 		// Проверка статус-кода ответа.
 		assert.Equal(t, http.StatusOK, rr.Code, "Expected status code 200, got %d", rr.Code)
 
-		// Декодирование JSON-ответа.
+		// Декодирование JSON-ответа.	
 		var product models.Product
 		err = json.Unmarshal(rr.Body.Bytes(), &product)
 		assert.NoError(t, err, "Failed to decode response")
@@ -205,22 +203,21 @@ func TestGetProductByID(t *testing.T) {
 		// Тестовый ID продукта.
 		testID := 1
 
-		// Настройка ожидаемого поведения мока.
-		// Ожидаем, что метод GetProductByID будет вызван один раз с любым контекстом и testID.
-		// В ответ мок вернет ошибку.
-		mockRepo.EXPECT().GetProductByID(gomock.Any(), testID).Return(nil, errors.New("not found")).Times(1)
-
 		// Создание HTTP-запроса с path-параметром.
 		req, err := http.NewRequest("GET", "/products/"+strconv.Itoa(testID), nil)
 		if err != nil {
 			t.Fatalf("Failed to create request: %v", err)
 		}
 
-		// Добавление path-параметра в запрос.
+		// Создание HTTP-запроса с path-параметром.
 		vars := map[string]string{
 			"id": strconv.Itoa(testID),
 		}
 		req = mux.SetURLVars(req, vars)
+
+		// Настройка ожидаемого поведения мока.
+		// Используем req.Context() вместо context.Background().
+		mockRepo.EXPECT().GetProductByID(req.Context(), testID).Return(nil, errors.New("not found")).Times(1)
 
 		// Создание ResponseRecorder для записи ответа.
 		rr := httptest.NewRecorder()
@@ -228,10 +225,18 @@ func TestGetProductByID(t *testing.T) {
 		// Вызов обработчика.
 		handler.GetProductByID(rr, req)
 
+		// Получение результата ответа.
+		resp := rr.Result()
+		defer resp.Body.Close() // Закрываем тело ответа.
+
 		// Проверка статус-кода ответа.
 		assert.Equal(t, http.StatusNotFound, rr.Code, "Expected status code 404, got %d", rr.Code)
 
+		// Чтение тела ответа.
+		body, err := io.ReadAll(resp.Body)
+		assert.NoError(t, err, "Failed to read response body")
+
 		// Проверка тела ответа.
-		assert.Contains(t, rr.Body.String(), "Not found", "Expected error message in response")
+		assert.Contains(t, string(body), "Not found", "Expected error message in response")
 	})
 }
