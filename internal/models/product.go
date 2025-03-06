@@ -31,3 +31,23 @@ func ConvertToBriefProduct(product *Product) BriefProduct{
 		Rating:       product.Rating,
 	}
 }
+
+type ProductsResponse struct {
+	Total    int                   `json:"total"`
+	Products []BriefProduct 		   `json:"products"`
+}
+
+func ConvertToProductsResponse(products []*Product) ProductsResponse {
+	briefProducts := make([]BriefProduct, 0, len(products))
+	for _, product := range products {
+		briefProduct := ConvertToBriefProduct(product)
+		briefProducts = append(briefProducts, briefProduct)
+	}
+
+	response := ProductsResponse{
+		Total: len(briefProducts),
+		Products: briefProducts,
+	}
+
+	return response
+}
