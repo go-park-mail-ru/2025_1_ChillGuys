@@ -13,6 +13,8 @@ import (
 
 // JWTMiddleware проверяет наличие и валидность JWT-токена
 func JWTMiddleware(next http.Handler) http.Handler {
+	tokenator := jwt.Tokenator{}
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Получаем заголовок Authorization
 		authHeader := r.Header.Get("Authorization")
@@ -32,8 +34,6 @@ func JWTMiddleware(next http.Handler) http.Handler {
 
 		// Разбираем токен
 		tokenString := parts[1]
-
-		tokenator := jwt.NewTokenator([]byte("secret-key"))
 
 		// Вызываем ParseJWT через экземпляр Tokenator
 		claims, err := tokenator.ParseJWT(tokenString)

@@ -17,7 +17,6 @@ import (
 	"testing"
 )
 
-// Тест для обработчика аутентификации пользователя (Login)
 func TestAuthHandler_Login(t *testing.T) {
 	ctrl := gomock.NewController(t) // Создание контроллера для моков
 	defer ctrl.Finish()             // Завершаем контроллер после выполнения теста
@@ -25,7 +24,7 @@ func TestAuthHandler_Login(t *testing.T) {
 	// Создаем моки для репозитория пользователей и токенизатора
 	mockRepo := mocks.NewMockIUserRepository(ctrl)
 	mockTokenator := mocks.NewMockITokenator(ctrl)
-	logger := logrus.New() // Создаем логгер
+	logger := logrus.New()
 
 	// Создаем обработчик с моками
 	handler := transport.NewAuthHandler(mockRepo, logger, mockTokenator)
@@ -36,13 +35,12 @@ func TestAuthHandler_Login(t *testing.T) {
 		t.Fatalf("не удалось сгенерировать хеш пароля: %v", err)
 	}
 
-	// Тесты для различных сценариев
 	tests := []struct {
 		name           string
-		request        models.UserLoginRequestDTO // Структура запроса
-		mockBehavior   func()                     // Мокируемое поведение
-		expectedStatus int                        // Ожидаемый статус ответа
-		expectedBody   string                     // Ожидаемое тело ответа
+		request        models.UserLoginRequestDTO
+		mockBehavior   func()
+		expectedStatus int
+		expectedBody   string
 	}{
 		// Тест для успешного входа
 		{
@@ -63,7 +61,7 @@ func TestAuthHandler_Login(t *testing.T) {
 				mockTokenator.EXPECT().CreateJWT(gomock.Any(), gomock.Any()).Return("mocked-jwt-token", nil)
 			},
 			expectedStatus: http.StatusOK,
-			expectedBody:   `{"token":"mocked-jwt-token"}`, // Ожидаем токен в ответе
+			expectedBody:   `{"token":"mocked-jwt-token"}`,
 		},
 		// Тест для некорректного email
 		{
@@ -74,7 +72,7 @@ func TestAuthHandler_Login(t *testing.T) {
 			},
 			mockBehavior:   func() {},
 			expectedStatus: http.StatusBadRequest,
-			expectedBody:   `{"message":"Invalid email"}`, // Ожидаем ошибку для некорректного email
+			expectedBody:   `{"message":"Invalid email"}`,
 		},
 		// Тест для некорректного пароля
 		{
@@ -85,7 +83,7 @@ func TestAuthHandler_Login(t *testing.T) {
 			},
 			mockBehavior:   func() {},
 			expectedStatus: http.StatusBadRequest,
-			expectedBody:   `{"message":"Invalid password: password must be at least 8 characters"}`, // Ожидаем ошибку для короткого пароля
+			expectedBody:   `{"message":"Invalid password: password must be at least 8 characters"}`,
 		},
 		// Тест для случая, когда пользователь не найден
 		{
@@ -98,7 +96,7 @@ func TestAuthHandler_Login(t *testing.T) {
 				mockRepo.EXPECT().GetUserByEmail("notfound@example.com").Return(nil, errors.New("user not found"))
 			},
 			expectedStatus: http.StatusUnauthorized,
-			expectedBody:   `{"message":"Invalid password or email"}`, // Ожидаем ошибку авторизации
+			expectedBody:   `{"message":"Invalid password or email"}`,
 		},
 	}
 
@@ -113,7 +111,6 @@ func TestAuthHandler_Login(t *testing.T) {
 			req.Header.Set("Content-Type", "application/json")
 			w := httptest.NewRecorder() // Записываем в рекордер ответ
 
-			// Вызываем метод Login обработчика
 			handler.Login(w, req)
 
 			// Проверяем статус и тело ответа
@@ -123,7 +120,6 @@ func TestAuthHandler_Login(t *testing.T) {
 	}
 }
 
-// Тест для обработчика регистрации пользователя (Register)
 func TestAuthHandler_Register(t *testing.T) {
 	ctrl := gomock.NewController(t) // Создание контроллера для моков
 	defer ctrl.Finish()             // Завершаем контроллер после выполнения теста
@@ -131,7 +127,7 @@ func TestAuthHandler_Register(t *testing.T) {
 	// Создаем моки для репозитория пользователей и токенизатора
 	mockRepo := mocks.NewMockIUserRepository(ctrl)
 	mockTokenator := mocks.NewMockITokenator(ctrl)
-	logger := logrus.New() // Создаем логгер
+	logger := logrus.New()
 
 	// Создаем обработчик с моками
 	handler := transport.NewAuthHandler(mockRepo, logger, mockTokenator)
@@ -160,7 +156,7 @@ func TestAuthHandler_Register(t *testing.T) {
 				mockTokenator.EXPECT().CreateJWT(gomock.Any(), gomock.Any()).Return("mocked-jwt-token", nil)
 			},
 			expectedStatus: http.StatusOK,
-			expectedBody:   `{"token":"mocked-jwt-token"}`, // Ожидаем токен в ответе
+			expectedBody:   `{"token":"mocked-jwt-token"}`,
 		},
 		// Тест для некорректного email
 		{
@@ -173,7 +169,7 @@ func TestAuthHandler_Register(t *testing.T) {
 			},
 			mockBehavior:   func() {},
 			expectedStatus: http.StatusBadRequest,
-			expectedBody:   `{"message":"Invalid email"}`, // Ожидаем ошибку для некорректного email
+			expectedBody:   `{"message":"Invalid email"}`,
 		},
 		// Тест для уже существующего пользователя
 		{
@@ -189,7 +185,7 @@ func TestAuthHandler_Register(t *testing.T) {
 				mockRepo.EXPECT().GetUserByEmail("existing@example.com").Return(&models.UserRepo{}, nil)
 			},
 			expectedStatus: http.StatusConflict,
-			expectedBody:   `{"message":"User already exists"}`, // Ожидаем ошибку "пользователь уже существует"
+			expectedBody:   `{"message":"User already exists"}`,
 		},
 	}
 
@@ -204,7 +200,6 @@ func TestAuthHandler_Register(t *testing.T) {
 			req.Header.Set("Content-Type", "application/json")
 			w := httptest.NewRecorder() // Записываем в рекордер ответ
 
-			// Вызываем метод Register обработчика
 			handler.Register(w, req)
 
 			// Проверяем статус и тело ответа
@@ -214,7 +209,6 @@ func TestAuthHandler_Register(t *testing.T) {
 	}
 }
 
-// Тест для обработчика выхода пользователя (Logout)
 func TestAuthHandler_Logout(t *testing.T) {
 	ctrl := gomock.NewController(t) // Создание контроллера для моков
 	defer ctrl.Finish()             // Завершаем контроллер после выполнения теста
@@ -249,7 +243,7 @@ func TestAuthHandler_Logout(t *testing.T) {
 			userID:         "",
 			mockBehavior:   func() {},
 			expectedStatus: http.StatusInternalServerError,
-			expectedBody:   `{"message":"user id not found"}`, // Ожидаем ошибку, что ID пользователя не найден
+			expectedBody:   `{"message":"user id not found"}`,
 		},
 		// Тест для ошибки при обновлении версии пользователя
 		{
@@ -259,7 +253,7 @@ func TestAuthHandler_Logout(t *testing.T) {
 				mockRepo.EXPECT().IncrementUserVersion("user-id").Return(errors.New("database error")) // Мокируем ошибку в базе данных
 			},
 			expectedStatus: http.StatusInternalServerError,
-			expectedBody:   `{"message":"database error"}`, // Ожидаем ошибку базы данных
+			expectedBody:   `{"message":"database error"}`,
 		},
 	}
 
@@ -275,7 +269,6 @@ func TestAuthHandler_Logout(t *testing.T) {
 			}
 			w := httptest.NewRecorder() // Записываем в рекордер ответ
 
-			// Вызываем метод Logout обработчика
 			handler.Logout(w, req)
 
 			// Проверяем статус и тело ответа

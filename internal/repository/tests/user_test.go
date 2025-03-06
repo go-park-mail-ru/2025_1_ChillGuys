@@ -13,10 +13,9 @@ func TestCreateUser(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	// Используем repository.NewUserRepository()
 	repo := repository.NewUserRepository()
 	user := models.UserRepo{
-		ID:      uuid.New(), // Генерация UUID с помощью пакета uuid
+		ID:      uuid.New(),
 		Email:   "test@example.com",
 		Version: 1,
 	}
@@ -35,10 +34,9 @@ func TestGetUserByEmail(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	// Используем repository.NewUserRepository()
 	repo := repository.NewUserRepository()
 	user := models.UserRepo{
-		ID:      uuid.New(), // Генерация UUID с помощью пакета uuid
+		ID:      uuid.New(),
 		Email:   "test@example.com",
 		Version: 1,
 	}
@@ -61,10 +59,9 @@ func TestIncrementUserVersion(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	// Используем repository.NewUserRepository()
 	repo := repository.NewUserRepository()
 	user := models.UserRepo{
-		ID:      uuid.New(), // Генерация UUID с помощью пакета uuid
+		ID:      uuid.New(),
 		Email:   "test@example.com",
 		Version: 1,
 	}
@@ -96,10 +93,9 @@ func TestCheckUserVersion(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	// Используем repository.NewUserRepository()
 	repo := repository.NewUserRepository()
 	user := models.UserRepo{
-		ID:      uuid.New(), // Генерация UUID с помощью пакета uuid
+		ID:      uuid.New(),
 		Email:   "test@example.com",
 		Version: 1,
 	}
