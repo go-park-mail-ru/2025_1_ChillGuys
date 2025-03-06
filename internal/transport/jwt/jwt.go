@@ -18,7 +18,8 @@ type JWTClaims struct {
 }
 
 // Tokenator структура для создания и парсинга токенов
-type Tokenator struct{}
+type Tokenator struct {
+}
 
 // NewTokenator создает новый экземпляр Tokenator
 func NewTokenator() *Tokenator {
@@ -55,7 +56,6 @@ func (t *Tokenator) CreateJWT(userID string, version int) (string, error) {
 
 // ParseJWT парсит и валидирует JWT-токен
 func (t *Tokenator) ParseJWT(tokenString string) (*JWTClaims, error) {
-	// Получаем секретный ключ из переменной окружения
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
