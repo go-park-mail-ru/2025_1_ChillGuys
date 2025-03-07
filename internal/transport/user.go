@@ -15,6 +15,12 @@ import (
 
 //go:generate mockgen -source=user.go -destination=../repository/mocks/user_repo_mock.go -package=mocks IUserRepository
 
+var (
+	passwordRegexp = regexp.MustCompile(`^[a-zA-Z0-9]{8,}$`)
+	emailRegexp    = regexp.MustCompile(`^[a-z0-9]+@[a-z0-9]+\.[a-z]{2,4}$`)
+	nameRegexp     = regexp.MustCompile(`^[a-zA-Zа-яА-ЯёЁ\s-]+$`)
+)
+
 type IUserRepository interface {
 	CreateUser(user models.UserRepo) error
 	GetUserByEmail(email string) (*models.UserRepo, error)
@@ -46,7 +52,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		utils.SendErrorResponse(w, http.StatusBadRequest, "Token should not be present in headers")
 		return
 	}
-	
+
 	// Парсим запрос
 	var request models.UserLoginRequestDTO
 	if errStatusCode, errMessage := utils.ParseData(r.Body, &request); errStatusCode != 0 && errMessage != "" {
@@ -186,40 +192,30 @@ func (h *AuthHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	uid, err := uuid.Parse(userIDStr)
+	userID, err := uuid.Parse(userIDStr)
 	if err != nil {
 		utils.SendErrorResponse(w, http.StatusBadRequest, "Invalid user id format")
 		return
 	}
 
-	userRepo, err := h.repo.GetUserByID(uid)
+	userRepo, err := h.repo.GetUserByID(userID)
 	if err != nil {
 		utils.SendErrorResponse(w, http.StatusNotFound, "User not found")
 		return
 	}
 
 	// Проверяем, совпадает ли версия пользователя
-	if userRepo.Version != version {
+	if !userRepo.IsVersionValid(version) {
 		utils.SendErrorResponse(w, http.StatusUnauthorized, "Token is invalid or expired")
 		return
 	}
 
-	user := models.User{
-		ID:          userRepo.ID,
-		Email:       userRepo.Email,
-		Name:        userRepo.Name,
-		Surname:     userRepo.Surname,
-		PhoneNumber: userRepo.PhoneNumber,
-	}
+	// Преобразуем userRepo в user
+	user := userRepo.ConvertToUser()
 
+	// Отправляем успешный ответ с краткой информацией о пользователе
 	utils.SendSuccessResponse(w, http.StatusOK, user)
 }
-
-var (
-	passwordRegexp = regexp.MustCompile(`^[a-zA-Z0-9]{8,}$`)
-	emailRegexp    = regexp.MustCompile(`^[a-z0-9]+@[a-z0-9]+\.[a-z]{2,4}$`)
-	nameRegexp     = regexp.MustCompile(`^[a-zA-Zа-яА-ЯёЁ\s-]+$`)
-)
 
 // validateEmail Функция валидации почты
 func validateEmail(email string) error {

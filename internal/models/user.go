@@ -13,6 +13,16 @@ type User struct {
 	PhoneNumber null.String `json:"phone_number"`
 }
 
+func (repo *UserRepo) ConvertToUser() *User {
+	return &User{
+		ID:          repo.ID,
+		Email:       repo.Email,
+		Name:        repo.Name,
+		Surname:     repo.Surname,
+		PhoneNumber: repo.PhoneNumber,
+	}
+}
+
 type UserLoginRequestDTO struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
@@ -37,4 +47,8 @@ type UserRepo struct {
 	PhoneNumber  null.String
 	PasswordHash []byte
 	Version      int
+}
+
+func (repo *UserRepo) IsVersionValid(version int) bool {
+	return repo.Version == version
 }
