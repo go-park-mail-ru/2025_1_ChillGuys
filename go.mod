@@ -13,6 +13,7 @@ require (
 
 require (
 	github.com/golang/mock v1.6.0
+	github.com/guregu/null v4.0.0+incompatible
 	github.com/joho/godotenv v1.5.1
 	github.com/stretchr/testify v1.10.0
 )

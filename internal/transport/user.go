@@ -41,21 +41,12 @@ func NewAuthHandler(repo IUserRepository, log *logrus.Logger, token ITokenator) 
 	}
 }
 
-type UserHandler struct {
-	repo  IUserRepository
-	token ITokenator
-	log   *logrus.Logger
-}
-
-func NewUserHandler(repo IUserRepository, log *logrus.Logger, token ITokenator) *UserHandler {
-	return &UserHandler{
-		repo:  repo,
-		token: token,
-		log:   log,
-	}
-}
-
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
+	if _, ok := r.Header["Authorization"]; ok {
+		utils.SendErrorResponse(w, http.StatusBadRequest, "Token should not be present in headers")
+		return
+	}
+	
 	// Парсим запрос
 	var request models.UserLoginRequestDTO
 	if errStatusCode, errMessage := utils.ParseData(r.Body, &request); errStatusCode != 0 && errMessage != "" {
@@ -89,7 +80,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Генерация токена
-	token, err := h.token.CreateJWT(userRepo.ID.String(), userRepo.Version)
+	token, err := h.token.CreateJWT(userRepo.ID.String(), 1)
 	if err != nil {
 		utils.SendErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
@@ -123,11 +114,6 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 	if err := validateName(request.Name); err != nil {
 		utils.SendErrorResponse(w, http.StatusBadRequest, "Invalid name")
-		return
-	}
-
-	if err := validateName(request.Surname); err != nil {
-		utils.SendErrorResponse(w, http.StatusBadRequest, "Invalid surname")
 		return
 	}
 
@@ -186,7 +172,7 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	utils.SendSuccessResponse(w, http.StatusOK, nil)
 }
 
-func (h *UserHandler) GetMe(w http.ResponseWriter, r *http.Request) {
+func (h *AuthHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 	// Получаем ID и версию из контекста (устанавливается в JWTMiddleware)
 	userIDStr, ok := r.Context().Value("userID").(string)
 	if !ok {

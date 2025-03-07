@@ -1,13 +1,16 @@
 package models
 
-import "github.com/google/uuid"
+import (
+	"github.com/google/uuid"
+	"github.com/guregu/null"
+)
 
 type User struct {
-	ID          uuid.UUID `json:"id"`
-	Email       string    `json:"email"`
-	Name        string    `json:"name"`
-	Surname     string    `json:"surname"`
-	PhoneNumber string    `json:"phone_number"`
+	ID          uuid.UUID   `json:"id"`
+	Email       string      `json:"email"`
+	Name        string      `json:"name"`
+	Surname     null.String `json:"surname"`
+	PhoneNumber null.String `json:"phone_number"`
 }
 
 type UserLoginRequestDTO struct {
@@ -16,10 +19,10 @@ type UserLoginRequestDTO struct {
 }
 
 type UserRegisterRequestDTO struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
-	Name     string `json:"name"`
-	Surname  string `json:"surname"`
+	Email    string      `json:"email"`
+	Password string      `json:"password"`
+	Name     string      `json:"name"`
+	Surname  null.String `json:"surname"`
 }
 
 type UserResponseDTO struct {
@@ -30,8 +33,8 @@ type UserRepo struct {
 	ID           uuid.UUID
 	Email        string
 	Name         string
-	Surname      string
-	PhoneNumber  string
+	Surname      null.String
+	PhoneNumber  null.String
 	PasswordHash []byte
 	Version      int
 }
