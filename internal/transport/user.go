@@ -48,7 +48,6 @@ func NewAuthHandler(repo IUserRepository, log *logrus.Logger, token ITokenator) 
 }
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
-
 	// Парсим запрос
 	var request models.UserLoginRequestDTO
 	if errStatusCode, errMessage := utils.ParseData(r.Body, &request); errStatusCode != 0 && errMessage != "" {
@@ -88,14 +87,13 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.Cookie(w, token, "token")
+	utils.Cookie(w, token, string(utils.Token))
 
 	// Отправляем успешный ответ с токеном и версией
 	utils.SendSuccessResponse(w, http.StatusOK, nil)
 }
 
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
-
 	// Парсим
 	var request models.UserRegisterRequestDTO
 	if errStatusCode, errMessage := utils.ParseData(r.Body, &request); errStatusCode != 0 && errMessage != "" {
@@ -154,7 +152,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.Cookie(w, token, "token")
+	utils.Cookie(w, token, string(utils.Token))
 
 	utils.SendSuccessResponse(w, http.StatusOK, nil)
 }
@@ -171,7 +169,7 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.Cookie(w, "", "token")
+	utils.Cookie(w, "", string(utils.Token))
 
 	utils.SendSuccessResponse(w, http.StatusOK, nil)
 }
