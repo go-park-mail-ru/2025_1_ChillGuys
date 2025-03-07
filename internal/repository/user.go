@@ -2,6 +2,7 @@ package repository
 
 import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
+	"github.com/google/uuid"
 	"sync"
 )
 
@@ -42,6 +43,19 @@ func (r *UserRepository) GetUserByEmail(email string) (*models.UserRepo, error) 
 
 	for _, user := range r.users {
 		if user.Email == email {
+			return &user, nil
+		}
+	}
+
+	return nil, models.ErrUserNotFound
+}
+
+func (r *UserRepository) GetUserByID(id uuid.UUID) (*models.UserRepo, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	for _, user := range r.users {
+		if user.ID == id {
 			return &user, nil
 		}
 	}

@@ -18,6 +18,7 @@ import (
 type IUserRepository interface {
 	CreateUser(user models.UserRepo) error
 	GetUserByEmail(email string) (*models.UserRepo, error)
+	GetUserByID(id uuid.UUID) (*models.UserRepo, error)
 	IncrementUserVersion(userID string) error
 }
 
@@ -40,9 +41,22 @@ func NewAuthHandler(repo IUserRepository, log *logrus.Logger, token ITokenator) 
 	}
 }
 
-func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
+type UserHandler struct {
+	repo  IUserRepository
+	token ITokenator
+	log   *logrus.Logger
+}
 
-	// Парсим
+func NewUserHandler(repo IUserRepository, log *logrus.Logger, token ITokenator) *UserHandler {
+	return &UserHandler{
+		repo:  repo,
+		token: token,
+		log:   log,
+	}
+}
+
+func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
+	// Парсим запрос
 	var request models.UserLoginRequestDTO
 	if errStatusCode, errMessage := utils.ParseData(r.Body, &request); errStatusCode != 0 && errMessage != "" {
 		utils.SendErrorResponse(w, errStatusCode, errMessage)
@@ -60,7 +74,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Получаем данные пользоваетеля из бд
+	// Получаем данные пользователя из базы данных
 	userRepo, err := h.repo.GetUserByEmail(request.Email)
 	if err != nil {
 		h.log.Warn(err.Error())
@@ -68,19 +82,20 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Проверяем совпадение пароли
+	// Проверяем совпадение пароля
 	if err := bcrypt.CompareHashAndPassword(userRepo.PasswordHash, []byte(request.Password)); err != nil {
 		utils.SendErrorResponse(w, http.StatusUnauthorized, "Invalid password or email")
 		return
 	}
 
-	// Вызываем CreateJWT
-	token, err := h.token.CreateJWT(userRepo.ID.String(), 1)
+	// Генерация токена
+	token, err := h.token.CreateJWT(userRepo.ID.String(), userRepo.Version)
 	if err != nil {
 		utils.SendErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
+	// Отправляем успешный ответ с токеном и версией
 	utils.SendSuccessResponse(w, http.StatusOK, &models.UserResponseDTO{
 		Token: token,
 	})
@@ -159,7 +174,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	userID, isExist := r.Context().Value("userID").(string)
 	if !isExist {
-		utils.SendErrorResponse(w, http.StatusInternalServerError, "user id not found")
+		utils.SendErrorResponse(w, http.StatusInternalServerError, "User id not found")
 		return
 	}
 
@@ -169,6 +184,49 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.SendSuccessResponse(w, http.StatusOK, nil)
+}
+
+func (h *UserHandler) GetMe(w http.ResponseWriter, r *http.Request) {
+	// Получаем ID и версию из контекста (устанавливается в JWTMiddleware)
+	userIDStr, ok := r.Context().Value("userID").(string)
+	if !ok {
+		utils.SendErrorResponse(w, http.StatusInternalServerError, "User id not found")
+		return
+	}
+
+	version, ok := r.Context().Value("userVersion").(int)
+	if !ok {
+		utils.SendErrorResponse(w, http.StatusInternalServerError, "User version not found")
+		return
+	}
+
+	uid, err := uuid.Parse(userIDStr)
+	if err != nil {
+		utils.SendErrorResponse(w, http.StatusBadRequest, "Invalid user id format")
+		return
+	}
+
+	userRepo, err := h.repo.GetUserByID(uid)
+	if err != nil {
+		utils.SendErrorResponse(w, http.StatusNotFound, "User not found")
+		return
+	}
+
+	// Проверяем, совпадает ли версия пользователя
+	if userRepo.Version != version {
+		utils.SendErrorResponse(w, http.StatusUnauthorized, "Token is invalid or expired")
+		return
+	}
+
+	user := models.User{
+		ID:          userRepo.ID,
+		Email:       userRepo.Email,
+		Name:        userRepo.Name,
+		Surname:     userRepo.Surname,
+		PhoneNumber: userRepo.PhoneNumber,
+	}
+
+	utils.SendSuccessResponse(w, http.StatusOK, user)
 }
 
 var (

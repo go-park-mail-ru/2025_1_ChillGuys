@@ -8,7 +8,6 @@ type User struct {
 	Name        string    `json:"name"`
 	Surname     string    `json:"surname"`
 	PhoneNumber string    `json:"phone_number"`
-	Version     string    `json:"version"`
 }
 
 type UserLoginRequestDTO struct {
@@ -32,6 +31,7 @@ type UserRepo struct {
 	Email        string
 	Name         string
 	Surname      string
+	PhoneNumber  string
 	PasswordHash []byte
 	Version      int
 }

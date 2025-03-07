@@ -53,6 +53,7 @@ func JWTMiddleware(next http.Handler) http.Handler {
 		// Можно передавать UserID в контексте запроса
 		ctx := r.Context()
 		ctx = context.WithValue(ctx, "userID", claims.UserID)
+		ctx = context.WithValue(ctx, "userVersion", claims.Version)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

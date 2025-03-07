@@ -55,6 +55,31 @@ func TestGetUserByEmail(t *testing.T) {
 	assert.Equal(t, models.ErrUserNotFound, err)
 }
 
+func TestGetUserByID(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	repo := repository.NewUserRepository()
+	user := models.UserRepo{
+		ID:      uuid.New(),
+		Email:   "test@example.com",
+		Version: 1,
+	}
+
+	// Создаем пользователя
+	err := repo.CreateUser(user)
+	assert.NoError(t, err)
+
+	// Проверяем получение пользователя по ID
+	storedUser, err := repo.GetUserByID(user.ID)
+	assert.NoError(t, err)
+	assert.Equal(t, user.ID, storedUser.ID)
+
+	// Проверяем несуществующего пользователя
+	_, err = repo.GetUserByID(uuid.New())
+	assert.Equal(t, models.ErrUserNotFound, err)
+}
+
 func TestIncrementUserVersion(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
