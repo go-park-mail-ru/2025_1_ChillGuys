@@ -39,7 +39,7 @@ func main() {
 		).Methods("POST")
 	}
 
-	userRouter := router.PathPrefix("/user").Subrouter()
+	userRouter := router.PathPrefix("/users").Subrouter()
 	{
 		userRouter.Handle("/me", middleware.JWTMiddleware(
 			http.HandlerFunc(userHandler.GetMe)),
