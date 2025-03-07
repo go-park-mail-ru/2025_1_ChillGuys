@@ -48,10 +48,6 @@ func NewAuthHandler(repo IUserRepository, log *logrus.Logger, token ITokenator) 
 }
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
-	if _, ok := r.Header["Authorization"]; ok {
-		utils.SendErrorResponse(w, http.StatusBadRequest, "Token should not be present in headers")
-		return
-	}
 
 	// Парсим запрос
 	var request models.UserLoginRequestDTO
@@ -92,10 +88,10 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	utils.Cookie(w, token, "token")
+
 	// Отправляем успешный ответ с токеном и версией
-	utils.SendSuccessResponse(w, http.StatusOK, &models.UserResponseDTO{
-		Token: token,
-	})
+	utils.SendSuccessResponse(w, http.StatusOK, nil)
 }
 
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
@@ -158,9 +154,9 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.SendSuccessResponse(w, http.StatusOK, &models.UserResponseDTO{
-		Token: token,
-	})
+	utils.Cookie(w, token, "token")
+
+	utils.SendSuccessResponse(w, http.StatusOK, nil)
 }
 
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
@@ -174,6 +170,8 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 		utils.SendErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+
+	utils.Cookie(w, "", "token")
 
 	utils.SendSuccessResponse(w, http.StatusOK, nil)
 }
@@ -204,7 +202,7 @@ func (h *AuthHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Проверяем, совпадает ли версия пользователя
+	//Проверяем, совпадает ли версия пользователя
 	if !userRepo.IsVersionValid(version) {
 		utils.SendErrorResponse(w, http.StatusUnauthorized, "Token is invalid or expired")
 		return
