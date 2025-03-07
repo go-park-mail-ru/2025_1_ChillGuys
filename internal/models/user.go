@@ -50,5 +50,5 @@ type UserRepo struct {
 }
 
 func (repo *UserRepo) IsVersionValid(version int) bool {
-	return repo.Version != version
+	return repo.Version == version
 }

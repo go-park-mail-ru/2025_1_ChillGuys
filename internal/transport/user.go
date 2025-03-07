@@ -82,7 +82,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Генерация токена
-	token, err := h.token.CreateJWT(userRepo.ID.String(), 1)
+	token, err := h.token.CreateJWT(userRepo.ID.String(), userRepo.Version)
 	if err != nil {
 		utils.SendErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
