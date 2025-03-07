@@ -1,6 +1,10 @@
 package models
 
-import "fmt"
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+)
 
 type Product struct {
 	ID           int     `json:"id"`
@@ -22,10 +26,19 @@ type BriefProduct struct {
 }
 
 func ConvertToBriefProduct(product *Product) BriefProduct{
+	coverPath := filepath.Join("./media", fmt.Sprintf("product-%s", product.ID), "cover.jpeg")
+
+	imageURL := fmt.Sprintf("media/product-%s/cover.jpeg", product.ID)
+
+	if _, err := os.Stat(coverPath); os.IsNotExist(err) {
+		// Если файл не существует, используем дефолтный URL
+		imageURL = "media/product-default/cover.jpeg"
+	}
+
 	return BriefProduct{
 		ID:           product.ID,
 		Name:         product.Name,
-		ImageURL:     fmt.Sprintf("media/products/product-%d.jpeg", product.ID),
+		ImageURL:     imageURL,
 		Price:        product.Price,
 		ReviewsCount: product.ReviewsCount,
 		Rating:       product.Rating,

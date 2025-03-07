@@ -10,6 +10,7 @@ import (
 	models "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 	jwt "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
 	gomock "github.com/golang/mock/gomock"
+	uuid "github.com/google/uuid"
 )
 
 // MockIUserRepository is a mock of IUserRepository interface.
@@ -62,6 +63,21 @@ func (m *MockIUserRepository) GetUserByEmail(email string) (*models.UserRepo, er
 func (mr *MockIUserRepositoryMockRecorder) GetUserByEmail(email interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserByEmail", reflect.TypeOf((*MockIUserRepository)(nil).GetUserByEmail), email)
+}
+
+// GetUserByID mocks base method.
+func (m *MockIUserRepository) GetUserByID(id uuid.UUID) (*models.UserRepo, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUserByID", id)
+	ret0, _ := ret[0].(*models.UserRepo)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUserByID indicates an expected call of GetUserByID.
+func (mr *MockIUserRepositoryMockRecorder) GetUserByID(id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserByID", reflect.TypeOf((*MockIUserRepository)(nil).GetUserByID), id)
 }
 
 // IncrementUserVersion mocks base method.

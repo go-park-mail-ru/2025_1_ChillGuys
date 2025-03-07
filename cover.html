@@ -1,0 +1,1212 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>app: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">github.com/go-park-mail-ru/2025_1_ChillGuys/cmd/app/main.go (0.0%)</option>
+				
+				<option value="file1">github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/product.go (100.0%)</option>
+				
+				<option value="file2">github.com/go-park-mail-ru/2025_1_ChillGuys/internal/repository/mocks/product_repo_mock.go (100.0%)</option>
+				
+				<option value="file3">github.com/go-park-mail-ru/2025_1_ChillGuys/internal/repository/mocks/user_repo_mock.go (70.8%)</option>
+				
+				<option value="file4">github.com/go-park-mail-ru/2025_1_ChillGuys/internal/repository/product.go (81.8%)</option>
+				
+				<option value="file5">github.com/go-park-mail-ru/2025_1_ChillGuys/internal/repository/user.go (96.8%)</option>
+				
+				<option value="file6">github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt/jwt.go (0.0%)</option>
+				
+				<option value="file7">github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/cors.go (0.0%)</option>
+				
+				<option value="file8">github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/jwt.go (0.0%)</option>
+				
+				<option value="file9">github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/product.go (69.6%)</option>
+				
+				<option value="file10">github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/user.go (70.9%)</option>
+				
+				<option value="file11">github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/response.go (80.0%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package main
+
+import (
+        "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/repository"
+        "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport"
+        "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
+        "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware"
+        "github.com/gorilla/mux"
+        "github.com/sirupsen/logrus"
+        "net/http"
+        "time"
+)
+
+func main() <span class="cov0" title="0">{
+        logger := logrus.New()
+
+        userRepo := repository.NewUserRepository()
+        tokenator := jwt.NewTokenator()
+        authHandler := transport.NewAuthHandler(userRepo, logger, tokenator)
+
+        productRepo := repository.NewProductRepo()
+        productHandler := transport.NewProductHandler(productRepo, logger)
+
+        router := mux.NewRouter().PathPrefix("/api").Subrouter()
+        router.Use(middleware.CORSMiddleware)
+
+        productsRouter := router.PathPrefix("/products").Subrouter()
+        </span><span class="cov0" title="0">{
+                productsRouter.HandleFunc("/", productHandler.GetAllProducts).Methods("GET")
+                productsRouter.HandleFunc("/{id}", productHandler.GetProductByID).Methods("GET")
+                productsRouter.HandleFunc("/{id}/cover", productHandler.GetCoverProduct).Methods("GET")
+        }</span>
+
+        <span class="cov0" title="0">authRouter := router.PathPrefix("/auth").Subrouter()
+        </span><span class="cov0" title="0">{
+                authRouter.HandleFunc("/login", authHandler.Login).Methods("POST")
+                authRouter.HandleFunc("/register", authHandler.Register).Methods("POST")
+                authRouter.Handle("/logout", middleware.JWTMiddleware(
+                        http.HandlerFunc(authHandler.Logout)),
+                ).Methods("POST")
+        }</span>
+
+        <span class="cov0" title="0">srv := &amp;http.Server{
+                Handler:      router,
+                Addr:         ":8081",
+                WriteTimeout: 10 * time.Second,
+                ReadTimeout:  10 * time.Second,
+                IdleTimeout:  30 * time.Second,
+        }
+
+        logger.Infof("starting server on port %s", srv.Addr)
+        err := srv.ListenAndServe()
+        if err != nil </span><span class="cov0" title="0">{
+                logger.Errorf("server error: %v", err)
+        }</span>
+}
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package models
+
+import (
+        "fmt"
+        "os"
+        "path/filepath"
+)
+
+type Product struct {
+        ID           int     `json:"id"`
+        Name         string  `json:"name"`
+        Description  string  `json:"description"`
+        Count        uint    `json:"count"`
+        Price        uint    `json:"price"`
+        ReviewsCount uint    `json:"reviews_count"`
+        Rating       float64 `json:"rating"`
+}
+
+type BriefProduct struct {
+        ID           int     `json:"id"`
+        Name         string  `json:"name"`
+        ImageURL     string  `json:"image"`
+        Price        uint    `json:"price"`
+        ReviewsCount uint    `json:"reviews_count"`
+        Rating       float64 `json:"rating"`
+}
+
+func ConvertToBriefProduct(product *Product) BriefProduct<span class="cov8" title="1">{
+        coverPath := filepath.Join("./media", fmt.Sprintf("product-%s", product.ID), "cover.jpeg")
+
+        imageURL := fmt.Sprintf("media/product-%s/cover.jpeg", product.ID)
+
+        if _, err := os.Stat(coverPath); os.IsNotExist(err) </span><span class="cov8" title="1">{
+                // Если файл не существует, используем дефолтный URL
+                imageURL = "media/product-default/cover.jpeg"
+        }</span>
+
+        <span class="cov8" title="1">return BriefProduct{
+                ID:           product.ID,
+                Name:         product.Name,
+                ImageURL:     imageURL,
+                Price:        product.Price,
+                ReviewsCount: product.ReviewsCount,
+                Rating:       product.Rating,
+        }</span>
+}
+
+type ProductsResponse struct {
+        Total    int                   `json:"total"`
+        Products []BriefProduct                    `json:"products"`
+}
+
+func ConvertToProductsResponse(products []*Product) ProductsResponse <span class="cov8" title="1">{
+        briefProducts := make([]BriefProduct, 0, len(products))
+        for _, product := range products </span><span class="cov8" title="1">{
+                briefProduct := ConvertToBriefProduct(product)
+                briefProducts = append(briefProducts, briefProduct)
+        }</span>
+
+        <span class="cov8" title="1">response := ProductsResponse{
+                Total: len(briefProducts),
+                Products: briefProducts,
+        }
+
+        return response</span>
+}</pre>
+		
+		<pre class="file" id="file2" style="display: none">// Code generated by MockGen. DO NOT EDIT.
+// Source: product.go
+
+// Package mocks is a generated GoMock package.
+package mocks
+
+import (
+        context "context"
+        reflect "reflect"
+
+        models "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
+        gomock "github.com/golang/mock/gomock"
+)
+
+// MockIProductRepo is a mock of IProductRepo interface.
+type MockIProductRepo struct {
+        ctrl     *gomock.Controller
+        recorder *MockIProductRepoMockRecorder
+}
+
+// MockIProductRepoMockRecorder is the mock recorder for MockIProductRepo.
+type MockIProductRepoMockRecorder struct {
+        mock *MockIProductRepo
+}
+
+// NewMockIProductRepo creates a new mock instance.
+func NewMockIProductRepo(ctrl *gomock.Controller) *MockIProductRepo <span class="cov8" title="1">{
+        mock := &amp;MockIProductRepo{ctrl: ctrl}
+        mock.recorder = &amp;MockIProductRepoMockRecorder{mock}
+        return mock
+}</span>
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockIProductRepo) EXPECT() *MockIProductRepoMockRecorder <span class="cov8" title="1">{
+        return m.recorder
+}</span>
+
+// GetAllProducts mocks base method.
+func (m *MockIProductRepo) GetAllProducts(ctx context.Context) ([]*models.Product, error) <span class="cov8" title="1">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "GetAllProducts", ctx)
+        ret0, _ := ret[0].([]*models.Product)
+        ret1, _ := ret[1].(error)
+        return ret0, ret1
+}</span>
+
+// GetAllProducts indicates an expected call of GetAllProducts.
+func (mr *MockIProductRepoMockRecorder) GetAllProducts(ctx interface{}) *gomock.Call <span class="cov8" title="1">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllProducts", reflect.TypeOf((*MockIProductRepo)(nil).GetAllProducts), ctx)
+}</span>
+
+// GetCoverPathProduct mocks base method.
+func (m *MockIProductRepo) GetCoverPathProduct(ctx context.Context, id int) string <span class="cov8" title="1">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "GetCoverPathProduct", ctx, id)
+        ret0, _ := ret[0].(string)
+        return ret0
+}</span>
+
+// GetCoverPathProduct indicates an expected call of GetCoverPathProduct.
+func (mr *MockIProductRepoMockRecorder) GetCoverPathProduct(ctx, id interface{}) *gomock.Call <span class="cov8" title="1">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCoverPathProduct", reflect.TypeOf((*MockIProductRepo)(nil).GetCoverPathProduct), ctx, id)
+}</span>
+
+// GetProductByID mocks base method.
+func (m *MockIProductRepo) GetProductByID(ctx context.Context, id int) (*models.Product, error) <span class="cov8" title="1">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "GetProductByID", ctx, id)
+        ret0, _ := ret[0].(*models.Product)
+        ret1, _ := ret[1].(error)
+        return ret0, ret1
+}</span>
+
+// GetProductByID indicates an expected call of GetProductByID.
+func (mr *MockIProductRepoMockRecorder) GetProductByID(ctx, id interface{}) *gomock.Call <span class="cov8" title="1">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProductByID", reflect.TypeOf((*MockIProductRepo)(nil).GetProductByID), ctx, id)
+}</span>
+</pre>
+		
+		<pre class="file" id="file3" style="display: none">// Code generated by MockGen. DO NOT EDIT.
+// Source: user.go
+
+// Package mocks is a generated GoMock package.
+package mocks
+
+import (
+        reflect "reflect"
+
+        models "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
+        jwt "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
+        gomock "github.com/golang/mock/gomock"
+        uuid "github.com/google/uuid"
+)
+
+// MockIUserRepository is a mock of IUserRepository interface.
+type MockIUserRepository struct {
+        ctrl     *gomock.Controller
+        recorder *MockIUserRepositoryMockRecorder
+}
+
+// MockIUserRepositoryMockRecorder is the mock recorder for MockIUserRepository.
+type MockIUserRepositoryMockRecorder struct {
+        mock *MockIUserRepository
+}
+
+// NewMockIUserRepository creates a new mock instance.
+func NewMockIUserRepository(ctrl *gomock.Controller) *MockIUserRepository <span class="cov8" title="1">{
+        mock := &amp;MockIUserRepository{ctrl: ctrl}
+        mock.recorder = &amp;MockIUserRepositoryMockRecorder{mock}
+        return mock
+}</span>
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockIUserRepository) EXPECT() *MockIUserRepositoryMockRecorder <span class="cov8" title="1">{
+        return m.recorder
+}</span>
+
+// CreateUser mocks base method.
+func (m *MockIUserRepository) CreateUser(user models.UserRepo) error <span class="cov8" title="1">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "CreateUser", user)
+        ret0, _ := ret[0].(error)
+        return ret0
+}</span>
+
+// CreateUser indicates an expected call of CreateUser.
+func (mr *MockIUserRepositoryMockRecorder) CreateUser(user interface{}) *gomock.Call <span class="cov8" title="1">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateUser", reflect.TypeOf((*MockIUserRepository)(nil).CreateUser), user)
+}</span>
+
+// GetUserByEmail mocks base method.
+func (m *MockIUserRepository) GetUserByEmail(email string) (*models.UserRepo, error) <span class="cov8" title="1">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "GetUserByEmail", email)
+        ret0, _ := ret[0].(*models.UserRepo)
+        ret1, _ := ret[1].(error)
+        return ret0, ret1
+}</span>
+
+// GetUserByEmail indicates an expected call of GetUserByEmail.
+func (mr *MockIUserRepositoryMockRecorder) GetUserByEmail(email interface{}) *gomock.Call <span class="cov8" title="1">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserByEmail", reflect.TypeOf((*MockIUserRepository)(nil).GetUserByEmail), email)
+}</span>
+
+// GetUserByID mocks base method.
+func (m *MockIUserRepository) GetUserByID(id uuid.UUID) (*models.UserRepo, error) <span class="cov0" title="0">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "GetUserByID", id)
+        ret0, _ := ret[0].(*models.UserRepo)
+        ret1, _ := ret[1].(error)
+        return ret0, ret1
+}</span>
+
+// GetUserByID indicates an expected call of GetUserByID.
+func (mr *MockIUserRepositoryMockRecorder) GetUserByID(id interface{}) *gomock.Call <span class="cov0" title="0">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserByID", reflect.TypeOf((*MockIUserRepository)(nil).GetUserByID), id)
+}</span>
+
+// IncrementUserVersion mocks base method.
+func (m *MockIUserRepository) IncrementUserVersion(userID string) error <span class="cov8" title="1">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "IncrementUserVersion", userID)
+        ret0, _ := ret[0].(error)
+        return ret0
+}</span>
+
+// IncrementUserVersion indicates an expected call of IncrementUserVersion.
+func (mr *MockIUserRepositoryMockRecorder) IncrementUserVersion(userID interface{}) *gomock.Call <span class="cov8" title="1">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IncrementUserVersion", reflect.TypeOf((*MockIUserRepository)(nil).IncrementUserVersion), userID)
+}</span>
+
+// MockITokenator is a mock of ITokenator interface.
+type MockITokenator struct {
+        ctrl     *gomock.Controller
+        recorder *MockITokenatorMockRecorder
+}
+
+// MockITokenatorMockRecorder is the mock recorder for MockITokenator.
+type MockITokenatorMockRecorder struct {
+        mock *MockITokenator
+}
+
+// NewMockITokenator creates a new mock instance.
+func NewMockITokenator(ctrl *gomock.Controller) *MockITokenator <span class="cov8" title="1">{
+        mock := &amp;MockITokenator{ctrl: ctrl}
+        mock.recorder = &amp;MockITokenatorMockRecorder{mock}
+        return mock
+}</span>
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockITokenator) EXPECT() *MockITokenatorMockRecorder <span class="cov8" title="1">{
+        return m.recorder
+}</span>
+
+// CreateJWT mocks base method.
+func (m *MockITokenator) CreateJWT(userID string, version int) (string, error) <span class="cov8" title="1">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "CreateJWT", userID, version)
+        ret0, _ := ret[0].(string)
+        ret1, _ := ret[1].(error)
+        return ret0, ret1
+}</span>
+
+// CreateJWT indicates an expected call of CreateJWT.
+func (mr *MockITokenatorMockRecorder) CreateJWT(userID, version interface{}) *gomock.Call <span class="cov8" title="1">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateJWT", reflect.TypeOf((*MockITokenator)(nil).CreateJWT), userID, version)
+}</span>
+
+// ParseJWT mocks base method.
+func (m *MockITokenator) ParseJWT(tokenString string) (*jwt.JWTClaims, error) <span class="cov0" title="0">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "ParseJWT", tokenString)
+        ret0, _ := ret[0].(*jwt.JWTClaims)
+        ret1, _ := ret[1].(error)
+        return ret0, ret1
+}</span>
+
+// ParseJWT indicates an expected call of ParseJWT.
+func (mr *MockITokenatorMockRecorder) ParseJWT(tokenString interface{}) *gomock.Call <span class="cov0" title="0">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParseJWT", reflect.TypeOf((*MockITokenator)(nil).ParseJWT), tokenString)
+}</pre>
+		
+		<pre class="file" id="file4" style="display: none">package repository
+
+import (
+        "context"
+        "fmt"
+        "os"
+        "path/filepath"
+        "sync"
+
+        "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
+)
+
+type ProductRepo struct{
+        storage map[int]*models.Product
+        order []int 
+        mu sync.RWMutex
+}
+
+var products = []models.Product{
+        {ID: 1, Name: "Смартфон Xiaomi Redmi Note 10", Description: "Смартфон с AMOLED-дисплеем и камерой 48 Мп", Count: 50, Price: 19999, ReviewsCount: 120, Rating: 4.5},
+        {ID: 2, Name: "Ноутбук ASUS VivoBook 15", Description: "Ноутбук с процессором Intel Core i5 и SSD на 512 ГБ", Count: 30, Price: 54999, ReviewsCount: 80, Rating: 4.7},
+        {ID: 3, Name: "Наушники Sony WH-1000XM4", Description: "Беспроводные наушники с шумоподавлением", Count: 25, Price: 29999, ReviewsCount: 200, Rating: 4.8},
+        {ID: 4, Name: "Фитнес-браслет Xiaomi Mi Band 6", Description: "Фитнес-браслет с AMOLED-дисплеем и мониторингом сна", Count: 100, Price: 3999, ReviewsCount: 300, Rating: 4.6},
+        {ID: 5, Name: "Пылесос Dyson V11", Description: "Беспроводной пылесос с мощным всасыванием", Count: 15, Price: 59999, ReviewsCount: 90, Rating: 4.9},
+        {ID: 6, Name: "Кофемашина DeLonghi Magnifica", Description: "Автоматическая кофемашина для приготовления эспрессо", Count: 10, Price: 79999, ReviewsCount: 70, Rating: 4.7},
+        {ID: 7, Name: "Электросамокат Xiaomi Mi Scooter 3", Description: "Электросамокат с запасом хода 30 км", Count: 40, Price: 29999, ReviewsCount: 150, Rating: 4.5},
+        {ID: 8, Name: "Умная колонка Яндекс.Станция Мини", Description: "Умная колонка с голосовым помощником Алисой", Count: 60, Price: 7999, ReviewsCount: 250, Rating: 4.4},
+        {ID: 9, Name: "Монитор Samsung Odyssey G5", Description: "Игровой монитор с разрешением 1440p и частотой 144 Гц", Count: 20, Price: 34999, ReviewsCount: 100, Rating: 4.6},
+        {ID: 10, Name: "Электрочайник Bosch TWK 3A011", Description: "Электрочайник с мощностью 2400 Вт", Count: 50, Price: 1999, ReviewsCount: 180, Rating: 4.3},
+        {ID: 11, Name: "Робот-пылесос iRobot Roomba 981", Description: "Робот-пылесос с навигацией по карте помещения", Count: 12, Price: 69999, ReviewsCount: 60, Rating: 4.8},
+        {ID: 12, Name: "Фен Dyson Supersonic", Description: "Фен с технологией защиты волос от перегрева", Count: 18, Price: 49999, ReviewsCount: 130, Rating: 4.7},
+        {ID: 13, Name: "Микроволновая печь LG MS-2042DB", Description: "Микроволновка с объемом 20 литров", Count: 35, Price: 8999, ReviewsCount: 110, Rating: 4.2},
+        {ID: 14, Name: "Игровая консоль PlayStation 5", Description: "Игровая консоль нового поколения", Count: 5, Price: 79999, ReviewsCount: 300, Rating: 4.9},
+        {ID: 15, Name: "Электронная книга PocketBook 740", Description: "Электронная книга с экраном E Ink Carta", Count: 25, Price: 19999, ReviewsCount: 90, Rating: 4.4},
+}
+
+//функция заполнения тестовыми данными
+func (r *ProductRepo) populateMockData() <span class="cov8" title="1">{
+        r.mu.Lock()
+        defer r.mu.Unlock()
+
+        // Заполнение хранилища и порядка
+        for _, product := range products </span><span class="cov8" title="1">{
+                r.storage[product.ID] = &amp;product
+                r.order = append(r.order, product.ID)
+        }</span>
+}
+
+//создание репозитория с заполнением данными
+func NewProductRepo() *ProductRepo <span class="cov8" title="1">{
+        repo := &amp;ProductRepo{
+                storage: make(map[int]*models.Product),
+                order: make([]int, 0),
+                mu: sync.RWMutex{},
+        }
+
+        repo.populateMockData()
+
+        return repo
+}</span>
+
+//получение основной информации всех товаров
+func (p *ProductRepo) GetAllProducts(ctx context.Context) ([]*models.Product, error) <span class="cov8" title="1">{ //nolint:unparam
+        productList := make([]*models.Product, 0, len(p.storage))
+        p.mu.RLock()
+        defer p.mu.RUnlock()
+
+        for _, id := range p.order </span><span class="cov8" title="1">{
+        productList = append(productList, p.storage[id])
+    }</span>
+
+        <span class="cov8" title="1">return productList, nil</span>
+}
+
+//получение товара по id
+func (p *ProductRepo) GetProductByID(ctx context.Context, id int) (*models.Product, error) <span class="cov8" title="1">{
+    product, exists := p.storage[id]
+    if !exists </span><span class="cov8" title="1">{
+        return nil, fmt.Errorf("product with ID %d not found", id)
+    }</span>
+        
+    <span class="cov8" title="1">return product, nil</span>
+}
+
+func (p *ProductRepo) GetCoverPathProduct(ctx context.Context, id int) string<span class="cov0" title="0">{
+        coverPath := filepath.Join("./media", fmt.Sprintf("product-%s", id), "cover.jpeg")
+
+        if _, err := os.Stat(coverPath); os.IsNotExist(err) </span><span class="cov0" title="0">{
+                coverPath = filepath.Join("./media", "product-default", "cover.jpeg")
+        }</span>
+
+        <span class="cov0" title="0">return coverPath</span>
+}</pre>
+		
+		<pre class="file" id="file5" style="display: none">package repository
+
+import (
+        "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
+        "sync"
+)
+
+type UserRepository struct {
+        users map[string]models.UserRepo
+        mu    sync.RWMutex
+}
+
+func NewUserRepository() *UserRepository <span class="cov8" title="1">{
+        return &amp;UserRepository{
+                users: map[string]models.UserRepo{},
+        }
+}</span>
+
+func (r *UserRepository) CreateUser(user models.UserRepo) error <span class="cov8" title="1">{
+        r.mu.Lock()
+        defer r.mu.Unlock()
+        r.users[user.ID.String()] = user
+
+        return nil
+}</span>
+
+func (r *UserRepository) GetUserCurrentVersion(userID string) (int, error) <span class="cov8" title="1">{
+        r.mu.RLock()
+        defer r.mu.RUnlock()
+
+        user, ok := r.users[userID]
+        if !ok </span><span class="cov0" title="0">{
+                return 0, models.ErrUserNotFound
+        }</span>
+
+        <span class="cov8" title="1">return user.Version, nil</span>
+}
+
+func (r *UserRepository) GetUserByEmail(email string) (*models.UserRepo, error) <span class="cov8" title="1">{
+        r.mu.Lock()
+        defer r.mu.Unlock()
+
+        for _, user := range r.users </span><span class="cov8" title="1">{
+                if user.Email == email </span><span class="cov8" title="1">{
+                        return &amp;user, nil
+                }</span>
+        }
+
+        <span class="cov8" title="1">return nil, models.ErrUserNotFound</span>
+}
+
+func (r *UserRepository) IncrementUserVersion(userID string) error <span class="cov8" title="1">{
+        r.mu.Lock()
+        defer r.mu.Unlock()
+
+        user, isExist := r.users[userID]
+        if !isExist </span><span class="cov8" title="1">{
+                return models.ErrUserNotFound
+        }</span>
+        <span class="cov8" title="1">user.Version++
+        r.users[userID] = user
+
+        return nil</span>
+}
+
+func (r *UserRepository) CheckUserVersion(userID string, version int) bool <span class="cov8" title="1">{
+        r.mu.Lock()
+        defer r.mu.Unlock()
+
+        user, ok := r.users[userID]
+        if !ok </span><span class="cov8" title="1">{
+                return false
+        }</span>
+
+        <span class="cov8" title="1">return user.Version == version</span>
+}
+</pre>
+		
+		<pre class="file" id="file6" style="display: none">package jwt
+
+import (
+        "errors"
+        "fmt"
+        "github.com/golang-jwt/jwt/v4"
+        "github.com/joho/godotenv"
+        "github.com/sirupsen/logrus"
+        "os"
+        "time"
+)
+
+// JWTClaims структура для данных токена
+type JWTClaims struct {
+        UserID    string
+        Version   int
+        ExpiresAt int64
+        jwt.StandardClaims
+}
+
+// Tokenator структура для создания и парсинга токенов
+type Tokenator struct {
+}
+
+// NewTokenator создает новый экземпляр Tokenator
+func NewTokenator() *Tokenator <span class="cov0" title="0">{
+        return &amp;Tokenator{}
+}</span>
+
+// CreateJWT генерирует JWT токен для заданного userID и version
+func (t *Tokenator) CreateJWT(userID string, version int) (string, error) <span class="cov0" title="0">{
+        var logger = logrus.New()
+
+        err := godotenv.Load()
+        if err != nil </span><span class="cov0" title="0">{
+                logger.Errorf("failed to load .env file: %v", err)
+                return "", fmt.Errorf("failed to load .env file: %w", err)
+        }</span>
+        <span class="cov0" title="0">secretKey := os.Getenv("JWT_SIGNATURE")
+
+        now := time.Now()
+        expiration := now.Add(time.Hour * 24)
+
+        claims := JWTClaims{
+                UserID:    userID,
+                Version:   version,
+                ExpiresAt: expiration.Unix(),
+                StandardClaims: jwt.StandardClaims{
+                        IssuedAt:  now.Unix(),
+                        ExpiresAt: expiration.Unix(),
+                },
+        }
+        token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+        tokenString, err := token.SignedString([]byte(secretKey))
+        if err != nil </span><span class="cov0" title="0">{
+                return "", err
+        }</span>
+        <span class="cov0" title="0">return tokenString, nil</span>
+}
+
+// ParseJWT парсит и валидирует JWT-токен
+func (t *Tokenator) ParseJWT(tokenString string) (*JWTClaims, error) <span class="cov0" title="0">{
+        var logger = logrus.New()
+
+        err := godotenv.Load()
+        if err != nil </span><span class="cov0" title="0">{
+                logger.Errorf("failed to load .env file: %v", err)
+                return nil, fmt.Errorf("failed to load .env file: %w", err)
+        }</span>
+        <span class="cov0" title="0">secretKey := os.Getenv("JWT_SIGNATURE")
+
+        token, err := jwt.ParseWithClaims(tokenString, &amp;JWTClaims{}, func(token *jwt.Token) (interface{}, error) </span><span class="cov0" title="0">{
+                // Проверяем, что метод подписи соответствует HMAC
+                if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok </span><span class="cov0" title="0">{
+                        return nil, errors.New("unexpected signing method")
+                }</span>
+                <span class="cov0" title="0">return []byte(secretKey), nil</span>
+        })
+
+        <span class="cov0" title="0">if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov0" title="0">if claims, ok := token.Claims.(*JWTClaims); ok &amp;&amp; token.Valid </span><span class="cov0" title="0">{
+                return claims, nil
+        }</span>
+
+        <span class="cov0" title="0">return nil, errors.New("invalid token")</span>
+}
+</pre>
+		
+		<pre class="file" id="file7" style="display: none">package middleware
+
+import "net/http"
+
+func CORSMiddleware(next http.Handler) http.Handler <span class="cov0" title="0">{
+        return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) </span><span class="cov0" title="0">{
+                w.Header().Set("Access-Control-Allow-Methods", "POST,PUT,DELETE,GET")
+                w.Header().Set("Access-Control-Allow-Headers", "Content-Type,X-CSRF-Token")
+                w.Header().Set("Access-Control-Allow-Credentials", "true")
+                w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
+                if r.Method == http.MethodOptions </span><span class="cov0" title="0">{
+                        return
+                }</span>
+                <span class="cov0" title="0">next.ServeHTTP(w, r)</span>
+        })
+}
+</pre>
+		
+		<pre class="file" id="file8" style="display: none">package middleware
+
+import (
+        "context"
+        "fmt"
+        "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
+        "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils"
+        "github.com/sirupsen/logrus"
+        "net/http"
+        "strings"
+        "time"
+)
+
+// JWTMiddleware проверяет наличие и валидность JWT-токена
+func JWTMiddleware(next http.Handler) http.Handler <span class="cov0" title="0">{
+        tokenator := jwt.Tokenator{}
+
+        return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) </span><span class="cov0" title="0">{
+                // Получаем заголовок Authorization
+                authHeader := r.Header.Get("Authorization")
+                if authHeader == "" </span><span class="cov0" title="0">{
+                        logrus.Warn("Missing Authorization header")
+                        utils.SendErrorResponse(w, http.StatusUnauthorized, "Unauthorized")
+                        return
+                }</span>
+
+                // Ожидаемый формат: "Bearer &lt;token&gt;"
+                <span class="cov0" title="0">parts := strings.Split(authHeader, " ")
+                if len(parts) != 2 || parts[0] != "Bearer" </span><span class="cov0" title="0">{
+                        logrus.Warn("Invalid Authorization header format")
+                        utils.SendErrorResponse(w, http.StatusUnauthorized, "Unauthorized")
+                        return
+                }</span>
+
+                // Разбираем токен
+                <span class="cov0" title="0">tokenString := parts[1]
+
+                // Вызываем ParseJWT через экземпляр Tokenator
+                claims, err := tokenator.ParseJWT(tokenString)
+                if err != nil </span><span class="cov0" title="0">{
+                        logrus.Errorf("Invalid token: %v", err)
+                        utils.SendErrorResponse(w, http.StatusUnauthorized, fmt.Sprintf("Invalid token: %v", err))
+                        return
+                }</span>
+
+                // Проверяем, не истёк ли токен
+                <span class="cov0" title="0">if claims.ExpiresAt &lt; time.Now().Unix() </span><span class="cov0" title="0">{
+                        logrus.Warn("Token expired")
+                        utils.SendErrorResponse(w, http.StatusUnauthorized, "Token expired")
+                        return
+                }</span>
+
+                // Можно передавать UserID в контексте запроса
+                <span class="cov0" title="0">ctx := r.Context()
+                ctx = context.WithValue(ctx, "userID", claims.UserID)
+                next.ServeHTTP(w, r.WithContext(ctx))</span>
+        })
+}
+</pre>
+		
+		<pre class="file" id="file9" style="display: none">package transport
+
+import (
+        "context"
+        "encoding/json"
+        "io"
+        "net/http"
+        "os"
+        "strconv"
+
+        "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
+        "github.com/gorilla/mux"
+        "github.com/sirupsen/logrus"
+)
+
+const (
+        mediaFolder = "./media"
+)
+
+//go:generate mockgen -source=product.go -destination=../repository/mocks/product_repo_mock.go package=mocks IProductRepo
+type IProductRepo interface {
+        GetAllProducts(ctx context.Context) ([]*models.Product, error)
+        GetProductByID(ctx context.Context, id int) (*models.Product, error)
+        GetCoverPathProduct(ctx context.Context, id int) string
+}
+
+type ProductHandler struct {
+        Repo IProductRepo
+        log *logrus.Logger
+}
+
+func NewProductHandler(repo IProductRepo, log *logrus.Logger) *ProductHandler <span class="cov8" title="1">{
+        return &amp;ProductHandler{
+                Repo: repo,
+                log: log,
+        }
+}</span>
+
+func (h *ProductHandler) GetAllProducts(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+        products, err := h.Repo.GetAllProducts(r.Context())
+        if err != nil </span><span class="cov8" title="1">{
+                h.log.Warnf("Failed to get all products: %v", err)
+                http.Error(w, "Failed get all products", http.StatusInternalServerError)
+                return
+        }</span>
+
+        <span class="cov8" title="1">response := models.ConvertToProductsResponse(products)
+
+        resp, err := json.Marshal(response)
+        if err != nil </span><span class="cov0" title="0">{
+                h.log.Errorf("Failed to encode response: %v", err)
+                http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+                return
+        }</span>
+
+        <span class="cov8" title="1">w.Header().Set("Content-Type", "application/json")
+        w.Write(resp)</span>
+}
+
+func (h *ProductHandler) GetProductByID(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+        vars := mux.Vars(r)
+    idStr := vars["id"]
+        id, err := strconv.Atoi(idStr)
+        if err != nil </span><span class="cov8" title="1">{
+                h.log.Warnf("Invalid ID: %v", err)
+                http.Error(w, "Invalid ID", http.StatusBadRequest)
+                return
+        }</span>
+
+        <span class="cov8" title="1">product, err := h.Repo.GetProductByID(r.Context(), id)
+        if err != nil </span><span class="cov8" title="1">{
+                h.log.Warnf("Product not found (ID: %d): %v", id, err)
+                http.Error(w, "Not found", http.StatusNotFound)
+                return
+        }</span>
+
+        <span class="cov8" title="1">productJson, err := json.Marshal(product)
+        if err != nil</span><span class="cov0" title="0">{
+                h.log.Errorf("Failed to encode product (ID: %d): %v", id, err)
+                http.Error(w, "Failed to encode", http.StatusInternalServerError)
+                return
+        }</span>
+        <span class="cov8" title="1">w.Header().Set("Content-Type", "application/json")
+        w.Write(productJson)</span>
+}
+
+func (h *ProductHandler) GetCoverProduct(w http.ResponseWriter, r *http.Request)<span class="cov8" title="1">{
+        vars := mux.Vars(r)
+    idStr := vars["id"]
+        id, err := strconv.Atoi(idStr)
+        if err != nil </span><span class="cov8" title="1">{
+                h.log.Warnf("Invalid ID: %v", err)
+                http.Error(w, "Invalid ID", http.StatusBadRequest)
+                return
+        }</span>
+
+        <span class="cov8" title="1">coverPath := h.Repo.GetCoverPathProduct(r.Context(), id)
+
+        if _, err := os.Stat(coverPath); os.IsNotExist(err) </span><span class="cov8" title="1">{
+                h.log.Warnf("Cover not found for product (ID: %d): %v", id, err)
+                http.Error(w, "Обложка не найдена", http.StatusNotFound)
+                return
+        }</span>
+
+        <span class="cov0" title="0">file, err := os.Open(coverPath)
+        if err != nil </span><span class="cov0" title="0">{
+                h.log.Errorf("Failed to open cover file (ID: %d): %v", id, err)
+                http.Error(w, "Ошибка при открытии файла", http.StatusInternalServerError)
+                return
+        }</span>
+        <span class="cov0" title="0">defer file.Close()
+
+        w.Header().Set("Content-Type", "image/jpeg")
+
+        // Копируем содержимое файла в ответ
+        if _, err := io.Copy(w, file); err != nil </span><span class="cov0" title="0">{
+                h.log.Errorf("Failed to send cover file (ID: %d): %v", id, err)
+                http.Error(w, "Ошибка при отправке файла", http.StatusInternalServerError)
+                return
+        }</span>
+}</pre>
+		
+		<pre class="file" id="file10" style="display: none">package transport
+
+import (
+        "errors"
+        "fmt"
+        "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
+        "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
+        "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils"
+        "github.com/google/uuid"
+        "github.com/sirupsen/logrus"
+        "golang.org/x/crypto/bcrypt"
+        "net/http"
+        "regexp"
+)
+
+//go:generate mockgen -source=user.go -destination=../repository/mocks/user_repo_mock.go -package=mocks IUserRepository
+
+type IUserRepository interface {
+        CreateUser(user models.UserRepo) error
+        GetUserByEmail(email string) (*models.UserRepo, error)
+        IncrementUserVersion(userID string) error
+}
+
+type ITokenator interface {
+        CreateJWT(userID string, version int) (string, error)
+        ParseJWT(tokenString string) (*jwt.JWTClaims, error)
+}
+
+type AuthHandler struct {
+        repo  IUserRepository
+        token ITokenator
+        log   *logrus.Logger
+}
+
+func NewAuthHandler(repo IUserRepository, log *logrus.Logger, token ITokenator) *AuthHandler <span class="cov8" title="1">{
+        return &amp;AuthHandler{
+                repo:  repo,
+                token: token,
+                log:   log,
+        }
+}</span>
+
+func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+
+        // Парсим
+        var request models.UserLoginRequestDTO
+        if errStatusCode, errMessage := utils.ParseData(r.Body, &amp;request); errStatusCode != 0 &amp;&amp; errMessage != "" </span><span class="cov0" title="0">{
+                utils.SendErrorResponse(w, errStatusCode, errMessage)
+                return
+        }</span>
+
+        // Валидация
+        <span class="cov8" title="1">if err := validateEmail(request.Email); err != nil </span><span class="cov8" title="1">{
+                utils.SendErrorResponse(w, http.StatusBadRequest, "Invalid email")
+                return
+        }</span>
+
+        <span class="cov8" title="1">if err := validatePassword(request.Password); err != nil </span><span class="cov8" title="1">{
+                utils.SendErrorResponse(w, http.StatusBadRequest, fmt.Sprintf("Invalid password: %v", err))
+                return
+        }</span>
+
+        // Получаем данные пользоваетеля из бд
+        <span class="cov8" title="1">userRepo, err := h.repo.GetUserByEmail(request.Email)
+        if err != nil </span><span class="cov8" title="1">{
+                h.log.Warn(err.Error())
+                utils.SendErrorResponse(w, http.StatusUnauthorized, "Invalid password or email")
+                return
+        }</span>
+
+        // Проверяем совпадение пароли
+        <span class="cov8" title="1">if err := bcrypt.CompareHashAndPassword(userRepo.PasswordHash, []byte(request.Password)); err != nil </span><span class="cov0" title="0">{
+                utils.SendErrorResponse(w, http.StatusUnauthorized, "Invalid password or email")
+                return
+        }</span>
+
+        // Вызываем CreateJWT
+        <span class="cov8" title="1">token, err := h.token.CreateJWT(userRepo.ID.String(), 1)
+        if err != nil </span><span class="cov0" title="0">{
+                utils.SendErrorResponse(w, http.StatusInternalServerError, err.Error())
+                return
+        }</span>
+
+        <span class="cov8" title="1">utils.SendSuccessResponse(w, http.StatusOK, &amp;models.UserResponseDTO{
+                Token: token,
+        })</span>
+}
+
+func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+
+        // Парсим
+        var request models.UserRegisterRequestDTO
+        if errStatusCode, errMessage := utils.ParseData(r.Body, &amp;request); errStatusCode != 0 &amp;&amp; errMessage != "" </span><span class="cov0" title="0">{
+                utils.SendErrorResponse(w, errStatusCode, errMessage)
+                return
+        }</span>
+
+        // Валидация
+        <span class="cov8" title="1">if err := validateEmail(request.Email); err != nil </span><span class="cov8" title="1">{
+                utils.SendErrorResponse(w, http.StatusBadRequest, "Invalid email")
+                return
+        }</span>
+
+        <span class="cov8" title="1">if err := validatePassword(request.Password); err != nil </span><span class="cov0" title="0">{
+                utils.SendErrorResponse(w, http.StatusBadRequest, fmt.Sprintf("Invalid password: %v", err))
+                return
+        }</span>
+
+        <span class="cov8" title="1">if err := validateName(request.Name); err != nil </span><span class="cov0" title="0">{
+                utils.SendErrorResponse(w, http.StatusBadRequest, "Invalid name")
+                return
+        }</span>
+
+        <span class="cov8" title="1">if err := validateName(request.Surname); err != nil </span><span class="cov0" title="0">{
+                utils.SendErrorResponse(w, http.StatusBadRequest, "Invalid surname")
+                return
+        }</span>
+
+        // Создаём хэш пароля
+        <span class="cov8" title="1">passwordHash, err := GeneratePasswordHash(request.Password)
+        if err != nil </span><span class="cov0" title="0">{
+                utils.SendErrorResponse(w, http.StatusInternalServerError, err.Error())
+                return
+        }</span>
+
+        // Проверка существования пользователя в бд
+        <span class="cov8" title="1">existedUser, _ := h.repo.GetUserByEmail(request.Email)
+        if existedUser != nil </span><span class="cov8" title="1">{
+                utils.SendErrorResponse(w, http.StatusConflict, "User already exists")
+                return
+        }</span>
+
+        // Запись в бд
+        <span class="cov8" title="1">userRepo := models.UserRepo{
+                ID:           uuid.New(),
+                Email:        request.Email,
+                Name:         request.Name,
+                Surname:      request.Surname,
+                PasswordHash: passwordHash,
+                Version:      1,
+        }
+
+        if err := h.repo.CreateUser(userRepo); err != nil </span><span class="cov0" title="0">{
+                utils.SendErrorResponse(w, http.StatusInternalServerError, err.Error())
+                return
+        }</span>
+
+        <span class="cov8" title="1">token, err := h.token.CreateJWT(userRepo.ID.String(), 1)
+        if err != nil </span><span class="cov0" title="0">{
+                utils.SendErrorResponse(w, http.StatusInternalServerError, err.Error())
+                return
+        }</span>
+
+        <span class="cov8" title="1">utils.SendSuccessResponse(w, http.StatusOK, &amp;models.UserResponseDTO{
+                Token: token,
+        })</span>
+}
+
+func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+        userID, isExist := r.Context().Value("userID").(string)
+        if !isExist </span><span class="cov8" title="1">{
+                utils.SendErrorResponse(w, http.StatusInternalServerError, "user id not found")
+                return
+        }</span>
+
+        <span class="cov8" title="1">if err := h.repo.IncrementUserVersion(userID); err != nil </span><span class="cov8" title="1">{
+                utils.SendErrorResponse(w, http.StatusInternalServerError, err.Error())
+                return
+        }</span>
+
+        <span class="cov8" title="1">utils.SendSuccessResponse(w, http.StatusOK, nil)</span>
+}
+
+var (
+        passwordRegexp = regexp.MustCompile(`^[a-zA-Z0-9]{8,}$`)
+        emailRegexp    = regexp.MustCompile(`^[a-z0-9]+@[a-z0-9]+\.[a-z]{2,4}$`)
+        nameRegexp     = regexp.MustCompile(`^[a-zA-Zа-яА-ЯёЁ\s-]+$`)
+)
+
+// validateEmail Функция валидации почты
+func validateEmail(email string) error <span class="cov8" title="1">{
+        if !emailRegexp.MatchString(email) </span><span class="cov8" title="1">{
+                return errors.New("invalid email format")
+        }</span>
+        <span class="cov8" title="1">return nil</span>
+}
+
+// validatePassword Функция для проверки валидности пароля
+func validatePassword(password string) error <span class="cov8" title="1">{
+        if len(password) &lt; 8 </span><span class="cov8" title="1">{
+                return errors.New("password must be at least 8 characters")
+        }</span>
+        <span class="cov8" title="1">if !passwordRegexp.MatchString(password) </span><span class="cov0" title="0">{
+                return errors.New("password must contain at least one letter and one number")
+        }</span>
+        <span class="cov8" title="1">return nil</span>
+}
+
+// validateName Функция валидации имени пользователя
+func validateName(name string) error <span class="cov8" title="1">{
+        if len(name) &lt; 2 || len(name) &gt; 50 </span><span class="cov0" title="0">{
+                return errors.New("name must be between 2 and 50 characters long")
+        }</span>
+
+        <span class="cov8" title="1">if !nameRegexp.MatchString(name) </span><span class="cov0" title="0">{
+                return errors.New("name can only contain letters, spaces, and '-'")
+        }</span>
+
+        <span class="cov8" title="1">return nil</span>
+}
+
+// GeneratePasswordHash Генерация хэша пароля
+func GeneratePasswordHash(password string) ([]byte, error) <span class="cov8" title="1">{
+        return bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
+}</span>
+</pre>
+		
+		<pre class="file" id="file11" style="display: none">package utils
+
+import (
+        "encoding/json"
+        "fmt"
+        "io"
+        "net/http"
+)
+
+func ParseData(ioBody io.Reader, request any) (int, string) <span class="cov8" title="1">{
+        body, err := io.ReadAll(ioBody)
+        if err != nil </span><span class="cov0" title="0">{
+                return http.StatusInternalServerError, err.Error()
+        }</span>
+
+        <span class="cov8" title="1">if err := json.Unmarshal(body, &amp;request); err != nil </span><span class="cov0" title="0">{
+                return http.StatusBadRequest, fmt.Sprintf("Failed to parse request body: %v", err.Error())
+        }</span>
+
+        <span class="cov8" title="1">return 0, ""</span>
+}
+
+func SendErrorResponse(w http.ResponseWriter, statusCode int, message string) <span class="cov8" title="1">{
+        w.Header().Set("Content-Type", "application/json")
+        w.WriteHeader(statusCode)
+
+        response, err := json.Marshal(ErrorResponse{Message: message})
+        if err != nil </span><span class="cov0" title="0">{
+                return
+        }</span>
+        <span class="cov8" title="1">_, _ = w.Write(response)</span>
+}
+
+func SendSuccessResponse(w http.ResponseWriter, statusCode int, body interface{}) <span class="cov8" title="1">{
+        if body != nil </span><span class="cov8" title="1">{
+                w.Header().Set("Content-Type", "application/json")
+        }</span>
+
+        <span class="cov8" title="1">w.WriteHeader(statusCode)
+        if body != nil </span><span class="cov8" title="1">{
+                response, err := json.Marshal(body)
+                if err != nil </span><span class="cov0" title="0">{
+                        return
+                }</span>
+                <span class="cov8" title="1">_, _ = w.Write(response)</span>
+        }
+}
+
+type ErrorResponse struct {
+        Message string `json:"message"`
+}
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>
