@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 )
 
 const (
@@ -43,7 +44,7 @@ func GetProductCoverPath(id int) string {
 }
 
 func GetProductCoverURL(id int) string {
-	return filepath.Join("products", string(id), "cover")
+	return filepath.Join("products", strconv.Itoa(id), "cover")
 }
 
 func ConvertToBriefProduct(product *Product) BriefProduct{
