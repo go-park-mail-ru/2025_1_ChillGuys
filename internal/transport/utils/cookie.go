@@ -5,6 +5,14 @@ import (
 	"time"
 )
 
+type CookieKeys string
+
+const (
+	Token          CookieKeys = "token"
+	UserIDKey                 = "userID"
+	UserVersionKey            = "userVersion"
+)
+
 func Cookie(w http.ResponseWriter, token, name string) {
 	// Создаём cookie с переданными параметрами
 	SSCookie := &http.Cookie{

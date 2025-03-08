@@ -11,6 +11,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"regexp"
+	"time"
 )
 
 //go:generate mockgen -source=user.go -destination=../repository/mocks/user_repo_mock.go -package=mocks IUserRepository
@@ -169,7 +170,14 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.Cookie(w, "", string(utils.Token))
+	http.SetCookie(w, &http.Cookie{
+		Name:     string(utils.Token),
+		Value:    "",
+		Path:     "/",
+		Expires:  time.Now().UTC().AddDate(0, 0, -1),
+		HttpOnly: true,
+		Secure:   true,
+	})
 
 	utils.SendSuccessResponse(w, http.StatusOK, nil)
 }
