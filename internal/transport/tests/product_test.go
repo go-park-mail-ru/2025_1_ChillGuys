@@ -3,9 +3,11 @@ package tests
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strconv"
 	"testing"
 
@@ -259,8 +261,8 @@ func TestGetCoverProduct(t *testing.T) {
 	t.Run("Success case", func(t *testing.T) {
 		// Тестовый ID продукта.
 		testID := 1
-		// Тестовый путь к обложке.
-		testCoverPath := "./media/product-1/cover.jpeg"
+		// Тестовые данные обложки (заглушка).
+		testCoverData := []byte{0xFF, 0xD8, 0xFF} // Пример JPEG-заголовка.
 
 		// Создание HTTP-запроса с path-параметром.
 		req, err := http.NewRequest("GET", "/products/"+strconv.Itoa(testID)+"/cover", nil)
@@ -275,7 +277,7 @@ func TestGetCoverProduct(t *testing.T) {
 		req = mux.SetURLVars(req, vars)
 
 		// Настройка ожидаемого поведения мока.
-		mockRepo.EXPECT().GetCoverPathProduct(req.Context(), testID).Return(testCoverPath).Times(1)
+		mockRepo.EXPECT().GetProductCoverPath(req.Context(), testID).Return(testCoverData, nil).Times(1)
 
 		// Создание ResponseRecorder для записи ответа.
 		rr := httptest.NewRecorder()
@@ -288,13 +290,14 @@ func TestGetCoverProduct(t *testing.T) {
 
 		// Проверка заголовка Content-Type.
 		assert.Equal(t, "image/jpeg", rr.Header().Get("Content-Type"), "Expected Content-Type image/jpeg, got %s", rr.Header().Get("Content-Type"))
+
+		// Проверка тела ответа.
+		assert.Equal(t, testCoverData, rr.Body.Bytes(), "Expected response body to match test cover data")
 	})
 
 	t.Run("Cover not found case", func(t *testing.T) {
 		// Тестовый ID продукта.
 		testID := 2
-		// Тестовый путь к обложке, который не существует.
-		testCoverPath := "./media/product-2/cover.jpeg"
 
 		// Создание HTTP-запроса с path-параметром.
 		req, err := http.NewRequest("GET", "/products/"+strconv.Itoa(testID)+"/cover", nil)
@@ -309,7 +312,7 @@ func TestGetCoverProduct(t *testing.T) {
 		req = mux.SetURLVars(req, vars)
 
 		// Настройка ожидаемого поведения мока.
-		mockRepo.EXPECT().GetCoverPathProduct(req.Context(), testID).Return(testCoverPath).Times(1)
+		mockRepo.EXPECT().GetProductCoverPath(req.Context(), testID).Return(nil, os.ErrNotExist).Times(1)
 
 		// Создание ResponseRecorder для записи ответа.
 		rr := httptest.NewRecorder()
@@ -321,7 +324,7 @@ func TestGetCoverProduct(t *testing.T) {
 		assert.Equal(t, http.StatusNotFound, rr.Code, "Expected status code 404, got %d", rr.Code)
 
 		// Проверка тела ответа.
-		assert.Contains(t, rr.Body.String(), "Обложка не найдена", "Expected error message in response")
+		assert.Contains(t, rr.Body.String(), "Cover file not found", "Expected error message in response")
 	})
 
 	t.Run("Invalid ID case", func(t *testing.T) {
@@ -351,5 +354,37 @@ func TestGetCoverProduct(t *testing.T) {
 
 		// Проверка тела ответа.
 		assert.Contains(t, rr.Body.String(), "Invalid ID", "Expected error message in response")
+	})
+
+	t.Run("Internal server error case", func(t *testing.T) {
+		// Тестовый ID продукта.
+		testID := 3
+
+		// Создание HTTP-запроса с path-параметром.
+		req, err := http.NewRequest("GET", "/products/"+strconv.Itoa(testID)+"/cover", nil)
+		if err != nil {
+			t.Fatalf("Failed to create request: %v", err)
+		}
+
+		// Добавление path-параметра в запрос.
+		vars := map[string]string{
+			"id": strconv.Itoa(testID),
+		}
+		req = mux.SetURLVars(req, vars)
+
+		// Настройка ожидаемого поведения мока.
+		mockRepo.EXPECT().GetProductCoverPath(req.Context(), testID).Return(nil, fmt.Errorf("internal error")).Times(1)
+
+		// Создание ResponseRecorder для записи ответа.
+		rr := httptest.NewRecorder()
+
+		// Вызов обработчика.
+		handler.GetCoverProduct(rr, req)
+
+		// Проверка статус-кода ответа.
+		assert.Equal(t, http.StatusInternalServerError, rr.Code, "Expected status code 500, got %d", rr.Code)
+
+		// Проверка тела ответа.
+		assert.Contains(t, rr.Body.String(), "Failed to get cover file", "Expected error message in response")
 	})
 }

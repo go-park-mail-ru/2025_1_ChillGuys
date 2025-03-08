@@ -3,7 +3,7 @@ package transport
 import (
 	"context"
 	"encoding/json"
-	"io"
+	"errors"
 	"net/http"
 	"os"
 	"strconv"
@@ -13,15 +13,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const (
-	mediaFolder = "./media"
-)
-
 //go:generate mockgen -source=product.go -destination=../repository/mocks/product_repo_mock.go package=mocks IProductRepo
 type IProductRepo interface {
 	GetAllProducts(ctx context.Context) ([]*models.Product, error)
 	GetProductByID(ctx context.Context, id int) (*models.Product, error)
-	GetCoverPathProduct(ctx context.Context, id int) string
+	GetProductCoverPath(ctx context.Context, id int) ([]byte, error)
 }
 
 type ProductHandler struct {
@@ -94,26 +90,22 @@ func (h *ProductHandler) GetCoverProduct(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	coverPath := h.Repo.GetCoverPathProduct(r.Context(), id)
-
-	if _, err := os.Stat(coverPath); os.IsNotExist(err) {
-		h.log.Warnf("Cover not found for product (ID: %d): %v", id, err)
-		http.Error(w, "Обложка не найдена", http.StatusNotFound)
-		return
-	}
-
-	file, err := os.Open(coverPath)
+	fileData, err := h.Repo.GetProductCoverPath(r.Context(), id)
 	if err != nil {
-		h.log.Errorf("Failed to open cover file (ID: %d): %v", id, err)
-		http.Error(w, "Ошибка при открытии файла", http.StatusInternalServerError)
+		if errors.Is(err, os.ErrNotExist) {
+			h.log.Errorf("Cover file not found (ID: %d): %v", id, err)
+			http.Error(w, "Cover file not found", http.StatusNotFound)
+		} else {
+			h.log.Errorf("Failed to get cover file (ID: %d): %v", id, err)
+			http.Error(w, "Failed to get cover file", http.StatusInternalServerError)
+		}
 		return
 	}
-	defer file.Close()
 
 	w.Header().Set("Content-Type", "image/jpeg")
 
 	// Копируем содержимое файла в ответ
-	if _, err := io.Copy(w, file); err != nil {
+	if _, err := w.Write(fileData); err != nil {
 		h.log.Errorf("Failed to send cover file (ID: %d): %v", id, err)
 		http.Error(w, "Ошибка при отправке файла", http.StatusInternalServerError)
 		return

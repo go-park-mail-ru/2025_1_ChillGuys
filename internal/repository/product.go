@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path/filepath"
 	"sync"
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
@@ -82,12 +81,12 @@ func (p *ProductRepo) GetProductByID(ctx context.Context, id int) (*models.Produ
     return product, nil
 }
 
-func (p *ProductRepo) GetCoverPathProduct(ctx context.Context, id int) string{
-	coverPath := filepath.Join("./media", fmt.Sprintf("product-%d", id), "cover.jpeg")
+func (p *ProductRepo) GetProductCoverPath(ctx context.Context, id int) ([]byte, error){
+	storagePath := models.GetProductCoverPath(id)
 
-	if _, err := os.Stat(coverPath); os.IsNotExist(err) {
-		coverPath = filepath.Join("./media", "product-default", "cover.jpeg")
+	if _, err := os.Stat(storagePath); os.IsNotExist(err) {
+		return nil, fmt.Errorf("cover image not found")
 	}
 
-	return coverPath
+	return os.ReadFile(storagePath)
 }

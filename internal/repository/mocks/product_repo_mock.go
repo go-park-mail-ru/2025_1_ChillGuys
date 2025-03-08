@@ -50,20 +50,6 @@ func (mr *MockIProductRepoMockRecorder) GetAllProducts(ctx interface{}) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllProducts", reflect.TypeOf((*MockIProductRepo)(nil).GetAllProducts), ctx)
 }
 
-// GetCoverPathProduct mocks base method.
-func (m *MockIProductRepo) GetCoverPathProduct(ctx context.Context, id int) string {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetCoverPathProduct", ctx, id)
-	ret0, _ := ret[0].(string)
-	return ret0
-}
-
-// GetCoverPathProduct indicates an expected call of GetCoverPathProduct.
-func (mr *MockIProductRepoMockRecorder) GetCoverPathProduct(ctx, id interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCoverPathProduct", reflect.TypeOf((*MockIProductRepo)(nil).GetCoverPathProduct), ctx, id)
-}
-
 // GetProductByID mocks base method.
 func (m *MockIProductRepo) GetProductByID(ctx context.Context, id int) (*models.Product, error) {
 	m.ctrl.T.Helper()
@@ -77,4 +63,19 @@ func (m *MockIProductRepo) GetProductByID(ctx context.Context, id int) (*models.
 func (mr *MockIProductRepoMockRecorder) GetProductByID(ctx, id interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProductByID", reflect.TypeOf((*MockIProductRepo)(nil).GetProductByID), ctx, id)
+}
+
+// GetProductCoverPath mocks base method.
+func (m *MockIProductRepo) GetProductCoverPath(ctx context.Context, id int) ([]byte, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetProductCoverPath", ctx, id)
+	ret0, _ := ret[0].([]byte)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetProductCoverPath indicates an expected call of GetProductCoverPath.
+func (mr *MockIProductRepoMockRecorder) GetProductCoverPath(ctx, id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProductCoverPath", reflect.TypeOf((*MockIProductRepo)(nil).GetProductCoverPath), ctx, id)
 }
