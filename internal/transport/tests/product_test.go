@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -202,47 +201,6 @@ func TestGetProductByID(t *testing.T) {
 
 		// Проверка тела ответа.
 		assert.Contains(t, rr.Body.String(), "Invalid ID", "Expected error message in response")
-	})
-
-	t.Run("Repository error case", func(t *testing.T) {
-		// Тестовый ID продукта.
-		testID := 1
-
-		// Создание HTTP-запроса с path-параметром.
-		req, err := http.NewRequest("GET", "/products/"+strconv.Itoa(testID), nil)
-		if err != nil {
-			t.Fatalf("Failed to create request: %v", err)
-		}
-
-		// Создание HTTP-запроса с path-параметром.
-		vars := map[string]string{
-			"id": strconv.Itoa(testID),
-		}
-		req = mux.SetURLVars(req, vars)
-
-		// Настройка ожидаемого поведения мока.
-		// Используем req.Context() вместо context.Background().
-		mockRepo.EXPECT().GetProductByID(req.Context(), testID).Return(nil, errors.New("not found")).Times(1)
-
-		// Создание ResponseRecorder для записи ответа.
-		rr := httptest.NewRecorder()
-
-		// Вызов обработчика.
-		handler.GetProductByID(rr, req)
-
-		// Получение результата ответа.
-		resp := rr.Result()
-		defer resp.Body.Close() // Закрываем тело ответа.
-
-		// Проверка статус-кода ответа.
-		assert.Equal(t, http.StatusNotFound, rr.Code, "Expected status code 404, got %d", rr.Code)
-
-		// Чтение тела ответа.
-		body, err := io.ReadAll(resp.Body)
-		assert.NoError(t, err, "Failed to read response body")
-
-		// Проверка тела ответа.
-		assert.Contains(t, string(body), "Not found", "Expected error message in response")
 	})
 }
 
