@@ -42,8 +42,12 @@ func GetProductCoverPath(id int) string {
 	return coverPath
 }
 
+func GetProductCoverURL(id int) string {
+	return filepath.Join("products", string(id), "cover")
+}
+
 func ConvertToBriefProduct(product *Product) BriefProduct{
-	coverPath := GetProductCoverPath(product.ID)
+	coverPath := GetProductCoverURL(product.ID)
 
 	return BriefProduct{
 		ID:           product.ID,
