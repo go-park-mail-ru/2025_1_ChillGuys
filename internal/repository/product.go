@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"os"
 	"sync"
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
@@ -78,4 +79,14 @@ func (p *ProductRepo) GetProductByID(ctx context.Context, id int) (*models.Produ
     }
 	
     return product, nil
+}
+
+func (p *ProductRepo) GetProductCoverPath(ctx context.Context, id int) ([]byte, error){
+	storagePath := models.GetProductCoverPath(id)
+
+	if _, err := os.Stat(storagePath); os.IsNotExist(err) {
+		return nil, fmt.Errorf("cover image not found")
+	}
+
+	return os.ReadFile(storagePath)
 }

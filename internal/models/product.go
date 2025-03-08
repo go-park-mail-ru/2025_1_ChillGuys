@@ -1,6 +1,16 @@
 package models
 
-import "fmt"
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+)
+
+const (
+	MediaFolder = "./media"
+	CoverName = "cover.jpeg"
+	DefaultPathCoverName = "product-default"
+)
 
 type Product struct {
 	ID           int     `json:"id"`
@@ -21,11 +31,28 @@ type BriefProduct struct {
 	Rating       float64 `json:"rating"`
 }
 
+func GetProductCoverPath(id int) string {
+	coverPath := filepath.Join(MediaFolder, fmt.Sprintf("product-%d", id), CoverName)
+
+	if _, err := os.Stat(coverPath); os.IsNotExist(err) {
+		// Если файл не существует, используем дефолтный URL
+		coverPath = filepath.Join(MediaFolder, DefaultPathCoverName, CoverName)
+	}
+
+	return coverPath
+}
+
+func GetProductCoverURL(id int) string {
+	return filepath.Join("products", string(id), "cover")
+}
+
 func ConvertToBriefProduct(product *Product) BriefProduct{
+	coverPath := GetProductCoverURL(product.ID)
+
 	return BriefProduct{
 		ID:           product.ID,
 		Name:         product.Name,
-		ImageURL:     fmt.Sprintf("media/products/product-%d.jpeg", product.ID),
+		ImageURL:     coverPath,
 		Price:        product.Price,
 		ReviewsCount: product.ReviewsCount,
 		Rating:       product.Rating,

@@ -64,3 +64,18 @@ func (mr *MockIProductRepoMockRecorder) GetProductByID(ctx, id interface{}) *gom
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProductByID", reflect.TypeOf((*MockIProductRepo)(nil).GetProductByID), ctx, id)
 }
+
+// GetProductCoverPath mocks base method.
+func (m *MockIProductRepo) GetProductCoverPath(ctx context.Context, id int) ([]byte, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetProductCoverPath", ctx, id)
+	ret0, _ := ret[0].([]byte)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetProductCoverPath indicates an expected call of GetProductCoverPath.
+func (mr *MockIProductRepoMockRecorder) GetProductCoverPath(ctx, id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProductCoverPath", reflect.TypeOf((*MockIProductRepo)(nil).GetProductCoverPath), ctx, id)
+}

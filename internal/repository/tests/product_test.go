@@ -1,8 +1,8 @@
 package tests
 
 import (
-	"testing"
 	"context"
+	"testing"
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/repository"
 	"github.com/stretchr/testify/assert"

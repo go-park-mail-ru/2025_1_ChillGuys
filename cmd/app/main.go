@@ -19,7 +19,7 @@ func main() {
 	userHandler := transport.NewAuthHandler(userRepo, logger, tokenator)
 
 	productRepo := repository.NewProductRepo()
-	productHandler := transport.NewProductHandler(productRepo)
+	productHandler := transport.NewProductHandler(productRepo, logger)
 
 	router := mux.NewRouter().PathPrefix("/api").Subrouter()
 	router.Use(middleware.CORSMiddleware)
@@ -28,6 +28,7 @@ func main() {
 	{
 		productsRouter.HandleFunc("/", productHandler.GetAllProducts).Methods("GET")
 		productsRouter.HandleFunc("/{id}", productHandler.GetProductByID).Methods("GET")
+		productsRouter.HandleFunc("/{id}/cover", productHandler.GetProductCover).Methods("GET")
 	}
 
 	authRouter := router.PathPrefix("/auth").Subrouter()
