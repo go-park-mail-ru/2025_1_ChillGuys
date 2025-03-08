@@ -1,5 +1,5 @@
 # Этап 1: Сборка приложения
-FROM golang:1.20 AS builder
+FROM golang:1.23.3 AS builder
 
 # Устанавливаем рабочую директорию
 WORKDIR /app
