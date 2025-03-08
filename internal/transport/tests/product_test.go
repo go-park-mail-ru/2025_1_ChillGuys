@@ -246,7 +246,7 @@ func TestGetProductByID(t *testing.T) {
 	})
 }
 
-func TestGetCoverProduct(t *testing.T) {
+func TestGetrProductCover(t *testing.T) {
 	// Инициализация контроллера Gomock.
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -283,7 +283,7 @@ func TestGetCoverProduct(t *testing.T) {
 		rr := httptest.NewRecorder()
 
 		// Вызов обработчика.
-		handler.GetCoverProduct(rr, req)
+		handler.GetProductCover(rr, req)
 
 		// Проверка статус-кода ответа.
 		assert.Equal(t, http.StatusOK, rr.Code, "Expected status code 200, got %d", rr.Code)
@@ -318,7 +318,7 @@ func TestGetCoverProduct(t *testing.T) {
 		rr := httptest.NewRecorder()
 
 		// Вызов обработчика.
-		handler.GetCoverProduct(rr, req)
+		handler.GetProductCover(rr, req)
 
 		// Проверка статус-кода ответа.
 		assert.Equal(t, http.StatusNotFound, rr.Code, "Expected status code 404, got %d", rr.Code)
@@ -347,7 +347,7 @@ func TestGetCoverProduct(t *testing.T) {
 		rr := httptest.NewRecorder()
 
 		// Вызов обработчика.
-		handler.GetCoverProduct(rr, req)
+		handler.GetProductCover(rr, req)
 
 		// Проверка статус-кода ответа.
 		assert.Equal(t, http.StatusBadRequest, rr.Code, "Expected status code 400, got %d", rr.Code)
@@ -379,7 +379,7 @@ func TestGetCoverProduct(t *testing.T) {
 		rr := httptest.NewRecorder()
 
 		// Вызов обработчика.
-		handler.GetCoverProduct(rr, req)
+		handler.GetProductCover(rr, req)
 
 		// Проверка статус-кода ответа.
 		assert.Equal(t, http.StatusInternalServerError, rr.Code, "Expected status code 500, got %d", rr.Code)

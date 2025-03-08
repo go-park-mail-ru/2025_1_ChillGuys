@@ -80,7 +80,7 @@ func (h *ProductHandler) GetProductByID(w http.ResponseWriter, r *http.Request) 
 	w.Write(productJson)
 }
 
-func (h *ProductHandler) GetCoverProduct(w http.ResponseWriter, r *http.Request){
+func (h *ProductHandler) GetProductCover(w http.ResponseWriter, r *http.Request){
 	vars := mux.Vars(r)
     idStr := vars["id"]
 	id, err := strconv.Atoi(idStr)
@@ -107,7 +107,7 @@ func (h *ProductHandler) GetCoverProduct(w http.ResponseWriter, r *http.Request)
 	// Копируем содержимое файла в ответ
 	if _, err := w.Write(fileData); err != nil {
 		h.log.Errorf("Failed to send cover file (ID: %d): %v", id, err)
-		http.Error(w, "Ошибка при отправке файла", http.StatusInternalServerError)
+		http.Error(w, "Failed to send cover file", http.StatusInternalServerError)
 		return
 	}
 }

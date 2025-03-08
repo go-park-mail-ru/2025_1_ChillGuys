@@ -28,7 +28,7 @@ func main() {
 	{
 		productsRouter.HandleFunc("/", productHandler.GetAllProducts).Methods("GET")
 		productsRouter.HandleFunc("/{id}", productHandler.GetProductByID).Methods("GET")
-		productsRouter.HandleFunc("/{id}/cover", productHandler.GetCoverProduct).Methods("GET")
+		productsRouter.HandleFunc("/{id}/cover", productHandler.GetProductCover).Methods("GET")
 	}
 
 	authRouter := router.PathPrefix("/auth").Subrouter()
