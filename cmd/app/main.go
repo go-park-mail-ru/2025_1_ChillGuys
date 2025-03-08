@@ -16,7 +16,7 @@ func main() {
 
 	userRepo := repository.NewUserRepository()
 	tokenator := jwt.NewTokenator()
-	authHandler := transport.NewAuthHandler(userRepo, logger, tokenator)
+	userHandler := transport.NewAuthHandler(userRepo, logger, tokenator)
 
 	productRepo := repository.NewProductRepo()
 	productHandler := transport.NewProductHandler(productRepo)
@@ -32,11 +32,18 @@ func main() {
 
 	authRouter := router.PathPrefix("/auth").Subrouter()
 	{
-		authRouter.HandleFunc("/login", authHandler.Login).Methods("POST")
-		authRouter.HandleFunc("/register", authHandler.Register).Methods("POST")
+		authRouter.HandleFunc("/login", userHandler.Login).Methods("POST")
+		authRouter.HandleFunc("/register", userHandler.Register).Methods("POST")
 		authRouter.Handle("/logout", middleware.JWTMiddleware(
-			http.HandlerFunc(authHandler.Logout)),
+			http.HandlerFunc(userHandler.Logout)),
 		).Methods("POST")
+	}
+
+	userRouter := router.PathPrefix("/users").Subrouter()
+	{
+		userRouter.Handle("/me", middleware.JWTMiddleware(
+			http.HandlerFunc(userHandler.GetMe)),
+		).Methods("GET")
 	}
 
 	srv := &http.Server{

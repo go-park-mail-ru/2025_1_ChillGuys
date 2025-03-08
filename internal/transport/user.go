@@ -11,13 +11,21 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"regexp"
+	"time"
 )
 
 //go:generate mockgen -source=user.go -destination=../repository/mocks/user_repo_mock.go -package=mocks IUserRepository
 
+var (
+	passwordRegexp = regexp.MustCompile(`^[a-zA-Z0-9]{8,}$`)
+	emailRegexp    = regexp.MustCompile(`^[a-z0-9]+@[a-z0-9]+\.[a-z]{2,4}$`)
+	nameRegexp     = regexp.MustCompile(`^[a-zA-Zа-яА-ЯёЁ\s-]+$`)
+)
+
 type IUserRepository interface {
 	CreateUser(user models.UserRepo) error
 	GetUserByEmail(email string) (*models.UserRepo, error)
+	GetUserByID(id uuid.UUID) (*models.UserRepo, error)
 	IncrementUserVersion(userID string) error
 }
 
@@ -41,8 +49,7 @@ func NewAuthHandler(repo IUserRepository, log *logrus.Logger, token ITokenator) 
 }
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
-
-	// Парсим
+	// Парсим запрос
 	var request models.UserLoginRequestDTO
 	if errStatusCode, errMessage := utils.ParseData(r.Body, &request); errStatusCode != 0 && errMessage != "" {
 		utils.SendErrorResponse(w, errStatusCode, errMessage)
@@ -60,7 +67,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Получаем данные пользоваетеля из бд
+	// Получаем данные пользователя из базы данных
 	userRepo, err := h.repo.GetUserByEmail(request.Email)
 	if err != nil {
 		h.log.Warn(err.Error())
@@ -68,26 +75,26 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Проверяем совпадение пароли
+	// Проверяем совпадение пароля
 	if err := bcrypt.CompareHashAndPassword(userRepo.PasswordHash, []byte(request.Password)); err != nil {
 		utils.SendErrorResponse(w, http.StatusUnauthorized, "Invalid password or email")
 		return
 	}
 
-	// Вызываем CreateJWT
-	token, err := h.token.CreateJWT(userRepo.ID.String(), 1)
+	// Генерация токена
+	token, err := h.token.CreateJWT(userRepo.ID.String(), userRepo.Version)
 	if err != nil {
 		utils.SendErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	utils.SendSuccessResponse(w, http.StatusOK, &models.UserResponseDTO{
-		Token: token,
-	})
+	utils.Cookie(w, token, string(utils.Token))
+
+	// Отправляем успешный ответ с токеном и версией
+	utils.SendSuccessResponse(w, http.StatusOK, nil)
 }
 
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
-
 	// Парсим
 	var request models.UserRegisterRequestDTO
 	if errStatusCode, errMessage := utils.ParseData(r.Body, &request); errStatusCode != 0 && errMessage != "" {
@@ -108,11 +115,6 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 	if err := validateName(request.Name); err != nil {
 		utils.SendErrorResponse(w, http.StatusBadRequest, "Invalid name")
-		return
-	}
-
-	if err := validateName(request.Surname); err != nil {
-		utils.SendErrorResponse(w, http.StatusBadRequest, "Invalid surname")
 		return
 	}
 
@@ -151,15 +153,15 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.SendSuccessResponse(w, http.StatusOK, &models.UserResponseDTO{
-		Token: token,
-	})
+	utils.Cookie(w, token, string(utils.Token))
+
+	utils.SendSuccessResponse(w, http.StatusOK, nil)
 }
 
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	userID, isExist := r.Context().Value("userID").(string)
 	if !isExist {
-		utils.SendErrorResponse(w, http.StatusInternalServerError, "user id not found")
+		utils.SendErrorResponse(w, http.StatusInternalServerError, "User id not found")
 		return
 	}
 
@@ -168,14 +170,56 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	http.SetCookie(w, &http.Cookie{
+		Name:     string(utils.Token),
+		Value:    "",
+		Path:     "/",
+		Expires:  time.Now().UTC().AddDate(0, 0, -1),
+		HttpOnly: true,
+		Secure:   true,
+	})
+
 	utils.SendSuccessResponse(w, http.StatusOK, nil)
 }
 
-var (
-	passwordRegexp = regexp.MustCompile(`^[a-zA-Z0-9]{8,}$`)
-	emailRegexp    = regexp.MustCompile(`^[a-z0-9]+@[a-z0-9]+\.[a-z]{2,4}$`)
-	nameRegexp     = regexp.MustCompile(`^[a-zA-Zа-яА-ЯёЁ\s-]+$`)
-)
+func (h *AuthHandler) GetMe(w http.ResponseWriter, r *http.Request) {
+	// Получаем ID и версию из контекста (устанавливается в JWTMiddleware)
+	userIDStr, ok := r.Context().Value("userID").(string)
+	if !ok {
+		utils.SendErrorResponse(w, http.StatusInternalServerError, "User id not found")
+		return
+	}
+
+	version, ok := r.Context().Value("userVersion").(int)
+	if !ok {
+		utils.SendErrorResponse(w, http.StatusInternalServerError, "User version not found")
+		return
+	}
+
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		utils.SendErrorResponse(w, http.StatusBadRequest, "Invalid user id format")
+		return
+	}
+
+	userRepo, err := h.repo.GetUserByID(userID)
+	if err != nil {
+		utils.SendErrorResponse(w, http.StatusNotFound, "User not found")
+		return
+	}
+
+	//Проверяем, совпадает ли версия пользователя
+	if !userRepo.IsVersionValid(version) {
+		utils.SendErrorResponse(w, http.StatusUnauthorized, "Token is invalid or expired")
+		return
+	}
+
+	// Преобразуем userRepo в user
+	user := userRepo.ConvertToUser()
+
+	// Отправляем успешный ответ с краткой информацией о пользователе
+	utils.SendSuccessResponse(w, http.StatusOK, user)
+}
 
 // validateEmail Функция валидации почты
 func validateEmail(email string) error {
