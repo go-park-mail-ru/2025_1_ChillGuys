@@ -13,7 +13,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-//go:generate mockgen -source=product.go -destination=../repository/mocks/product_repo_mock.go package=mocks IProductRepo
+//go:generate mockgen -source=product.go -destination=../repository/mocks/product_repo_mock.go -package=mocks IProductRepo
 type IProductRepo interface {
 	GetAllProducts(ctx context.Context) ([]*models.Product, error)
 	GetProductByID(ctx context.Context, id int) (*models.Product, error)

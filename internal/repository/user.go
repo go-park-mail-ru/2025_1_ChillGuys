@@ -54,10 +54,8 @@ func (r *UserRepository) GetUserByID(id uuid.UUID) (*models.UserRepo, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	for _, user := range r.users {
-		if user.ID == id {
-			return &user, nil
-		}
+	if user, ok := r.users[id.String()]; ok {
+		return &user, nil
 	}
 
 	return nil, models.ErrUserNotFound

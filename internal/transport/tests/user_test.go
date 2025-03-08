@@ -10,6 +10,7 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
+	"github.com/guregu/null"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"net/http"
@@ -40,7 +41,7 @@ func TestAuthHandler_Login(t *testing.T) {
 		request        models.UserLoginRequestDTO
 		mockBehavior   func()
 		expectedStatus int
-		expectedBody   string
+		expectedBody   null.String
 	}{
 		// Тест для успешного входа
 		{
@@ -58,10 +59,12 @@ func TestAuthHandler_Login(t *testing.T) {
 					Version:      1,
 				}, nil)
 
-				mockTokenator.EXPECT().CreateJWT(gomock.Any(), gomock.Any()).Return("mocked-jwt-token", nil)
+				mockTokenator.EXPECT().
+					CreateJWT(gomock.Any(), gomock.Any()).
+					Return("mocked-jwt-token", nil)
 			},
 			expectedStatus: http.StatusOK,
-			expectedBody:   `{"token":"mocked-jwt-token"}`,
+			expectedBody:   null.String{},
 		},
 		// Тест для некорректного email
 		{
@@ -72,7 +75,7 @@ func TestAuthHandler_Login(t *testing.T) {
 			},
 			mockBehavior:   func() {},
 			expectedStatus: http.StatusBadRequest,
-			expectedBody:   `{"message":"Invalid email"}`,
+			expectedBody:   null.StringFrom(`{"message":"Invalid email"}`),
 		},
 		// Тест для некорректного пароля
 		{
@@ -83,7 +86,7 @@ func TestAuthHandler_Login(t *testing.T) {
 			},
 			mockBehavior:   func() {},
 			expectedStatus: http.StatusBadRequest,
-			expectedBody:   `{"message":"Invalid password: password must be at least 8 characters"}`,
+			expectedBody:   null.StringFrom(`{"message":"Invalid password: password must be at least 8 characters"}`),
 		},
 		// Тест для случая, когда пользователь не найден
 		{
@@ -96,7 +99,7 @@ func TestAuthHandler_Login(t *testing.T) {
 				mockRepo.EXPECT().GetUserByEmail("notfound@example.com").Return(nil, errors.New("user not found"))
 			},
 			expectedStatus: http.StatusUnauthorized,
-			expectedBody:   `{"message":"Invalid password or email"}`,
+			expectedBody:   null.StringFrom(`{"message":"Invalid password or email"}`),
 		},
 	}
 
@@ -115,7 +118,24 @@ func TestAuthHandler_Login(t *testing.T) {
 
 			// Проверяем статус и тело ответа
 			assert.Equal(t, tt.expectedStatus, w.Code)
-			assert.JSONEq(t, tt.expectedBody, w.Body.String())
+			//assert.JSONEq(t, tt.expectedBody.String, w.Body.String())
+			if tt.expectedBody.Valid {
+				assert.JSONEq(t, tt.expectedBody.String, w.Body.String())
+			} else {
+				//assert.Empty(t, w.Body.String())
+				// Достаем токен из cookies
+				var token string
+				cookies := w.Result().Cookies()
+				for _, cookie := range cookies {
+					if cookie.Name == "token" {
+						token = cookie.Value
+						break
+					}
+				}
+				// Проверяем, что токен не пустой
+				assert.NotEmpty(t, token, "Token should not be empty")
+				assert.Equal(t, "mocked-jwt-token", token, "JWT token does not match expected")
+			}
 		})
 	}
 }
@@ -138,7 +158,7 @@ func TestAuthHandler_Register(t *testing.T) {
 		request        models.UserRegisterRequestDTO // Структура запроса
 		mockBehavior   func()                        // Мокируемое поведение
 		expectedStatus int                           // Ожидаемый статус ответа
-		expectedBody   string                        // Ожидаемое тело ответа
+		expectedBody   null.String                   // Ожидаемое тело ответа
 	}{
 		// Тест для успешной регистрации
 		{
@@ -147,7 +167,7 @@ func TestAuthHandler_Register(t *testing.T) {
 				Email:    "newuser@example.com",
 				Password: "password123",
 				Name:     "John",
-				Surname:  "Doe",
+				Surname:  null.StringFrom("Doe"),
 			},
 			mockBehavior: func() {
 				// Мокируем успешную проверку, что пользователь не существует, и создание нового пользователя
@@ -156,7 +176,7 @@ func TestAuthHandler_Register(t *testing.T) {
 				mockTokenator.EXPECT().CreateJWT(gomock.Any(), gomock.Any()).Return("mocked-jwt-token", nil)
 			},
 			expectedStatus: http.StatusOK,
-			expectedBody:   `{"token":"mocked-jwt-token"}`,
+			expectedBody:   null.String{},
 		},
 		// Тест для некорректного email
 		{
@@ -165,11 +185,11 @@ func TestAuthHandler_Register(t *testing.T) {
 				Email:    "invalid-email",
 				Password: "password123",
 				Name:     "John",
-				Surname:  "Doe",
+				Surname:  null.StringFrom("Doe"),
 			},
 			mockBehavior:   func() {},
 			expectedStatus: http.StatusBadRequest,
-			expectedBody:   `{"message":"Invalid email"}`,
+			expectedBody:   null.StringFrom(`{"message":"Invalid email"}`),
 		},
 		// Тест для уже существующего пользователя
 		{
@@ -178,14 +198,14 @@ func TestAuthHandler_Register(t *testing.T) {
 				Email:    "existing@example.com",
 				Password: "password123",
 				Name:     "John",
-				Surname:  "Doe",
+				Surname:  null.StringFrom("Doe"),
 			},
 			mockBehavior: func() {
 				// Мокируем, что пользователь с таким email уже существует
 				mockRepo.EXPECT().GetUserByEmail("existing@example.com").Return(&models.UserRepo{}, nil)
 			},
 			expectedStatus: http.StatusConflict,
-			expectedBody:   `{"message":"User already exists"}`,
+			expectedBody:   null.StringFrom(`{"message":"User already exists"}`),
 		},
 	}
 
@@ -204,7 +224,23 @@ func TestAuthHandler_Register(t *testing.T) {
 
 			// Проверяем статус и тело ответа
 			assert.Equal(t, tt.expectedStatus, w.Code)
-			assert.JSONEq(t, tt.expectedBody, w.Body.String())
+			if tt.expectedBody.Valid {
+				assert.JSONEq(t, tt.expectedBody.String, w.Body.String())
+			} else {
+				//assert.Empty(t, w.Body.String())
+				// Достаем токен из cookies
+				var token string
+				cookies := w.Result().Cookies()
+				for _, cookie := range cookies {
+					if cookie.Name == "token" {
+						token = cookie.Value
+						break
+					}
+				}
+				// Проверяем, что токен не пустой
+				assert.NotEmpty(t, token, "Token should not be empty")
+				assert.Equal(t, "mocked-jwt-token", token, "JWT token does not match expected")
+			}
 		})
 	}
 }
@@ -293,7 +329,7 @@ func TestUserHandler_GetMe(t *testing.T) {
 	logger := logrus.New()
 
 	// Создаем обработчик с моками
-	handler := transport.NewUserHandler(mockRepo, logger, mockTokenator)
+	handler := transport.NewAuthHandler(mockRepo, logger, mockTokenator)
 
 	// Генерация тестовых данных
 	userID := uuid.New()
@@ -319,8 +355,8 @@ func TestUserHandler_GetMe(t *testing.T) {
 					ID:          userID,
 					Email:       "test@example.com",
 					Name:        "John",
-					Surname:     "Doe",
-					PhoneNumber: "1234567890",
+					Surname:     null.StringFrom("Doe"),
+					PhoneNumber: null.StringFrom("1234567890"),
 					Version:     userVersion,
 				}, nil)
 			},
@@ -355,8 +391,8 @@ func TestUserHandler_GetMe(t *testing.T) {
 					ID:          userID,
 					Email:       "test@example.com",
 					Name:        "John",
-					Surname:     "Doe",
-					PhoneNumber: "1234567890",
+					Surname:     null.StringFrom("Doe"),
+					PhoneNumber: null.StringFrom("1234567890"),
 					Version:     userVersion + 1, // Ошибка версии
 				}, nil)
 			},
