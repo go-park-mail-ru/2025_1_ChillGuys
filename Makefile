@@ -20,14 +20,15 @@ run: build
 #
 #DOCKER_USERNAME=
 #IMAGE_NAME=
-#TAG=latest=
+#TAG=latest
 #
 ## Сборка Docker-образа
 #docker-build:
-#	docker build -t $(DOCKER_USERNAME)/$(IMAGE_NAME):$(TAG) ./.
+#	docker build -t $(DOCKER_USERNAME)/$(IMAGE_NAME):$(TAG) .
+#
 #
 ## Пуш Docker-образа на Docker Hub
 #docker-push: docker-build
 #	docker login
 #	docker push $(DOCKER_USERNAME)/$(IMAGE_NAME):$(TAG)
-#
+
