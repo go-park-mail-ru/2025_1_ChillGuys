@@ -31,7 +31,7 @@ func TestAuthHandler_Login(t *testing.T) {
 	handler := transport.NewAuthHandler(mockRepo, logger, mockTokenator)
 
 	// Генерация хеша пароля для тестов
-	passwordHash, err := transport.GeneratePasswordHash("password123")
+	passwordHash, err := transport.GeneratePasswordHash("Password123")
 	if err != nil {
 		t.Fatalf("не удалось сгенерировать хеш пароля: %v", err)
 	}
@@ -48,7 +48,7 @@ func TestAuthHandler_Login(t *testing.T) {
 			name: "Valid Login",
 			request: models.UserLoginRequestDTO{
 				Email:    "test@example.com",
-				Password: "password123",
+				Password: "Password123",
 			},
 			mockBehavior: func() {
 				// Мокируем успешный поиск пользователя и создание JWT токена
@@ -66,12 +66,12 @@ func TestAuthHandler_Login(t *testing.T) {
 			expectedStatus: http.StatusOK,
 			expectedBody:   null.String{},
 		},
-		// Тест для некорректного email
+		// Тест для некорректного формата email
 		{
-			name: "Invalid Email",
+			name: "Invalid Email Format",
 			request: models.UserLoginRequestDTO{
 				Email:    "invalid-email",
-				Password: "password123",
+				Password: "Password123",
 			},
 			mockBehavior:   func() {},
 			expectedStatus: http.StatusBadRequest,
@@ -93,7 +93,7 @@ func TestAuthHandler_Login(t *testing.T) {
 			name: "User Not Found",
 			request: models.UserLoginRequestDTO{
 				Email:    "notfound@example.com",
-				Password: "password123",
+				Password: "Password123",
 			},
 			mockBehavior: func() {
 				mockRepo.EXPECT().GetUserByEmail("notfound@example.com").Return(nil, errors.New("user not found"))
@@ -165,7 +165,7 @@ func TestAuthHandler_Register(t *testing.T) {
 			name: "Valid Registration",
 			request: models.UserRegisterRequestDTO{
 				Email:    "newuser@example.com",
-				Password: "password123",
+				Password: "Password123",
 				Name:     "John",
 				Surname:  null.StringFrom("Doe"),
 			},
@@ -183,7 +183,7 @@ func TestAuthHandler_Register(t *testing.T) {
 			name: "Invalid Email",
 			request: models.UserRegisterRequestDTO{
 				Email:    "invalid-email",
-				Password: "password123",
+				Password: "Password123",
 				Name:     "John",
 				Surname:  null.StringFrom("Doe"),
 			},
@@ -196,7 +196,7 @@ func TestAuthHandler_Register(t *testing.T) {
 			name: "User Already Exists",
 			request: models.UserRegisterRequestDTO{
 				Email:    "existing@example.com",
-				Password: "password123",
+				Password: "Password123",
 				Name:     "John",
 				Surname:  null.StringFrom("Doe"),
 			},
@@ -206,6 +206,32 @@ func TestAuthHandler_Register(t *testing.T) {
 			},
 			expectedStatus: http.StatusConflict,
 			expectedBody:   null.StringFrom(`{"message":"User already exists"}`),
+		},
+		// Тест для пустого имени
+		{
+			name: "Empty Name",
+			request: models.UserRegisterRequestDTO{
+				Email:    "newuser@example.com",
+				Password: "Password123",
+				Name:     "",
+				Surname:  null.StringFrom("Doe"),
+			},
+			mockBehavior:   func() {},
+			expectedStatus: http.StatusBadRequest,
+			expectedBody:   null.StringFrom(`{"message":"Invalid name"}`),
+		},
+		// Тест для слишком короткого пароля
+		{
+			name: "Short Password",
+			request: models.UserRegisterRequestDTO{
+				Email:    "newuser@example.com",
+				Password: "Pass", // Короткий пароль
+				Name:     "John",
+				Surname:  null.StringFrom("Doe"),
+			},
+			mockBehavior:   func() {},
+			expectedStatus: http.StatusBadRequest,
+			expectedBody:   null.StringFrom(`{"message":"Invalid password: password must be at least 8 characters"}`),
 		},
 	}
 

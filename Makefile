@@ -16,19 +16,18 @@ build:
 run: build
 	./bin/app
 
-#.PHONY: docker-build docker-push
-#
-#DOCKER_USERNAME=
-#IMAGE_NAME=
-#TAG=latest
-#
-## Сборка Docker-образа
-#docker-build:
-#	docker build -t $(DOCKER_USERNAME)/$(IMAGE_NAME):$(TAG) .
-#
-#
-## Пуш Docker-образа на Docker Hub
-#docker-push: docker-build
-#	docker login
-#	docker push $(DOCKER_USERNAME)/$(IMAGE_NAME):$(TAG)
+.PHONY: docker-build docker-push
 
+DOCKER_USERNAME=niknike
+IMAGE_NAME=bazaar
+TAG=latest
+
+# Сборка Docker-образа
+docker-build:
+	docker build -t $(DOCKER_USERNAME)/$(IMAGE_NAME):$(TAG) .
+
+
+# Пуш Docker-образа на Docker Hub
+docker-push: docker-build
+	docker login
+	docker push $(DOCKER_USERNAME)/$(IMAGE_NAME):$(TAG)
