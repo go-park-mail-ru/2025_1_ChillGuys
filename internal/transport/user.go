@@ -11,15 +11,17 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"regexp"
+	"strings"
 	"time"
 )
 
 //go:generate mockgen -source=user.go -destination=../repository/mocks/user_repo_mock.go -package=mocks IUserRepository
 
 var (
-	passwordRegexp = regexp.MustCompile(`^[a-zA-Z0-9]{8,}$`)
-	emailRegexp    = regexp.MustCompile(`^[a-z0-9]+@[a-z0-9]+\.[a-z]{2,4}$`)
-	nameRegexp     = regexp.MustCompile(`^[a-zA-Zа-яА-ЯёЁ\s-]+$`)
+	emailRegexp     = regexp.MustCompile(`^\w+(\.\w*)*@\w+(\.\w{2,})+$`)
+	digitRegexp     = regexp.MustCompile(`[0-9]`)
+	lowercaseRegexp = regexp.MustCompile(`[a-z]`)
+	uppercaseRegexp = regexp.MustCompile(`[A-Z]`)
 )
 
 type IUserRepository interface {
@@ -229,25 +231,28 @@ func validateEmail(email string) error {
 	return nil
 }
 
-// validatePassword Функция для проверки валидности пароля
+// validatePassword проверяет валидность пароля
 func validatePassword(password string) error {
 	if len(password) < 8 {
 		return errors.New("password must be at least 8 characters")
 	}
-	if !passwordRegexp.MatchString(password) {
-		return errors.New("password must contain at least one letter and one number")
+	if !digitRegexp.MatchString(password) {
+		return errors.New("password must contain at least one number")
+	}
+	if !lowercaseRegexp.MatchString(password) {
+		return errors.New("password must contain at least one lowercase letter")
+	}
+	if !uppercaseRegexp.MatchString(password) {
+		return errors.New("password must contain at least one uppercase letter")
 	}
 	return nil
 }
 
-// validateName Функция валидации имени пользователя
+// validateName проверяет валидность имени пользователя
 func validateName(name string) error {
-	if len(name) < 2 || len(name) > 50 {
-		return errors.New("name must be between 2 and 50 characters long")
-	}
-
-	if !nameRegexp.MatchString(name) {
-		return errors.New("name can only contain letters, spaces, and '-'")
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return errors.New("name cannot be empty")
 	}
 
 	return nil
