@@ -2,13 +2,13 @@ package transport
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"net/http"
 	"os"
 	"strconv"
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils"
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
 )
@@ -36,21 +36,13 @@ func (h *ProductHandler) GetAllProducts(w http.ResponseWriter, r *http.Request) 
 	products, err := h.Repo.GetAllProducts(r.Context())
 	if err != nil {
 		h.log.Warnf("Failed to get all products: %v", err)
-		http.Error(w, "Failed get all products", http.StatusInternalServerError)
+		utils.SendErrorResponse(w, http.StatusInternalServerError, "Failed get all products")
 		return
 	}
 
 	response := models.ConvertToProductsResponse(products)
 
-	resp, err := json.Marshal(response)
-	if err != nil {
-		h.log.Errorf("Failed to encode response: %v", err)
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(resp)
+	utils.SendSuccessResponse(w, http.StatusOK, response)
 }
 
 func (h *ProductHandler) GetProductByID(w http.ResponseWriter, r *http.Request) {
@@ -59,25 +51,18 @@ func (h *ProductHandler) GetProductByID(w http.ResponseWriter, r *http.Request) 
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		h.log.Warnf("Invalid ID: %v", err)
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		utils.SendErrorResponse(w, http.StatusBadRequest, "Invalid ID")
 		return
 	}
 
 	product, err := h.Repo.GetProductByID(r.Context(), id)
 	if err != nil {
 		h.log.Warnf("Product not found (ID: %d): %v", id, err)
-		http.Error(w, "Not found", http.StatusNotFound)
+		utils.SendErrorResponse(w, http.StatusNotFound, "Product not found")
 		return
 	}
-
-	productJson, err := json.Marshal(product)
-	if err != nil{
-		h.log.Errorf("Failed to encode product (ID: %d): %v", id, err)
-		http.Error(w, "Failed to encode", http.StatusInternalServerError)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(productJson)
+	
+	utils.SendSuccessResponse(w, http.StatusOK, product)
 }
 
 func (h *ProductHandler) GetProductCover(w http.ResponseWriter, r *http.Request){
@@ -86,7 +71,7 @@ func (h *ProductHandler) GetProductCover(w http.ResponseWriter, r *http.Request)
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		h.log.Warnf("Invalid ID: %v", err)
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		utils.SendErrorResponse(w, http.StatusBadRequest, "Invalid ID")
 		return
 	}
 
@@ -94,10 +79,10 @@ func (h *ProductHandler) GetProductCover(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			h.log.Errorf("Cover file not found (ID: %d): %v", id, err)
-			http.Error(w, "Cover file not found", http.StatusNotFound)
+			utils.SendErrorResponse(w, http.StatusNotFound, "Cover file not found")
 		} else {
 			h.log.Errorf("Failed to get cover file (ID: %d): %v", id, err)
-			http.Error(w, "Failed to get cover file", http.StatusInternalServerError)
+			utils.SendErrorResponse(w, http.StatusInternalServerError, "Failed to get cover file")
 		}
 		return
 	}
