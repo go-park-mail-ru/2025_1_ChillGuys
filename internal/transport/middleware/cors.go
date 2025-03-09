@@ -8,9 +8,11 @@ func CORSMiddleware(next http.Handler) http.Handler {
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type,X-CSRF-Token")
 		w.Header().Set("Access-Control-Allow-Credentials", "true")
 		w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
+
 		if r.Method == http.MethodOptions {
 			return
 		}
+
 		next.ServeHTTP(w, r)
 	})
 }

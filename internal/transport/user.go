@@ -253,16 +253,14 @@ func validateEmail(email string) error {
 
 // validatePassword проверяет валидность пароля
 func validatePassword(password string) error {
-	if len(password) < 8 {
+	switch {
+	case len(password) < 8:
 		return errors.New("password must be at least 8 characters")
-	}
-	if !digitRegexp.MatchString(password) {
+	case !digitRegexp.MatchString(password):
 		return errors.New("password must contain at least one number")
-	}
-	if !lowercaseRegexp.MatchString(password) {
+	case !lowercaseRegexp.MatchString(password):
 		return errors.New("password must contain at least one lowercase letter")
-	}
-	if !uppercaseRegexp.MatchString(password) {
+	case !uppercaseRegexp.MatchString(password):
 		return errors.New("password must contain at least one uppercase letter")
 	}
 	return nil

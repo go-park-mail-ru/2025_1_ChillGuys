@@ -7,6 +7,10 @@ import (
 	"net/http"
 )
 
+type ErrorResponse struct {
+	Message string `json:"message"`
+}
+
 func ParseData(ioBody io.Reader, request any) (int, string) {
 	body, err := io.ReadAll(ioBody)
 	if err != nil {
@@ -44,8 +48,4 @@ func SendSuccessResponse(w http.ResponseWriter, statusCode int, body interface{}
 		}
 		_, _ = w.Write(response)
 	}
-}
-
-type ErrorResponse struct {
-	Message string `json:"message"`
 }
