@@ -1,6 +1,6 @@
 basePath: /api
 definitions:
-  github_com_go-park-mail-ru_2025_1_ChillGuys_internal_models.User:
+  models.User:
     properties:
       email:
         type: string
@@ -13,14 +13,14 @@ definitions:
       surname:
         type: string
     type: object
-  github_com_go-park-mail-ru_2025_1_ChillGuys_internal_models.UserLoginRequestDTO:
+  models.UserLoginRequestDTO:
     properties:
       email:
         type: string
       password:
         type: string
     type: object
-  github_com_go-park-mail-ru_2025_1_ChillGuys_internal_models.UserRegisterRequestDTO:
+  models.UserRegisterRequestDTO:
     properties:
       email:
         type: string
@@ -31,7 +31,7 @@ definitions:
       surname:
         type: string
     type: object
-  github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_utils.ErrorResponse:
+  utils.ErrorResponse:
     properties:
       message:
         type: string
@@ -54,25 +54,26 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_models.UserLoginRequestDTO'
+          $ref: '#/definitions/models.UserLoginRequestDTO'
       produces:
       - application/json
       responses:
         "200":
-          description: Успешный ответ
+          description: No Content
+          headers:
+            Set-Cookie:
+              description: Устанавливает JWT-токен в куки
+              type: string
           schema:
-            additionalProperties: true
-            type: object
+            type: ""
         "400":
           description: Ошибка валидации
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/utils.ErrorResponse'
         "401":
           description: Неверные email или пароль
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/utils.ErrorResponse'
       summary: Login user
       tags:
       - auth
@@ -80,16 +81,12 @@ paths:
     post:
       description: Выход пользователя
       responses:
-        "200":
-          description: Успешный выход
-          schema:
-            additionalProperties: true
-            type: object
         "500":
           description: Ошибка сервера
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
       summary: Logout user
       tags:
       - auth
@@ -105,26 +102,30 @@ paths:
         name: input
         required: true
         schema:
-          $ref: '#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_models.UserRegisterRequestDTO'
+          $ref: '#/definitions/models.UserRegisterRequestDTO'
       produces:
       - application/json
       responses:
         "200":
-          description: Регистрация успешна (тело пустое, токен в куки)
+          description: No Content
+          headers:
+            Set-Cookie:
+              description: Устанавливает JWT-токен в куки
+              type: string
           schema:
-            type: string
+            type: ""
         "400":
           description: Некорректный запрос
           schema:
-            $ref: '#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_utils.ErrorResponse'
+            $ref: '#/definitions/utils.ErrorResponse'
         "409":
           description: Пользователь уже существует
           schema:
-            $ref: '#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_utils.ErrorResponse'
+            $ref: '#/definitions/utils.ErrorResponse'
         "500":
           description: Внутренняя ошибка сервера
           schema:
-            $ref: '#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_utils.ErrorResponse'
+            $ref: '#/definitions/utils.ErrorResponse'
       summary: Register user
       tags:
       - auth
@@ -137,18 +138,23 @@ paths:
         "200":
           description: Информация о пользователе
           schema:
-            $ref: '#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_models.User'
+            $ref: '#/definitions/models.User'
         "401":
           description: Неверный токен
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/utils.ErrorResponse'
         "500":
           description: Ошибка сервера
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
       summary: Get user info
       tags:
       - users
+securityDefinitions:
+  ApiKeyAuth:
+    in: cookie
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

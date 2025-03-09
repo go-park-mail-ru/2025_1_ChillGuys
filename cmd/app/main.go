@@ -4,6 +4,10 @@
 // @host localhost:8080
 // @BasePath /api
 
+// @securityDefinitions.apikey ApiKeyAuth
+// @in cookie
+// @name Authorization
+
 package main
 
 import (

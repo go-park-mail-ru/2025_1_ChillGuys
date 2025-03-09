@@ -35,30 +35,33 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_models.UserLoginRequestDTO"
+                            "$ref": "#/definitions/models.UserLoginRequestDTO"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Успешный ответ",
+                        "description": "No Content",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "type": ""
+                        },
+                        "headers": {
+                            "Set-Cookie": {
+                                "type": "string",
+                                "description": "Устанавливает JWT-токен в куки"
+                            }
                         }
                     },
                     "400": {
                         "description": "Ошибка валидации",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/utils.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Неверные email или пароль",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/utils.ErrorResponse"
                         }
                     }
                 }
@@ -66,24 +69,21 @@ const docTemplate = `{
         },
         "/auth/logout": {
             "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Выход пользователя",
                 "tags": [
                     "auth"
                 ],
                 "summary": "Logout user",
                 "responses": {
-                    "200": {
-                        "description": "Успешный выход",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
                     "500": {
                         "description": "Ошибка сервера",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/utils.ErrorResponse"
                         }
                     }
                 }
@@ -109,33 +109,39 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_models.UserRegisterRequestDTO"
+                            "$ref": "#/definitions/models.UserRegisterRequestDTO"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Регистрация успешна (тело пустое, токен в куки)",
+                        "description": "No Content",
                         "schema": {
-                            "type": "string"
+                            "type": ""
+                        },
+                        "headers": {
+                            "Set-Cookie": {
+                                "type": "string",
+                                "description": "Устанавливает JWT-токен в куки"
+                            }
                         }
                     },
                     "400": {
                         "description": "Некорректный запрос",
                         "schema": {
-                            "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_utils.ErrorResponse"
+                            "$ref": "#/definitions/utils.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Пользователь уже существует",
                         "schema": {
-                            "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_utils.ErrorResponse"
+                            "$ref": "#/definitions/utils.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Внутренняя ошибка сервера",
                         "schema": {
-                            "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_utils.ErrorResponse"
+                            "$ref": "#/definitions/utils.ErrorResponse"
                         }
                     }
                 }
@@ -143,6 +149,11 @@ const docTemplate = `{
         },
         "/users/me": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Получение информации о текущем пользователе",
                 "produces": [
                     "application/json"
@@ -155,21 +166,19 @@ const docTemplate = `{
                     "200": {
                         "description": "Информация о пользователе",
                         "schema": {
-                            "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_models.User"
+                            "$ref": "#/definitions/models.User"
                         }
                     },
                     "401": {
                         "description": "Неверный токен",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/utils.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Ошибка сервера",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/utils.ErrorResponse"
                         }
                     }
                 }
@@ -177,7 +186,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "github_com_go-park-mail-ru_2025_1_ChillGuys_internal_models.User": {
+        "models.User": {
             "type": "object",
             "properties": {
                 "email": {
@@ -197,7 +206,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_go-park-mail-ru_2025_1_ChillGuys_internal_models.UserLoginRequestDTO": {
+        "models.UserLoginRequestDTO": {
             "type": "object",
             "properties": {
                 "email": {
@@ -208,7 +217,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_go-park-mail-ru_2025_1_ChillGuys_internal_models.UserRegisterRequestDTO": {
+        "models.UserRegisterRequestDTO": {
             "type": "object",
             "properties": {
                 "email": {
@@ -225,13 +234,20 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_utils.ErrorResponse": {
+        "utils.ErrorResponse": {
             "type": "object",
             "properties": {
                 "message": {
                     "type": "string"
                 }
             }
+        }
+    },
+    "securityDefinitions": {
+        "ApiKeyAuth": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "cookie"
         }
     }
 }`

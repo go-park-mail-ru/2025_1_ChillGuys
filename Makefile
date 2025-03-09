@@ -1,6 +1,7 @@
 DOCKER_USERNAME=niknike
 IMAGE_NAME=bazaar
 TAG=latest
+APP_NAME=app
 
 run:
 	go run ./cmd/app
@@ -29,7 +30,7 @@ run-build:
 clean:
 	rm -rf bin/
 
-.PHONY: docker-build docker-push
+.PHONY: docker-build docker-push swag
 
 # Сборка Docker-образа
 docker-build:
@@ -39,3 +40,8 @@ docker-build:
 docker-push: docker-build
 	docker login
 	docker push $(DOCKER_USERNAME)/$(IMAGE_NAME):$(TAG)
+
+.PHONY: swag
+
+swag:
+	swag init -g ./cmd/${APP_NAME}/main.go
