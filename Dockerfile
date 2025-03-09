@@ -23,7 +23,10 @@ WORKDIR /app
 COPY --from=builder /app/bin/main .
 
 # Копируем папку с картинками 
-COPY --from=builder /app/media ./media
+COPY --from=builder /app/media/ ./media
+
+# Копируем .env файл
+COPY --from=builder /app/.env .
 
 # Открываем порт для приложения
 EXPOSE 8080

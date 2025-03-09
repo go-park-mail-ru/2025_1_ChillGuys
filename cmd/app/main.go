@@ -1,13 +1,17 @@
 package main
 
 import (
+	"fmt"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/repository"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware"
 	"github.com/gorilla/mux"
+	"github.com/joho/godotenv"
 	"github.com/sirupsen/logrus"
+	"log"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -20,6 +24,17 @@ func main() {
 
 	productRepo := repository.NewProductRepo()
 	productHandler := transport.NewProductHandler(productRepo, logger)
+
+	err := godotenv.Load()
+	if err != nil {
+		log.Println("Error loading .env file")
+	}
+
+	port := os.Getenv("SERVER_PORT")
+	if port == "" {
+		logger.WithFields(logrus.Fields{"error": "SERVER_PORT is not set"}).Error("SERVER_PORT is not set in the .env file")
+		return
+	}
 
 	router := mux.NewRouter().PathPrefix("/api").Subrouter()
 	router.Use(middleware.CORSMiddleware)
@@ -49,15 +64,14 @@ func main() {
 
 	srv := &http.Server{
 		Handler:      router,
-		Addr:         ":8081",
+		Addr:         fmt.Sprintf(":%s", port),
 		WriteTimeout: 10 * time.Second,
 		ReadTimeout:  10 * time.Second,
 		IdleTimeout:  30 * time.Second,
 	}
 
 	logger.Infof("starting server on port %s", srv.Addr)
-	err := srv.ListenAndServe()
-	if err != nil {
+	if err := srv.ListenAndServe(); err != nil {
 		logger.Errorf("server error: %v", err)
 	}
 }
