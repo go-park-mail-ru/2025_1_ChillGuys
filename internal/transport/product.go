@@ -22,13 +22,13 @@ type IProductRepo interface {
 
 type ProductHandler struct {
 	Repo IProductRepo
-	log *logrus.Logger
+	log  *logrus.Logger
 }
 
 func NewProductHandler(repo IProductRepo, log *logrus.Logger) *ProductHandler {
 	return &ProductHandler{
 		Repo: repo,
-		log: log,
+		log:  log,
 	}
 }
 
@@ -47,7 +47,7 @@ func (h *ProductHandler) GetAllProducts(w http.ResponseWriter, r *http.Request) 
 
 func (h *ProductHandler) GetProductByID(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-    idStr := vars["id"]
+	idStr := vars["id"]
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		h.log.Warnf("Invalid ID: %v", err)
@@ -61,13 +61,13 @@ func (h *ProductHandler) GetProductByID(w http.ResponseWriter, r *http.Request) 
 		utils.SendErrorResponse(w, http.StatusNotFound, "Product not found")
 		return
 	}
-	
+
 	utils.SendSuccessResponse(w, http.StatusOK, product)
 }
 
-func (h *ProductHandler) GetProductCover(w http.ResponseWriter, r *http.Request){
+func (h *ProductHandler) GetProductCover(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-    idStr := vars["id"]
+	idStr := vars["id"]
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		h.log.Warnf("Invalid ID: %v", err)
@@ -80,10 +80,11 @@ func (h *ProductHandler) GetProductCover(w http.ResponseWriter, r *http.Request)
 		if errors.Is(err, os.ErrNotExist) {
 			h.log.Errorf("Cover file not found (ID: %d): %v", id, err)
 			utils.SendErrorResponse(w, http.StatusNotFound, "Cover file not found")
-		} else {
-			h.log.Errorf("Failed to get cover file (ID: %d): %v", id, err)
-			utils.SendErrorResponse(w, http.StatusInternalServerError, "Failed to get cover file")
+			return
 		}
+
+		h.log.Errorf("Failed to get cover file (ID: %d): %v", id, err)
+		utils.SendErrorResponse(w, http.StatusInternalServerError, "Failed to get cover file")
 		return
 	}
 
