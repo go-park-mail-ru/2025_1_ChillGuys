@@ -1,0 +1,154 @@
+basePath: /api
+definitions:
+  github_com_go-park-mail-ru_2025_1_ChillGuys_internal_models.User:
+    properties:
+      email:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      phoneNumber:
+        type: string
+      surname:
+        type: string
+    type: object
+  github_com_go-park-mail-ru_2025_1_ChillGuys_internal_models.UserLoginRequestDTO:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    type: object
+  github_com_go-park-mail-ru_2025_1_ChillGuys_internal_models.UserRegisterRequestDTO:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+      password:
+        type: string
+      surname:
+        type: string
+    type: object
+  github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_utils.ErrorResponse:
+    properties:
+      message:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: API for ChillGuys marketplace
+  title: ChillGuys API
+  version: "1.0"
+paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Авторизация пользователя
+      parameters:
+      - description: User credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_models.UserLoginRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешный ответ
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Ошибка валидации
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Неверные email или пароль
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Login user
+      tags:
+      - auth
+  /auth/logout:
+    post:
+      description: Выход пользователя
+      responses:
+        "200":
+          description: Успешный выход
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Logout user
+      tags:
+      - auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Создает нового пользователя, хеширует пароль и устанавливает JWT-токен
+        в куки
+      parameters:
+      - description: Данные для регистрации
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_models.UserRegisterRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Регистрация успешна (тело пустое, токен в куки)
+          schema:
+            type: string
+        "400":
+          description: Некорректный запрос
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_utils.ErrorResponse'
+        "409":
+          description: Пользователь уже существует
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_utils.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_utils.ErrorResponse'
+      summary: Register user
+      tags:
+      - auth
+  /users/me:
+    get:
+      description: Получение информации о текущем пользователе
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Информация о пользователе
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_models.User'
+        "401":
+          description: Неверный токен
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get user info
+      tags:
+      - users
+swagger: "2.0"

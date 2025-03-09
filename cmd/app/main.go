@@ -1,7 +1,14 @@
+// @title ChillGuys API
+// @version 1.0
+// @description API for ChillGuys marketplace
+// @host localhost:8080
+// @BasePath /api
+
 package main
 
 import (
 	"fmt"
+	_ "github.com/go-park-mail-ru/2025_1_ChillGuys/docs"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/repository"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
@@ -9,6 +16,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 	"github.com/sirupsen/logrus"
+	httpSwagger "github.com/swaggo/http-swagger"
 	"log"
 	"net/http"
 	"os"
@@ -38,6 +46,8 @@ func main() {
 
 	router := mux.NewRouter().PathPrefix("/api").Subrouter()
 	router.Use(middleware.CORSMiddleware)
+
+	router.PathPrefix("/swagger/").Handler(httpSwagger.WrapHandler)
 
 	productsRouter := router.PathPrefix("/products").Subrouter()
 	{

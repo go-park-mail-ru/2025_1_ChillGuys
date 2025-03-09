@@ -50,6 +50,16 @@ func NewAuthHandler(repo IUserRepository, log *logrus.Logger, token ITokenator) 
 	}
 }
 
+// @Summary Login user
+// @Description Авторизация пользователя
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body models.UserLoginRequestDTO true "User credentials"
+// @Success 200 {object} map[string]interface{} "Успешный ответ"
+// @Failure 400 {object} map[string]interface{} "Ошибка валидации"
+// @Failure 401 {object} map[string]interface{} "Неверные email или пароль"
+// @Router /auth/login [post]
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	// Парсим запрос
 	var request models.UserLoginRequestDTO
@@ -96,6 +106,18 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	utils.SendSuccessResponse(w, http.StatusOK, nil)
 }
 
+// Register регистрирует нового пользователя и устанавливает JWT-токен в куки.
+// @Summary Register user
+// @Description Создает нового пользователя, хеширует пароль и устанавливает JWT-токен в куки
+// @Tags auth
+// @Accept  json
+// @Produce  json
+// @Param input body models.UserRegisterRequestDTO true "Данные для регистрации"
+// @Success 200 {string} string "Регистрация успешна (тело пустое, токен в куки)"
+// @Failure 400 {object} utils.ErrorResponse "Некорректный запрос"
+// @Failure 409 {object} utils.ErrorResponse "Пользователь уже существует"
+// @Failure 500 {object} utils.ErrorResponse "Внутренняя ошибка сервера"
+// @Router /auth/register [post]
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	// Парсим
 	var request models.UserRegisterRequestDTO
@@ -160,6 +182,12 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	utils.SendSuccessResponse(w, http.StatusOK, nil)
 }
 
+// @Summary Logout user
+// @Description Выход пользователя
+// @Tags auth
+// @Success 200 {object} map[string]interface{} "Успешный выход"
+// @Failure 500 {object} map[string]interface{} "Ошибка сервера"
+// @Router /auth/logout [post]
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	userID, isExist := r.Context().Value("userID").(string)
 	if !isExist {
@@ -184,6 +212,14 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	utils.SendSuccessResponse(w, http.StatusOK, nil)
 }
 
+// @Summary Get user info
+// @Description Получение информации о текущем пользователе
+// @Tags users
+// @Produce json
+// @Success 200 {object} models.User "Информация о пользователе"
+// @Failure 401 {object} map[string]interface{} "Неверный токен"
+// @Failure 500 {object} map[string]interface{} "Ошибка сервера"
+// @Router /users/me [get]
 func (h *AuthHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 	// Получаем ID и версию из контекста (устанавливается в JWTMiddleware)
 	userIDStr, ok := r.Context().Value("userID").(string)
