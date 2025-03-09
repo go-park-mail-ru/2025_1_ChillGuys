@@ -18,7 +18,10 @@ import (
 //go:generate mockgen -source=user.go -destination=../repository/mocks/user_repo_mock.go -package=mocks IUserRepository
 
 var (
-	emailRegexp = regexp.MustCompile(`^\w+(\.\w*)*@\w+(\.\w{2,})+$`)
+	emailRegexp     = regexp.MustCompile(`^\w+(\.\w*)*@\w+(\.\w{2,})+$`)
+	digitRegexp     = regexp.MustCompile(`[0-9]`)
+	lowercaseRegexp = regexp.MustCompile(`[a-z]`)
+	uppercaseRegexp = regexp.MustCompile(`[A-Z]`)
 )
 
 type IUserRepository interface {
@@ -233,13 +236,13 @@ func validatePassword(password string) error {
 	if len(password) < 8 {
 		return errors.New("password must be at least 8 characters")
 	}
-	if !regexp.MustCompile(`[0-9]`).MatchString(password) {
+	if !digitRegexp.MatchString(password) {
 		return errors.New("password must contain at least one number")
 	}
-	if !regexp.MustCompile(`[a-z]`).MatchString(password) {
+	if !lowercaseRegexp.MatchString(password) {
 		return errors.New("password must contain at least one lowercase letter")
 	}
-	if !regexp.MustCompile(`[A-Z]`).MatchString(password) {
+	if !uppercaseRegexp.MatchString(password) {
 		return errors.New("password must contain at least one uppercase letter")
 	}
 	return nil

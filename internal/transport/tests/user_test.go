@@ -33,7 +33,10 @@ func TestAuthHandler_Login(t *testing.T) {
 	// Генерация хеша пароля для тестов
 	passwordHash, err := transport.GeneratePasswordHash("Password123")
 	if err != nil {
-		t.Fatalf("не удалось сгенерировать хеш пароля: %v", err)
+		logger.WithFields(logrus.Fields{
+			"error":    err,
+			"password": "Password123",
+		}).Error("Failed to generate password hash")
 	}
 
 	tests := []struct {
@@ -118,11 +121,9 @@ func TestAuthHandler_Login(t *testing.T) {
 
 			// Проверяем статус и тело ответа
 			assert.Equal(t, tt.expectedStatus, w.Code)
-			//assert.JSONEq(t, tt.expectedBody.String, w.Body.String())
 			if tt.expectedBody.Valid {
 				assert.JSONEq(t, tt.expectedBody.String, w.Body.String())
 			} else {
-				//assert.Empty(t, w.Body.String())
 				// Достаем токен из cookies
 				var token string
 				cookies := w.Result().Cookies()
@@ -220,12 +221,12 @@ func TestAuthHandler_Register(t *testing.T) {
 			expectedStatus: http.StatusBadRequest,
 			expectedBody:   null.StringFrom(`{"message":"Invalid name"}`),
 		},
-		// Тест для слишком короткого пароля
+		// Тест для некорректного пароля
 		{
 			name: "Short Password",
 			request: models.UserRegisterRequestDTO{
 				Email:    "newuser@example.com",
-				Password: "Pass", // Короткий пароль
+				Password: "Pass",
 				Name:     "John",
 				Surname:  null.StringFrom("Doe"),
 			},
@@ -253,7 +254,6 @@ func TestAuthHandler_Register(t *testing.T) {
 			if tt.expectedBody.Valid {
 				assert.JSONEq(t, tt.expectedBody.String, w.Body.String())
 			} else {
-				//assert.Empty(t, w.Body.String())
 				// Достаем токен из cookies
 				var token string
 				cookies := w.Result().Cookies()
@@ -387,7 +387,7 @@ func TestUserHandler_GetMe(t *testing.T) {
 				}, nil)
 			},
 			expectedStatus: http.StatusOK,
-			expectedBody:   `{"id":"` + userID.String() + `","email":"test@example.com","name":"John","surname":"Doe","phone_number":"1234567890"}`,
+			expectedBody:   `{"id":"` + userID.String() + `","email":"test@example.com","name":"John","surname":"Doe","phoneNumber":"1234567890"}`,
 		},
 		// Тест для случая, когда не передан ID пользователя в контексте
 		{

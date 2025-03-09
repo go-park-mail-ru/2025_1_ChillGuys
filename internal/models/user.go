@@ -10,7 +10,7 @@ type User struct {
 	Email       string      `json:"email"`
 	Name        string      `json:"name"`
 	Surname     null.String `json:"surname"`
-	PhoneNumber null.String `json:"phone_number"`
+	PhoneNumber null.String `json:"phoneNumber"`
 }
 
 func (repo *UserRepo) ConvertToUser() *User {

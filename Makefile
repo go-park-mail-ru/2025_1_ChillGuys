@@ -1,3 +1,7 @@
+DOCKER_USERNAME=niknike
+IMAGE_NAME=bazaar
+TAG=latest
+
 run:
 	go run ./cmd/app
 
@@ -13,28 +17,23 @@ clean-coverage:
 	rm -rf coverage/
 
 mocks:
-	cd ./internal/transport && go generate
+	go generate ./...
 
 build:
 	mkdir -p bin
 	go build -o bin/app ./cmd/app
 
+run-build:
+	./bin/app
+
 clean:
 	rm -rf bin/
 
-run: build
-	./bin/app
-
 .PHONY: docker-build docker-push
-
-DOCKER_USERNAME=niknike
-IMAGE_NAME=bazaar
-TAG=latest
 
 # Сборка Docker-образа
 docker-build:
 	docker build -t $(DOCKER_USERNAME)/$(IMAGE_NAME):$(TAG) .
-
 
 # Пуш Docker-образа на Docker Hub
 docker-push: docker-build
