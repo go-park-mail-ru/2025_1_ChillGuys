@@ -50,15 +50,24 @@ func NewAuthHandler(repo IUserRepository, log *logrus.Logger, token ITokenator) 
 	}
 }
 
+//	@Summary		Login user
+//	@Description	Авторизация пользователя
+//	@Tags			auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			request	body		models.UserLoginRequestDTO	true	"User credentials"
+//	@success		200		{}			-							"No Content"
+//	@Header			200		{string}	Set-Cookie					"Устанавливает JWT-токен в куки"
+//	@Failure		400		{object}	utils.ErrorResponse			"Ошибка валидации"
+//	@Failure		401		{object}	utils.ErrorResponse			"Неверные email или пароль"
+//	@Router			/auth/login [post]
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
-	// Парсим запрос
 	var request models.UserLoginRequestDTO
 	if errStatusCode, errMessage := utils.ParseData(r.Body, &request); errStatusCode != 0 && errMessage != "" {
 		utils.SendErrorResponse(w, errStatusCode, errMessage)
 		return
 	}
 
-	// Валидация
 	if err := validateEmail(request.Email); err != nil {
 		utils.SendErrorResponse(w, http.StatusBadRequest, "Invalid email")
 		return
@@ -69,7 +78,6 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Получаем данные пользователя из базы данных
 	userRepo, err := h.repo.GetUserByEmail(request.Email)
 	if err != nil {
 		h.log.Warn(err.Error())
@@ -77,13 +85,11 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Проверяем совпадение пароля
 	if err := bcrypt.CompareHashAndPassword(userRepo.PasswordHash, []byte(request.Password)); err != nil {
 		utils.SendErrorResponse(w, http.StatusUnauthorized, "Invalid password or email")
 		return
 	}
 
-	// Генерация токена
 	token, err := h.token.CreateJWT(userRepo.ID.String(), userRepo.Version)
 	if err != nil {
 		utils.SendErrorResponse(w, http.StatusInternalServerError, err.Error())
@@ -91,20 +97,28 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.Cookie(w, token, string(utils.Token))
-
-	// Отправляем успешный ответ с токеном и версией
 	utils.SendSuccessResponse(w, http.StatusOK, nil)
 }
 
+//	@Summary		Register user
+//	@Description	Создает нового пользователя, хеширует пароль и устанавливает JWT-токен в куки
+//	@Tags			auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			input	body		models.UserRegisterRequestDTO	true	"Данные для регистрации"
+//	@success		200		{}			-								"No Content"
+//	@Header			200		{string}	Set-Cookie						"Устанавливает JWT-токен в куки"
+//	@Failure		400		{object}	utils.ErrorResponse				"Некорректный запрос"
+//	@Failure		409		{object}	utils.ErrorResponse				"Пользователь уже существует"
+//	@Failure		500		{object}	utils.ErrorResponse				"Внутренняя ошибка сервера"
+//	@Router			/auth/register [post]
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
-	// Парсим
 	var request models.UserRegisterRequestDTO
 	if errStatusCode, errMessage := utils.ParseData(r.Body, &request); errStatusCode != 0 && errMessage != "" {
 		utils.SendErrorResponse(w, errStatusCode, errMessage)
 		return
 	}
 
-	// Валидация
 	if err := validateEmail(request.Email); err != nil {
 		utils.SendErrorResponse(w, http.StatusBadRequest, "Invalid email")
 		return
@@ -120,21 +134,18 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Создаём хэш пароля
 	passwordHash, err := GeneratePasswordHash(request.Password)
 	if err != nil {
 		utils.SendErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	// Проверка существования пользователя в бд
 	existedUser, _ := h.repo.GetUserByEmail(request.Email)
 	if existedUser != nil {
 		utils.SendErrorResponse(w, http.StatusConflict, "User already exists")
 		return
 	}
 
-	// Запись в бд
 	userRepo := models.UserRepo{
 		ID:           uuid.New(),
 		Email:        request.Email,
@@ -156,10 +167,15 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.Cookie(w, token, string(utils.Token))
-
 	utils.SendSuccessResponse(w, http.StatusOK, nil)
 }
 
+//	@Summary		Logout user
+//	@Description	Выход пользователя
+//	@Tags			auth
+//	@Security		TokenAuth
+//	@Failure		500	{object}	utils.ErrorResponse	"Ошибка сервера"
+//	@Router			/auth/logout [post]
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	userID, isExist := r.Context().Value("userID").(string)
 	if !isExist {
@@ -184,8 +200,16 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	utils.SendSuccessResponse(w, http.StatusOK, nil)
 }
 
+//	@Summary		Get user info
+//	@Description	Получение информации о текущем пользователе
+//	@Tags			users
+//	@Security		TokenAuth
+//	@Produce		json
+//	@Success		200	{object}	models.User			"Информация о пользователе"
+//	@Failure		401	{object}	utils.ErrorResponse	"Неверный токен"
+//	@Failure		500	{object}	utils.ErrorResponse	"Ошибка сервера"
+//	@Router			/users/me [get]
 func (h *AuthHandler) GetMe(w http.ResponseWriter, r *http.Request) {
-	// Получаем ID и версию из контекста (устанавливается в JWTMiddleware)
 	userIDStr, ok := r.Context().Value("userID").(string)
 	if !ok {
 		utils.SendErrorResponse(w, http.StatusInternalServerError, "User id not found")
@@ -210,16 +234,12 @@ func (h *AuthHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//Проверяем, совпадает ли версия пользователя
 	if !userRepo.IsVersionValid(version) {
 		utils.SendErrorResponse(w, http.StatusUnauthorized, "Token is invalid or expired")
 		return
 	}
 
-	// Преобразуем userRepo в user
 	user := userRepo.ConvertToUser()
-
-	// Отправляем успешный ответ с краткой информацией о пользователе
 	utils.SendSuccessResponse(w, http.StatusOK, user)
 }
 
@@ -252,7 +272,6 @@ func validateName(name string) error {
 	if name == "" {
 		return errors.New("name cannot be empty")
 	}
-
 	return nil
 }
 
