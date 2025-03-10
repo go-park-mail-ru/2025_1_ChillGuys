@@ -30,7 +30,7 @@ run-build:
 clean:
 	rm -rf bin/
 
-.PHONY: docker-build docker-push 
+.PHONY: docker-build docker-push
 
 # Сборка Docker-образа
 docker-build:
@@ -44,4 +44,5 @@ docker-push: docker-build
 .PHONY: swag
 
 swag:
+	swag fmt
 	swag init -g ./cmd/${APP_NAME}/main.go

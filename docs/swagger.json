@@ -65,7 +65,7 @@
             "post": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "TokenAuth": []
                     }
                 ],
                 "description": "Выход пользователя",
@@ -145,7 +145,7 @@
             "get": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "TokenAuth": []
                     }
                 ],
                 "description": "Получение информации о текущем пользователе",
@@ -238,9 +238,12 @@
         }
     },
     "securityDefinitions": {
-        "ApiKeyAuth": {
+        "BasicAuth": {
+            "type": "basic"
+        },
+        "TokenAuth": {
             "type": "apiKey",
-            "name": "Authorization",
+            "name": "token",
             "in": "cookie"
         }
     }

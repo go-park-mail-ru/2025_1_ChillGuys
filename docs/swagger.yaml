@@ -86,7 +86,7 @@ paths:
           schema:
             $ref: '#/definitions/utils.ErrorResponse'
       security:
-      - ApiKeyAuth: []
+      - TokenAuth: []
       summary: Logout user
       tags:
       - auth
@@ -148,13 +148,15 @@ paths:
           schema:
             $ref: '#/definitions/utils.ErrorResponse'
       security:
-      - ApiKeyAuth: []
+      - TokenAuth: []
       summary: Get user info
       tags:
       - users
 securityDefinitions:
-  ApiKeyAuth:
+  BasicAuth:
+    type: basic
+  TokenAuth:
     in: cookie
-    name: Authorization
+    name: token
     type: apiKey
 swagger: "2.0"

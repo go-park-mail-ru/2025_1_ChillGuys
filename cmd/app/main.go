@@ -1,12 +1,13 @@
-// @title ChillGuys API
-// @version 1.0
-// @description API for ChillGuys marketplace
-// @host localhost:8080
-// @BasePath /api
+//	@title			ChillGuys API
+//	@version		1.0
+//	@description	API for ChillGuys marketplace
+//	@host			localhost:8080
+//	@BasePath		/api
 
-// @securityDefinitions.apikey ApiKeyAuth
-// @in cookie
-// @name Authorization
+//	@securityDefinitions.basic	BasicAuth
+//	@securityDefinitions.apikey	TokenAuth
+//	@in							cookie
+//	@name						token
 
 package main
 

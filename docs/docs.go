@@ -71,7 +71,7 @@ const docTemplate = `{
             "post": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "TokenAuth": []
                     }
                 ],
                 "description": "Выход пользователя",
@@ -151,7 +151,7 @@ const docTemplate = `{
             "get": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "TokenAuth": []
                     }
                 ],
                 "description": "Получение информации о текущем пользователе",
@@ -244,9 +244,12 @@ const docTemplate = `{
         }
     },
     "securityDefinitions": {
-        "ApiKeyAuth": {
+        "BasicAuth": {
+            "type": "basic"
+        },
+        "TokenAuth": {
             "type": "apiKey",
-            "name": "Authorization",
+            "name": "token",
             "in": "cookie"
         }
     }
