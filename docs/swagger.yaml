@@ -1,0 +1,162 @@
+basePath: /api
+definitions:
+  models.User:
+    properties:
+      email:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      phoneNumber:
+        type: string
+      surname:
+        type: string
+    type: object
+  models.UserLoginRequestDTO:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    type: object
+  models.UserRegisterRequestDTO:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+      password:
+        type: string
+      surname:
+        type: string
+    type: object
+  utils.ErrorResponse:
+    properties:
+      message:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: API for ChillGuys marketplace
+  title: ChillGuys API
+  version: "1.0"
+paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Авторизация пользователя
+      parameters:
+      - description: User credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.UserLoginRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: No Content
+          headers:
+            Set-Cookie:
+              description: Устанавливает JWT-токен в куки
+              type: string
+          schema:
+            type: ""
+        "400":
+          description: Ошибка валидации
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Неверные email или пароль
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: Login user
+      tags:
+      - auth
+  /auth/logout:
+    post:
+      description: Выход пользователя
+      responses:
+        "500":
+          description: Ошибка сервера
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - TokenAuth: []
+      summary: Logout user
+      tags:
+      - auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Создает нового пользователя, хеширует пароль и устанавливает JWT-токен
+        в куки
+      parameters:
+      - description: Данные для регистрации
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/models.UserRegisterRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: No Content
+          headers:
+            Set-Cookie:
+              description: Устанавливает JWT-токен в куки
+              type: string
+          schema:
+            type: ""
+        "400":
+          description: Некорректный запрос
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Пользователь уже существует
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: Register user
+      tags:
+      - auth
+  /users/me:
+    get:
+      description: Получение информации о текущем пользователе
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Информация о пользователе
+          schema:
+            $ref: '#/definitions/models.User'
+        "401":
+          description: Неверный токен
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Ошибка сервера
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - TokenAuth: []
+      summary: Get user info
+      tags:
+      - users
+securityDefinitions:
+  BasicAuth:
+    type: basic
+  TokenAuth:
+    in: cookie
+    name: token
+    type: apiKey
+swagger: "2.0"
