@@ -32,6 +32,14 @@ func NewProductHandler(repo IProductRepo, log *logrus.Logger) *ProductHandler {
 	}
 }
 
+// GetAllProducts godoc
+//	@Summary		Получить все продукты
+//	@Description	Возвращает список всех продуктов
+//	@Tags			products
+//	@Produce		json
+//	@Success		200	{object}	[]models.Product	"Список продуктов"
+//	@Failure		500	{object}	utils.ErrorResponse	"Ошибка сервера"
+//	@Router			/products/ [get]
 func (h *ProductHandler) GetAllProducts(w http.ResponseWriter, r *http.Request) {
 	products, err := h.Repo.GetAllProducts(r.Context())
 	if err != nil {
@@ -45,6 +53,16 @@ func (h *ProductHandler) GetAllProducts(w http.ResponseWriter, r *http.Request) 
 	utils.SendSuccessResponse(w, http.StatusOK, response)
 }
 
+// GetProductByID godoc
+//	@Summary		Получить продукт по ID
+//	@Description	Возвращает продукт по его ID
+//	@Tags			products
+//	@Produce		json
+//	@Param			id	path		int					true	"ID продукта"
+//	@Success		200	{object}	models.Product		"Информация о продукте"
+//	@Failure		400	{object}	utils.ErrorResponse	"Некорректный ID"
+//	@Failure		404	{object}	utils.ErrorResponse	"Продукт не найден"
+//	@Router			/products/{id} [get]
 func (h *ProductHandler) GetProductByID(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	idStr := vars["id"]
@@ -65,6 +83,17 @@ func (h *ProductHandler) GetProductByID(w http.ResponseWriter, r *http.Request) 
 	utils.SendSuccessResponse(w, http.StatusOK, product)
 }
 
+// GetProductCover godoc
+//	@Summary		Получить обложку продукта
+//	@Description	Возвращает обложку продукта по его ID
+//	@Tags			products
+//	@Produce		image/jpeg
+//	@Param			id	path		int					true	"ID продукта"
+//	@Success		200	{file}		[]byte				"Обложка продукта"
+//	@Failure		400	{object}	utils.ErrorResponse	"Некорректный ID"
+//	@Failure		404	{object}	utils.ErrorResponse	"Обложка не найдена"
+//	@Failure		500	{object}	utils.ErrorResponse	"Ошибка сервера"
+//	@Router			/products/{id}/cover [get]
 func (h *ProductHandler) GetProductCover(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	idStr := vars["id"]
