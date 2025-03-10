@@ -1,5 +1,22 @@
 basePath: /api
 definitions:
+  models.Product:
+    properties:
+      count:
+        type: integer
+      description:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      price:
+        type: integer
+      rating:
+        type: number
+      reviews_count:
+        type: integer
+    type: object
   models.User:
     properties:
       email:
@@ -129,6 +146,83 @@ paths:
       summary: Register user
       tags:
       - auth
+  /products/:
+    get:
+      description: Возвращает список всех продуктов
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список продуктов
+          schema:
+            items:
+              $ref: '#/definitions/models.Product'
+            type: array
+        "500":
+          description: Ошибка сервера
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: Получить все продукты
+      tags:
+      - products
+  /products/{id}:
+    get:
+      description: Возвращает продукт по его ID
+      parameters:
+      - description: ID продукта
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Информация о продукте
+          schema:
+            $ref: '#/definitions/models.Product'
+        "400":
+          description: Некорректный ID
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Продукт не найден
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: Получить продукт по ID
+      tags:
+      - products
+  /products/{id}/cover:
+    get:
+      description: Возвращает обложку продукта по его ID
+      parameters:
+      - description: ID продукта
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - image/jpeg
+      responses:
+        "200":
+          description: Обложка продукта
+          schema:
+            type: file
+        "400":
+          description: Некорректный ID
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Обложка не найдена
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Ошибка сервера
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: Получить обложку продукта
+      tags:
+      - products
   /users/me:
     get:
       description: Получение информации о текущем пользователе
