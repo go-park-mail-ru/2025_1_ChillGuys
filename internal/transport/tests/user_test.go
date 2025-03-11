@@ -55,7 +55,7 @@ func TestAuthHandler_Login(t *testing.T) {
 			},
 			mockBehavior: func() {
 				// Мокируем успешный поиск пользователя и создание JWT токена
-				mockRepo.EXPECT().GetUserByEmail("test@example.com").Return(&models.UserRepo{
+				mockRepo.EXPECT().GetUserByEmail("test@example.com").Return(&models.UserDB{
 					ID:           uuid.New(),
 					Email:        "test@example.com",
 					PasswordHash: passwordHash,
@@ -203,7 +203,7 @@ func TestAuthHandler_Register(t *testing.T) {
 			},
 			mockBehavior: func() {
 				// Мокируем, что пользователь с таким email уже существует
-				mockRepo.EXPECT().GetUserByEmail("existing@example.com").Return(&models.UserRepo{}, nil)
+				mockRepo.EXPECT().GetUserByEmail("existing@example.com").Return(&models.UserDB{}, nil)
 			},
 			expectedStatus: http.StatusConflict,
 			expectedBody:   null.StringFrom(`{"message":"User already exists"}`),
@@ -377,7 +377,7 @@ func TestUserHandler_GetMe(t *testing.T) {
 			userVersion: userVersion,
 			mockBehavior: func() {
 				// Мокируем успешное получение пользователя
-				mockRepo.EXPECT().GetUserByID(userID).Return(&models.UserRepo{
+				mockRepo.EXPECT().GetUserByID(userID).Return(&models.UserDB{
 					ID:          userID,
 					Email:       "test@example.com",
 					Name:        "John",
@@ -405,25 +405,6 @@ func TestUserHandler_GetMe(t *testing.T) {
 			mockBehavior:   func() {},
 			expectedStatus: http.StatusBadRequest,
 			expectedBody:   `{"message":"Invalid user id format"}`,
-		},
-		// Тест для случая с ошибкой версии пользователя
-		{
-			name:        "Version Mismatch",
-			userID:      userID.String(),
-			userVersion: userVersion,
-			mockBehavior: func() {
-				// Мокируем успешное получение пользователя с другой версией
-				mockRepo.EXPECT().GetUserByID(userID).Return(&models.UserRepo{
-					ID:          userID,
-					Email:       "test@example.com",
-					Name:        "John",
-					Surname:     null.StringFrom("Doe"),
-					PhoneNumber: null.StringFrom("1234567890"),
-					Version:     userVersion + 1, // Ошибка версии
-				}, nil)
-			},
-			expectedStatus: http.StatusUnauthorized,
-			expectedBody:   `{"message":"Token is invalid or expired"}`,
 		},
 	}
 

@@ -14,8 +14,6 @@ import (
 	"time"
 )
 
-//go:generate mockgen -source=user.go -destination=../repository/mocks/user_repo_mock.go -package=mocks IUserRepository
-
 var (
 	emailRegexp     = regexp.MustCompile(`^\w+(\.\w*)*@\w+(\.\w{2,})+$`)
 	nameRegexp      = regexp.MustCompile(`^[a-zA-Zа-яА-ЯёЁ\s-]+$`)
@@ -24,10 +22,11 @@ var (
 	uppercaseRegexp = regexp.MustCompile(`[A-Z]`)
 )
 
+//go:generate mockgen -source=user.go -destination=../repository/mocks/user_repo_mock.go -package=mocks IUserRepository
 type IUserRepository interface {
-	CreateUser(user models.UserRepo) error
-	GetUserByEmail(email string) (*models.UserRepo, error)
-	GetUserByID(id uuid.UUID) (*models.UserRepo, error)
+	CreateUser(user models.UserDB) error
+	GetUserByEmail(email string) (*models.UserDB, error)
+	GetUserByID(id uuid.UUID) (*models.UserDB, error)
 	IncrementUserVersion(userID string) error
 }
 
@@ -60,11 +59,12 @@ func NewAuthHandler(repo IUserRepository, log *logrus.Logger, token ITokenator) 
 // @Header			200		{string}	Set-Cookie					"Устанавливает JWT-токен в куки"
 // @Failure			400		{object}	utils.ErrorResponse			"Ошибка валидации"
 // @Failure			401		{object}	utils.ErrorResponse			"Неверные email или пароль"
+// @Failure			500		{object}	utils.ErrorResponse			"Внутренняя ошибка сервера"
 // @Router			/auth/login [post]
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var request models.UserLoginRequestDTO
-	if errStatusCode, errMessage := utils.ParseData(r.Body, &request); errStatusCode != 0 && errMessage != "" {
-		utils.SendErrorResponse(w, errStatusCode, errMessage)
+	if errStatusCode, err := utils.ParseData(r.Body, &request); err != nil {
+		utils.SendErrorResponse(w, errStatusCode, fmt.Sprintf("Failed to parse request body: %v", err))
 		return
 	}
 
@@ -114,8 +114,8 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 // @Router			/auth/register [post]
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var request models.UserRegisterRequestDTO
-	if errStatusCode, errMessage := utils.ParseData(r.Body, &request); errStatusCode != 0 && errMessage != "" {
-		utils.SendErrorResponse(w, errStatusCode, errMessage)
+	if errStatusCode, err := utils.ParseData(r.Body, &request); err != nil {
+		http.Error(w, err.Error(), errStatusCode)
 		return
 	}
 
@@ -153,7 +153,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userRepo := models.UserRepo{
+	userRepo := models.UserDB{
 		ID:           uuid.New(),
 		Email:        request.Email,
 		Name:         request.Name,
@@ -177,14 +177,15 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	utils.SendSuccessResponse(w, http.StatusOK, nil)
 }
 
-// @Summary		Logout user
-// @Description	Выход пользователя
-// @Tags		auth
-// @Security	TokenAuth
-// @Failure		500	{object}	utils.ErrorResponse	"Ошибка сервера"
-// @Router		/auth/logout [post]
+// @Summary			Logout user
+// @Description		Выход пользователя
+// @Tags			auth
+// @Security		TokenAuth
+// @Success			200	{}			"No Content"
+// @Failure			500	{object}	utils.ErrorResponse	"Ошибка сервера"
+// @Router			/auth/logout [post]
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
-	userID, isExist := r.Context().Value("userID").(string)
+	userID, isExist := r.Context().Value(utils.UserIDKey).(string)
 	if !isExist {
 		utils.SendErrorResponse(w, http.StatusInternalServerError, "User id not found")
 		return
@@ -207,25 +208,20 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	utils.SendSuccessResponse(w, http.StatusOK, nil)
 }
 
-// @Summary		Get user info
-// @Description	Получение информации о текущем пользователе
-// @Tags		users
-// @Security	TokenAuth
-// @Produce		json
-// @Success		200	{object}	models.User			"Информация о пользователе"
-// @Failure		401	{object}	utils.ErrorResponse	"Неверный токен"
-// @Failure		500	{object}	utils.ErrorResponse	"Ошибка сервера"
-// @Router		/users/me [get]
+// @Summary			Get user info
+// @Description		Получение информации о текущем пользователе
+// @Tags			users
+// @Security		TokenAuth
+// @Produce			json
+// @Success			200	{object}	models.User			"Информация о пользователе"
+// @Failure			400	{object}	utils.ErrorResponse	"Некорректный запрос"
+// @Failure			404	{object}	utils.ErrorResponse	"Пользователь не найден"
+// @Failure			500	{object}	utils.ErrorResponse	"Ошибка сервера"
+// @Router			/users/me [get]
 func (h *AuthHandler) GetMe(w http.ResponseWriter, r *http.Request) {
-	userIDStr, ok := r.Context().Value("userID").(string)
-	if !ok {
+	userIDStr, isExist := r.Context().Value(utils.UserIDKey).(string)
+	if !isExist {
 		utils.SendErrorResponse(w, http.StatusInternalServerError, "User id not found")
-		return
-	}
-
-	version, ok := r.Context().Value("userVersion").(int)
-	if !ok {
-		utils.SendErrorResponse(w, http.StatusInternalServerError, "User version not found")
 		return
 	}
 
@@ -238,11 +234,6 @@ func (h *AuthHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 	userRepo, err := h.repo.GetUserByID(userID)
 	if err != nil {
 		utils.SendErrorResponse(w, http.StatusNotFound, "User not found")
-		return
-	}
-
-	if !userRepo.IsVersionValid(version) {
-		utils.SendErrorResponse(w, http.StatusUnauthorized, "Token is invalid or expired")
 		return
 	}
 

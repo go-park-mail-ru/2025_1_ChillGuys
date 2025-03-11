@@ -14,7 +14,7 @@ func TestCreateUser(t *testing.T) {
 	defer ctrl.Finish()
 
 	repo := repository.NewUserRepository()
-	user := models.UserRepo{
+	user := models.UserDB{
 		ID:      uuid.New(),
 		Email:   "test@example.com",
 		Version: 1,
@@ -35,7 +35,7 @@ func TestGetUserByEmail(t *testing.T) {
 	defer ctrl.Finish()
 
 	repo := repository.NewUserRepository()
-	user := models.UserRepo{
+	user := models.UserDB{
 		ID:      uuid.New(),
 		Email:   "test@example.com",
 		Version: 1,
@@ -60,7 +60,7 @@ func TestGetUserByID(t *testing.T) {
 	defer ctrl.Finish()
 
 	repo := repository.NewUserRepository()
-	user := models.UserRepo{
+	user := models.UserDB{
 		ID:      uuid.New(),
 		Email:   "test@example.com",
 		Version: 1,
@@ -85,7 +85,7 @@ func TestIncrementUserVersion(t *testing.T) {
 	defer ctrl.Finish()
 
 	repo := repository.NewUserRepository()
-	user := models.UserRepo{
+	user := models.UserDB{
 		ID:      uuid.New(),
 		Email:   "test@example.com",
 		Version: 1,
@@ -119,7 +119,7 @@ func TestCheckUserVersion(t *testing.T) {
 	defer ctrl.Finish()
 
 	repo := repository.NewUserRepository()
-	user := models.UserRepo{
+	user := models.UserDB{
 		ID:      uuid.New(),
 		Email:   "test@example.com",
 		Version: 1,

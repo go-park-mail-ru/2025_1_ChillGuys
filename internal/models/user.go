@@ -13,13 +13,13 @@ type User struct {
 	PhoneNumber null.String `json:"phoneNumber,omitempty" swaggertype:"primitive,string"`
 }
 
-func (repo *UserRepo) ConvertToUser() *User {
+func (ur *UserDB) ConvertToUser() *User {
 	return &User{
-		ID:          repo.ID,
-		Email:       repo.Email,
-		Name:        repo.Name,
-		Surname:     repo.Surname,
-		PhoneNumber: repo.PhoneNumber,
+		ID:          ur.ID,
+		Email:       ur.Email,
+		Name:        ur.Name,
+		Surname:     ur.Surname,
+		PhoneNumber: ur.PhoneNumber,
 	}
 }
 
@@ -39,7 +39,7 @@ type UserResponseDTO struct {
 	Token string `json:"token"`
 }
 
-type UserRepo struct {
+type UserDB struct {
 	ID           uuid.UUID
 	Email        string
 	Name         string
@@ -49,6 +49,6 @@ type UserRepo struct {
 	Version      int
 }
 
-func (repo *UserRepo) IsVersionValid(version int) bool {
-	return repo.Version == version
+func (ur *UserDB) IsVersionValid(version int) bool {
+	return ur.Version == version
 }
