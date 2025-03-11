@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -248,7 +249,7 @@ func ValidateRegistrationCreds(req models.UserRegisterRequestDTO) error {
 		return err
 	}
 
-	if req.Surname.Valid {
+	if req.Surname.Valid && strings.TrimSpace(req.Surname.String) != "" {
 		if err := validateName(req.Surname.String); err != nil {
 			return err
 		}
