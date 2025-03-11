@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -70,6 +71,8 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	sanitizeUserLoginRequest(&request)
+
 	if err := ValidateLoginCreds(request); err != nil {
 		utils.SendErrorResponse(w, http.StatusBadRequest, err.Error())
 		return
@@ -115,6 +118,8 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		utils.SendErrorResponse(w, errStatusCode, fmt.Sprintf("Failed to parse request body: %v", err))
 		return
 	}
+
+	sanitizeUserRegistrationRequest(&request)
 
 	if err := ValidateRegistrationCreds(request); err != nil {
 		utils.SendErrorResponse(w, http.StatusBadRequest, err.Error())
@@ -291,6 +296,23 @@ func validateName(name string) error {
 	}
 
 	return nil
+}
+
+// sanitizeUserRegistrationRequest удаляет лишние пробелы из полей запроса регистрации пользователя
+func sanitizeUserRegistrationRequest(req *models.UserRegisterRequestDTO) {
+	req.Email = strings.TrimSpace(req.Email)
+	req.Name = strings.TrimSpace(req.Name)
+	req.Password = strings.TrimSpace(req.Password)
+	if req.Surname.Valid {
+		req.Surname.String = strings.TrimSpace(req.Surname.String)
+		req.Surname.Valid = req.Surname.String != ""
+	}
+}
+
+// sanitizeUserLoginRequest удаляет лишние пробелы из полей запроса для логина пользователя
+func sanitizeUserLoginRequest(req *models.UserLoginRequestDTO) {
+	req.Email = strings.TrimSpace(req.Email)
+	req.Password = strings.TrimSpace(req.Password)
 }
 
 // GeneratePasswordHash Генерация хэша пароля
