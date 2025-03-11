@@ -89,7 +89,7 @@ func TestAuthHandler_Login(t *testing.T) {
 			},
 			mockBehavior:   func() {},
 			expectedStatus: http.StatusBadRequest,
-			expectedBody:   null.StringFrom(`{"message":"Invalid password: password must be at least 8 characters"}`),
+			expectedBody:   null.StringFrom(`{"message":"Password must be at least 8 characters"}`),
 		},
 		// Тест для случая, когда пользователь не найден
 		{
@@ -219,7 +219,7 @@ func TestAuthHandler_Register(t *testing.T) {
 			},
 			mockBehavior:   func() {},
 			expectedStatus: http.StatusBadRequest,
-			expectedBody:   null.StringFrom(`{"message":"Invalid name"}`),
+			expectedBody:   null.StringFrom(`{"message":"Name must be between 2 and 24 characters long"}`),
 		},
 		// Тест для некорректного пароля
 		{
@@ -232,7 +232,7 @@ func TestAuthHandler_Register(t *testing.T) {
 			},
 			mockBehavior:   func() {},
 			expectedStatus: http.StatusBadRequest,
-			expectedBody:   null.StringFrom(`{"message":"Invalid password: password must be at least 8 characters"}`),
+			expectedBody:   null.StringFrom(`{"message":"Password must be at least 8 characters"}`),
 		},
 	}
 

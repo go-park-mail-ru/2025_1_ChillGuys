@@ -13,13 +13,13 @@ type User struct {
 	PhoneNumber null.String `json:"phoneNumber,omitempty" swaggertype:"primitive,string"`
 }
 
-func (ur *UserDB) ConvertToUser() *User {
+func (u *UserDB) ConvertToUser() *User {
 	return &User{
-		ID:          ur.ID,
-		Email:       ur.Email,
-		Name:        ur.Name,
-		Surname:     ur.Surname,
-		PhoneNumber: ur.PhoneNumber,
+		ID:          u.ID,
+		Email:       u.Email,
+		Name:        u.Name,
+		Surname:     u.Surname,
+		PhoneNumber: u.PhoneNumber,
 	}
 }
 
@@ -49,6 +49,6 @@ type UserDB struct {
 	Version      int
 }
 
-func (ur *UserDB) IsVersionValid(version int) bool {
-	return ur.Version == version
+func (u *UserDB) IsVersionValid(version int) bool {
+	return u.Version == version
 }
