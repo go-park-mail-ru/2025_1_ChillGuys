@@ -9,7 +9,7 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 )
 
-type ProductRepo struct{
+type ProductRepository struct{
 	storage map[int]*models.Product
 	order []int 
 	mu sync.RWMutex
@@ -34,20 +34,20 @@ var products = []models.Product{
 }
 
 //функция заполнения тестовыми данными
-func (r *ProductRepo) populateMockData() {
-	r.mu.Lock()
-	defer r.mu.Unlock()
+func (p *ProductRepository) populateMockData() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
 
 	// Заполнение хранилища и порядка
 	for _, product := range products {
-		r.storage[product.ID] = &product
-		r.order = append(r.order, product.ID)
+		p.storage[product.ID] = &product
+		p.order = append(p.order, product.ID)
 	}
 }
 
 //создание репозитория с заполнением данными
-func NewProductRepo() *ProductRepo {
-	repo := &ProductRepo{
+func NewProductRepository() *ProductRepository {
+	repo := &ProductRepository{
 		storage: make(map[int]*models.Product),
 		order: make([]int, 0),
 		mu: sync.RWMutex{},
@@ -59,7 +59,7 @@ func NewProductRepo() *ProductRepo {
 }
 
 //получение основной информации всех товаров
-func (p *ProductRepo) GetAllProducts(ctx context.Context) ([]*models.Product, error) { //nolint:unparam
+func (p *ProductRepository) GetAllProducts(ctx context.Context) ([]*models.Product, error) { 
 	productList := make([]*models.Product, 0, len(p.storage))
 	p.mu.RLock()
 	defer p.mu.RUnlock()
@@ -72,7 +72,7 @@ func (p *ProductRepo) GetAllProducts(ctx context.Context) ([]*models.Product, er
 }
 
 //получение товара по id
-func (p *ProductRepo) GetProductByID(ctx context.Context, id int) (*models.Product, error) {
+func (p *ProductRepository) GetProductByID(ctx context.Context, id int) (*models.Product, error) {
     product, exists := p.storage[id]
     if !exists {
         return nil, fmt.Errorf("product with ID %d not found", id)
@@ -81,7 +81,7 @@ func (p *ProductRepo) GetProductByID(ctx context.Context, id int) (*models.Produ
     return product, nil
 }
 
-func (p *ProductRepo) GetProductCoverPath(ctx context.Context, id int) ([]byte, error){
+func (p *ProductRepository) GetProductCoverPath(ctx context.Context, id int) ([]byte, error){
 	storagePath := models.GetProductCoverPath(id)
 
 	if _, err := os.Stat(storagePath); os.IsNotExist(err) {

@@ -3,18 +3,18 @@ package transport
 import (
 	"errors"
 	"fmt"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils"
-	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
-	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"regexp"
 	"time"
-)
 
-//go:generate mockgen -source=user.go -destination=../repository/mocks/user_repo_mock.go -package=mocks IUserRepository
+	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
+	"golang.org/x/crypto/bcrypt"
+
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils"
+)
 
 var (
 	emailRegexp     = regexp.MustCompile(`^\w+(\.\w*)*@\w+(\.\w{2,})+$`)
@@ -24,10 +24,11 @@ var (
 	uppercaseRegexp = regexp.MustCompile(`[A-Z]`)
 )
 
+//go:generate mockgen -source=user.go -destination=../repository/mocks/user_repo_mock.go -package=mocks IUserRepository
 type IUserRepository interface {
-	CreateUser(user models.UserRepo) error
-	GetUserByEmail(email string) (*models.UserRepo, error)
-	GetUserByID(id uuid.UUID) (*models.UserRepo, error)
+	CreateUser(user models.UserDB) error
+	GetUserByEmail(email string) (*models.UserDB, error)
+	GetUserByID(id uuid.UUID) (*models.UserDB, error)
 	IncrementUserVersion(userID string) error
 }
 
@@ -55,26 +56,22 @@ func NewAuthHandler(repo IUserRepository, log *logrus.Logger, token ITokenator) 
 // @Tags			auth
 // @Accept			json
 // @Produce			json
-// @Param			request	body		models.UserLoginRequestDTO	true	"User credentials"
-// @success			200		{}			-							"No Content"
-// @Header			200		{string}	Set-Cookie					"Устанавливает JWT-токен в куки"
-// @Failure			400		{object}	utils.ErrorResponse			"Ошибка валидации"
-// @Failure			401		{object}	utils.ErrorResponse			"Неверные email или пароль"
+// @Param			request		body		models.UserLoginRequestDTO	true	"User credentials"
+// @success			200			{}			-							"No Content"
+// @Header			200			{string}	Set-Cookie					"Устанавливает JWT-токен в куки"
+// @Failure			400			{object}	utils.ErrorResponse			"Ошибка валидации"
+// @Failure			401			{object}	utils.ErrorResponse			"Неверные email или пароль"
+// @Failure			500			{object}	utils.ErrorResponse			"Внутренняя ошибка сервера"
 // @Router			/auth/login [post]
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var request models.UserLoginRequestDTO
-	if errStatusCode, errMessage := utils.ParseData(r.Body, &request); errStatusCode != 0 && errMessage != "" {
-		utils.SendErrorResponse(w, errStatusCode, errMessage)
+	if errStatusCode, err := utils.ParseData(r.Body, &request); err != nil {
+		utils.SendErrorResponse(w, errStatusCode, fmt.Sprintf("Failed to parse request body: %v", err))
 		return
 	}
 
-	if err := validateEmail(request.Email); err != nil {
-		utils.SendErrorResponse(w, http.StatusBadRequest, "Invalid email")
-		return
-	}
-
-	if err := validatePassword(request.Password); err != nil {
-		utils.SendErrorResponse(w, http.StatusBadRequest, fmt.Sprintf("Invalid password: %v", err))
+	if err := ValidateLoginCreds(request); err != nil {
+		utils.SendErrorResponse(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -114,31 +111,14 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 // @Router			/auth/register [post]
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var request models.UserRegisterRequestDTO
-	if errStatusCode, errMessage := utils.ParseData(r.Body, &request); errStatusCode != 0 && errMessage != "" {
-		utils.SendErrorResponse(w, errStatusCode, errMessage)
+	if errStatusCode, err := utils.ParseData(r.Body, &request); err != nil {
+		utils.SendErrorResponse(w, errStatusCode, fmt.Sprintf("Failed to parse request body: %v", err))
 		return
 	}
 
-	if err := validateEmail(request.Email); err != nil {
-		utils.SendErrorResponse(w, http.StatusBadRequest, "Invalid email")
+	if err := ValidateRegistrationCreds(request); err != nil {
+		utils.SendErrorResponse(w, http.StatusBadRequest, err.Error())
 		return
-	}
-
-	if err := validatePassword(request.Password); err != nil {
-		utils.SendErrorResponse(w, http.StatusBadRequest, fmt.Sprintf("Invalid password: %v", err))
-		return
-	}
-
-	if err := validateName(request.Name); err != nil {
-		utils.SendErrorResponse(w, http.StatusBadRequest, "Invalid name")
-		return
-	}
-
-	if request.Surname.Valid {
-		if err := validateName(request.Surname.String); err != nil {
-			utils.SendErrorResponse(w, http.StatusBadRequest, "Invalid surname")
-			return
-		}
 	}
 
 	passwordHash, err := GeneratePasswordHash(request.Password)
@@ -153,7 +133,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userRepo := models.UserRepo{
+	userRepo := models.UserDB{
 		ID:           uuid.New(),
 		Email:        request.Email,
 		Name:         request.Name,
@@ -177,14 +157,15 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	utils.SendSuccessResponse(w, http.StatusOK, nil)
 }
 
-// @Summary		Logout user
-// @Description	Выход пользователя
-// @Tags		auth
-// @Security	TokenAuth
-// @Failure		500	{object}	utils.ErrorResponse	"Ошибка сервера"
-// @Router		/auth/logout [post]
+// @Summary			Logout user
+// @Description		Выход пользователя
+// @Tags			auth
+// @Security		TokenAuth
+// @Success			200	{}			"No Content"
+// @Failure			500	{object}	utils.ErrorResponse	"Ошибка сервера"
+// @Router			/auth/logout [post]
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
-	userID, isExist := r.Context().Value("userID").(string)
+	userID, isExist := r.Context().Value(utils.UserIDKey).(string)
 	if !isExist {
 		utils.SendErrorResponse(w, http.StatusInternalServerError, "User id not found")
 		return
@@ -207,25 +188,20 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	utils.SendSuccessResponse(w, http.StatusOK, nil)
 }
 
-// @Summary		Get user info
-// @Description	Получение информации о текущем пользователе
-// @Tags		users
-// @Security	TokenAuth
-// @Produce		json
-// @Success		200	{object}	models.User			"Информация о пользователе"
-// @Failure		401	{object}	utils.ErrorResponse	"Неверный токен"
-// @Failure		500	{object}	utils.ErrorResponse	"Ошибка сервера"
-// @Router		/users/me [get]
+// @Summary			Get user info
+// @Description		Получение информации о текущем пользователе
+// @Tags			users
+// @Security		TokenAuth
+// @Produce			json
+// @Success			200	{object}	models.User			"Информация о пользователе"
+// @Failure			400	{object}	utils.ErrorResponse	"Некорректный запрос"
+// @Failure			404	{object}	utils.ErrorResponse	"Пользователь не найден"
+// @Failure			500	{object}	utils.ErrorResponse	"Ошибка сервера"
+// @Router			/users/me [get]
 func (h *AuthHandler) GetMe(w http.ResponseWriter, r *http.Request) {
-	userIDStr, ok := r.Context().Value("userID").(string)
-	if !ok {
+	userIDStr, isExist := r.Context().Value(utils.UserIDKey).(string)
+	if !isExist {
 		utils.SendErrorResponse(w, http.StatusInternalServerError, "User id not found")
-		return
-	}
-
-	version, ok := r.Context().Value("userVersion").(int)
-	if !ok {
-		utils.SendErrorResponse(w, http.StatusInternalServerError, "User version not found")
 		return
 	}
 
@@ -241,19 +217,50 @@ func (h *AuthHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !userRepo.IsVersionValid(version) {
-		utils.SendErrorResponse(w, http.StatusUnauthorized, "Token is invalid or expired")
-		return
-	}
-
 	user := userRepo.ConvertToUser()
 	utils.SendSuccessResponse(w, http.StatusOK, user)
+}
+
+// ValidateLoginCreds проверяет корректность данных при авторизации
+func ValidateLoginCreds(req models.UserLoginRequestDTO) error {
+	if err := validateEmail(req.Email); err != nil {
+		return err
+	}
+
+	if err := validatePassword(req.Password); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ValidateRegistrationCreds проверяет корректность данных при регистрации
+func ValidateRegistrationCreds(req models.UserRegisterRequestDTO) error {
+	if err := validateEmail(req.Email); err != nil {
+		return err
+	}
+
+	if err := validatePassword(req.Password); err != nil {
+		return err
+	}
+
+	if err := validateName(req.Name); err != nil {
+		return err
+	}
+
+	if req.Surname.Valid {
+		if err := validateName(req.Surname.String); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // validateEmail Функция валидации почты
 func validateEmail(email string) error {
 	if !emailRegexp.MatchString(email) {
-		return errors.New("invalid email format")
+		return errors.New("Invalid email")
 	}
 	return nil
 }
@@ -262,13 +269,13 @@ func validateEmail(email string) error {
 func validatePassword(password string) error {
 	switch {
 	case len(password) < 8:
-		return errors.New("password must be at least 8 characters")
+		return errors.New("Password must be at least 8 characters")
 	case !digitRegexp.MatchString(password):
-		return errors.New("password must contain at least one number")
+		return errors.New("Password must contain at least one number")
 	case !lowercaseRegexp.MatchString(password):
-		return errors.New("password must contain at least one lowercase letter")
+		return errors.New("Password must contain at least one lowercase letter")
 	case !uppercaseRegexp.MatchString(password):
-		return errors.New("password must contain at least one uppercase letter")
+		return errors.New("Password must contain at least one uppercase letter")
 	}
 	return nil
 }
@@ -276,11 +283,11 @@ func validatePassword(password string) error {
 // validateName проверяет валидность имени пользователя
 func validateName(name string) error {
 	if len(name) < 2 || len(name) > 24 {
-		return errors.New("name must be between 2 and 24 characters long")
+		return errors.New("Name must be between 2 and 24 characters long")
 	}
 
 	if !nameRegexp.MatchString(name) {
-		return errors.New("name can only contain letters, spaces, and '-'")
+		return errors.New("Name can only contain letters, spaces, and '-'")
 	}
 
 	return nil

@@ -61,7 +61,7 @@ func ConvertToBriefProduct(product *Product) BriefProduct{
 }
 
 type ProductsResponse struct {
-	Total    int                   `json:"total"`
+	Total    int                       `json:"total"`
 	Products []BriefProduct 		   `json:"products"`
 }
 

@@ -1,23 +1,25 @@
 package repository
 
 import (
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
-	"github.com/google/uuid"
 	"sync"
+
+	"github.com/google/uuid"
+
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 )
 
 type UserRepository struct {
-	users map[string]models.UserRepo
+	users map[string]models.UserDB
 	mu    sync.RWMutex
 }
 
 func NewUserRepository() *UserRepository {
 	return &UserRepository{
-		users: map[string]models.UserRepo{},
+		users: map[string]models.UserDB{},
 	}
 }
 
-func (r *UserRepository) CreateUser(user models.UserRepo) error {
+func (r *UserRepository) CreateUser(user models.UserDB) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.users[user.ID.String()] = user
@@ -37,7 +39,7 @@ func (r *UserRepository) GetUserCurrentVersion(userID string) (int, error) {
 	return user.Version, nil
 }
 
-func (r *UserRepository) GetUserByEmail(email string) (*models.UserRepo, error) {
+func (r *UserRepository) GetUserByEmail(email string) (*models.UserDB, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -50,7 +52,7 @@ func (r *UserRepository) GetUserByEmail(email string) (*models.UserRepo, error) 
 	return nil, models.ErrUserNotFound
 }
 
-func (r *UserRepository) GetUserByID(id uuid.UUID) (*models.UserRepo, error) {
+func (r *UserRepository) GetUserByID(id uuid.UUID) (*models.UserDB, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -69,6 +71,7 @@ func (r *UserRepository) IncrementUserVersion(userID string) error {
 	if !isExist {
 		return models.ErrUserNotFound
 	}
+
 	user.Version++
 	r.users[userID] = user
 

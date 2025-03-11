@@ -1,12 +1,14 @@
 package tests
 
 import (
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/repository"
+	"testing"
+
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
-	"testing"
+
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/repository"
 )
 
 func TestCreateUser(t *testing.T) {
@@ -14,7 +16,7 @@ func TestCreateUser(t *testing.T) {
 	defer ctrl.Finish()
 
 	repo := repository.NewUserRepository()
-	user := models.UserRepo{
+	user := models.UserDB{
 		ID:      uuid.New(),
 		Email:   "test@example.com",
 		Version: 1,
@@ -35,7 +37,7 @@ func TestGetUserByEmail(t *testing.T) {
 	defer ctrl.Finish()
 
 	repo := repository.NewUserRepository()
-	user := models.UserRepo{
+	user := models.UserDB{
 		ID:      uuid.New(),
 		Email:   "test@example.com",
 		Version: 1,
@@ -60,7 +62,7 @@ func TestGetUserByID(t *testing.T) {
 	defer ctrl.Finish()
 
 	repo := repository.NewUserRepository()
-	user := models.UserRepo{
+	user := models.UserDB{
 		ID:      uuid.New(),
 		Email:   "test@example.com",
 		Version: 1,
@@ -85,7 +87,7 @@ func TestIncrementUserVersion(t *testing.T) {
 	defer ctrl.Finish()
 
 	repo := repository.NewUserRepository()
-	user := models.UserRepo{
+	user := models.UserDB{
 		ID:      uuid.New(),
 		Email:   "test@example.com",
 		Version: 1,
@@ -119,7 +121,7 @@ func TestCheckUserVersion(t *testing.T) {
 	defer ctrl.Finish()
 
 	repo := repository.NewUserRepository()
-	user := models.UserRepo{
+	user := models.UserDB{
 		ID:      uuid.New(),
 		Email:   "test@example.com",
 		Version: 1,
