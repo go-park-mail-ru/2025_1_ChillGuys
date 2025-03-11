@@ -3,15 +3,17 @@ package transport
 import (
 	"errors"
 	"fmt"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils"
-	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
-	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"regexp"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
+	"golang.org/x/crypto/bcrypt"
+
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils"
 )
 
 var (

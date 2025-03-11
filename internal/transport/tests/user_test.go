@@ -5,17 +5,19 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/repository/mocks"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/guregu/null"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
-	"net/http"
-	"net/http/httptest"
-	"testing"
+
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/repository/mocks"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport"
 )
 
 func TestAuthHandler_Login(t *testing.T) {

@@ -3,11 +3,13 @@ package middleware
 import (
 	"context"
 	"fmt"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils"
-	"github.com/sirupsen/logrus"
 	"net/http"
 	"time"
+
+	"github.com/sirupsen/logrus"
+
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils"
 )
 
 // JWTMiddleware проверяет наличие и валидность JWT-токена в куках

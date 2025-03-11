@@ -7,10 +7,11 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils"
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
+
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils"
 )
 
 //go:generate mockgen -source=product.go -destination=../repository/mocks/product_repo_mock.go -package=mocks IProductRepo
