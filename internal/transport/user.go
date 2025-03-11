@@ -298,18 +298,18 @@ func validateName(name string) error {
 	return nil
 }
 
+// sanitizeUserRegistrationRequest удаляет лишние пробелы из полей запроса регистрации пользователя.
 func sanitizeUserRegistrationRequest(req *models.UserRegisterRequestDTO) {
 	req.Email = strings.TrimSpace(req.Email)
 	req.Name = strings.TrimSpace(req.Name)
 	req.Password = strings.TrimSpace(req.Password)
 	if req.Surname.Valid {
 		req.Surname.String = strings.TrimSpace(req.Surname.String)
-		if req.Surname.String == "" {
-			req.Surname.Valid = false
-		}
+		req.Surname.Valid = req.Surname.String != ""
 	}
 }
 
+// sanitizeUserLoginRequest удаляет лишние пробелы из полей запроса для логина пользователя.
 func sanitizeUserLoginRequest(req *models.UserLoginRequestDTO) {
 	req.Email = strings.TrimSpace(req.Email)
 	req.Password = strings.TrimSpace(req.Password)
