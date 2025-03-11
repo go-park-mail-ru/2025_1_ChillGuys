@@ -10,13 +10,14 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/repository/mocks"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport"
 	"github.com/golang/mock/gomock"
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/repository/mocks"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport"
 )
 
 var testProducts = []*models.Product{

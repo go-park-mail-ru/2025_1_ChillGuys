@@ -4,12 +4,13 @@ import (
 	"context"
 	"testing"
 
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/repository"
 	"github.com/stretchr/testify/assert"
+
+    "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/repository"
 )
 
 func TestGetAllProducts(t *testing.T){
-	repo := repository.NewProductRepo()
+	repo := repository.NewProductRepository()
 
 	products, err := repo.GetAllProducts(context.Background())
 
@@ -20,7 +21,7 @@ func TestGetAllProducts(t *testing.T){
 }
 
 func TestGetProductByID(t *testing.T) {
-    repo := repository.NewProductRepo()
+    repo := repository.NewProductRepository()
 
     t.Run("Existing product", func(t *testing.T) {
         testID := 1

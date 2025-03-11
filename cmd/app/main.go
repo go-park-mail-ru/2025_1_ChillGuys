@@ -13,30 +13,25 @@ package main
 
 import (
 	"fmt"
-	_ "github.com/go-park-mail-ru/2025_1_ChillGuys/docs"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/repository"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware"
-	"github.com/gorilla/mux"
-	"github.com/joho/godotenv"
-	"github.com/sirupsen/logrus"
-	httpSwagger "github.com/swaggo/http-swagger"
 	"log"
 	"net/http"
 	"os"
 	"time"
+
+	_ "github.com/go-park-mail-ru/2025_1_ChillGuys/docs"
+	"github.com/gorilla/mux"
+	"github.com/joho/godotenv"
+	"github.com/sirupsen/logrus"
+	httpSwagger "github.com/swaggo/http-swagger"
+
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/repository"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware"
 )
 
 func main() {
 	logger := logrus.New()
-
-	userRepo := repository.NewUserRepository()
-	tokenator := jwt.NewTokenator()
-	userHandler := transport.NewAuthHandler(userRepo, logger, tokenator)
-
-	productRepo := repository.NewProductRepo()
-	productHandler := transport.NewProductHandler(productRepo, logger)
 
 	err := godotenv.Load()
 	if err != nil {
@@ -48,6 +43,13 @@ func main() {
 		logger.WithFields(logrus.Fields{"error": "SERVER_PORT is not set"}).Error("SERVER_PORT is not set in the .env file")
 		return
 	}
+
+	userRepo := repository.NewUserRepository()
+	tokenator := jwt.NewTokenator(userRepo)
+	userHandler := transport.NewAuthHandler(userRepo, logger, tokenator)
+
+	productRepo := repository.NewProductRepository()
+	productHandler := transport.NewProductHandler(productRepo, logger)
 
 	router := mux.NewRouter().PathPrefix("/api").Subrouter()
 	router.Use(middleware.CORSMiddleware)
@@ -66,6 +68,7 @@ func main() {
 		authRouter.HandleFunc("/login", userHandler.Login).Methods("POST")
 		authRouter.HandleFunc("/register", userHandler.Register).Methods("POST")
 		authRouter.Handle("/logout", middleware.JWTMiddleware(
+			tokenator,
 			http.HandlerFunc(userHandler.Logout)),
 		).Methods("POST")
 	}
@@ -73,6 +76,7 @@ func main() {
 	userRouter := router.PathPrefix("/users").Subrouter()
 	{
 		userRouter.Handle("/me", middleware.JWTMiddleware(
+			tokenator,
 			http.HandlerFunc(userHandler.GetMe)),
 		).Methods("GET")
 	}
