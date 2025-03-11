@@ -63,6 +63,12 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/utils.ErrorResponse"
                         }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
                     }
                 }
             }
@@ -80,6 +86,12 @@ const docTemplate = `{
                 ],
                 "summary": "Logout user",
                 "responses": {
+                    "200": {
+                        "description": "No Content",
+                        "schema": {
+                            "type": ""
+                        }
+                    },
                     "500": {
                         "description": "Ошибка сервера",
                         "schema": {
@@ -286,8 +298,14 @@ const docTemplate = `{
                             "$ref": "#/definitions/models.User"
                         }
                     },
-                    "401": {
-                        "description": "Неверный токен",
+                    "400": {
+                        "description": "Некорректный запрос",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Пользователь не найден",
                         "schema": {
                             "$ref": "#/definitions/utils.ErrorResponse"
                         }

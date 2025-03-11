@@ -11,9 +11,7 @@ import (
 )
 
 // JWTMiddleware проверяет наличие и валидность JWT-токена в куках
-func JWTMiddleware(next http.Handler) http.Handler {
-	tokenator := jwt.Tokenator{}
-
+func JWTMiddleware(tokenator *jwt.Tokenator, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie(string(utils.Token))
 		if err != nil {
@@ -47,10 +45,14 @@ func JWTMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		// Можно передавать UserID в контексте запроса
+		if !tokenator.VC.CheckUserVersion(claims.UserID, claims.Version) {
+			utils.SendErrorResponse(w, http.StatusUnauthorized, "Token is invalid or expired")
+			return
+		}
+
+		// передаём UserID в контексте запроса
 		ctx := r.Context()
 		ctx = context.WithValue(ctx, utils.UserIDKey, claims.UserID)
-		ctx = context.WithValue(ctx, utils.UserVersionKey, claims.Version)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

@@ -11,17 +11,17 @@ type ErrorResponse struct {
 	Message string `json:"message"`
 }
 
-func ParseData(ioBody io.Reader, request any) (int, string) {
+func ParseData(ioBody io.Reader, request any) (int, error) {
 	body, err := io.ReadAll(ioBody)
 	if err != nil {
-		return http.StatusInternalServerError, err.Error()
+		return http.StatusBadRequest, fmt.Errorf("failed to read request body: %w", err)
 	}
 
 	if err := json.Unmarshal(body, &request); err != nil {
-		return http.StatusBadRequest, fmt.Sprintf("Failed to parse request body: %v", err.Error())
+		return http.StatusBadRequest, fmt.Errorf("failed to parse request body: %w", err)
 	}
 
-	return 0, ""
+	return 0, nil
 }
 
 func SendErrorResponse(w http.ResponseWriter, statusCode int, message string) {
