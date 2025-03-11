@@ -71,6 +71,8 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	sanitizeUserLoginRequest(&request)
+
 	if err := ValidateLoginCreds(request); err != nil {
 		utils.SendErrorResponse(w, http.StatusBadRequest, err.Error())
 		return
@@ -116,6 +118,8 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		utils.SendErrorResponse(w, errStatusCode, fmt.Sprintf("Failed to parse request body: %v", err))
 		return
 	}
+
+	sanitizeUserRegistrationRequest(&request)
 
 	if err := ValidateRegistrationCreds(request); err != nil {
 		utils.SendErrorResponse(w, http.StatusBadRequest, err.Error())
@@ -249,7 +253,7 @@ func ValidateRegistrationCreds(req models.UserRegisterRequestDTO) error {
 		return err
 	}
 
-	if req.Surname.Valid && strings.TrimSpace(req.Surname.String) != "" {
+	if req.Surname.Valid {
 		if err := validateName(req.Surname.String); err != nil {
 			return err
 		}
@@ -292,6 +296,23 @@ func validateName(name string) error {
 	}
 
 	return nil
+}
+
+func sanitizeUserRegistrationRequest(req *models.UserRegisterRequestDTO) {
+	req.Email = strings.TrimSpace(req.Email)
+	req.Name = strings.TrimSpace(req.Name)
+	req.Password = strings.TrimSpace(req.Password)
+	if req.Surname.Valid {
+		req.Surname.String = strings.TrimSpace(req.Surname.String)
+		if req.Surname.String == "" {
+			req.Surname.Valid = false
+		}
+	}
+}
+
+func sanitizeUserLoginRequest(req *models.UserLoginRequestDTO) {
+	req.Email = strings.TrimSpace(req.Email)
+	req.Password = strings.TrimSpace(req.Password)
 }
 
 // GeneratePasswordHash Генерация хэша пароля
