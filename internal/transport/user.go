@@ -115,7 +115,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var request models.UserRegisterRequestDTO
 	if errStatusCode, err := utils.ParseData(r.Body, &request); err != nil {
-		http.Error(w, err.Error(), errStatusCode)
+		utils.SendErrorResponse(w, errStatusCode, fmt.Sprintf("Failed to parse request body: %v", err))
 		return
 	}
 
