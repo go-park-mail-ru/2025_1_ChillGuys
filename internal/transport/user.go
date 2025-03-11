@@ -298,7 +298,7 @@ func validateName(name string) error {
 	return nil
 }
 
-// sanitizeUserRegistrationRequest удаляет лишние пробелы из полей запроса регистрации пользователя.
+// sanitizeUserRegistrationRequest удаляет лишние пробелы из полей запроса регистрации пользователя
 func sanitizeUserRegistrationRequest(req *models.UserRegisterRequestDTO) {
 	req.Email = strings.TrimSpace(req.Email)
 	req.Name = strings.TrimSpace(req.Name)
@@ -309,7 +309,7 @@ func sanitizeUserRegistrationRequest(req *models.UserRegisterRequestDTO) {
 	}
 }
 
-// sanitizeUserLoginRequest удаляет лишние пробелы из полей запроса для логина пользователя.
+// sanitizeUserLoginRequest удаляет лишние пробелы из полей запроса для логина пользователя
 func sanitizeUserLoginRequest(req *models.UserLoginRequestDTO) {
 	req.Email = strings.TrimSpace(req.Email)
 	req.Password = strings.TrimSpace(req.Password)
