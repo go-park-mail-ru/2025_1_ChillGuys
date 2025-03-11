@@ -1,9 +1,11 @@
 package repository
 
 import (
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
-	"github.com/google/uuid"
 	"sync"
+
+	"github.com/google/uuid"
+
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 )
 
 type UserRepository struct {

@@ -13,19 +13,21 @@ package main
 
 import (
 	"fmt"
-	_ "github.com/go-park-mail-ru/2025_1_ChillGuys/docs"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/repository"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware"
-	"github.com/gorilla/mux"
-	"github.com/joho/godotenv"
-	"github.com/sirupsen/logrus"
-	httpSwagger "github.com/swaggo/http-swagger"
 	"log"
 	"net/http"
 	"os"
 	"time"
+
+	_ "github.com/go-park-mail-ru/2025_1_ChillGuys/docs"
+	"github.com/gorilla/mux"
+	"github.com/joho/godotenv"
+	"github.com/sirupsen/logrus"
+	httpSwagger "github.com/swaggo/http-swagger"
+
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/repository"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware"
 )
 
 func main() {
@@ -46,7 +48,7 @@ func main() {
 	tokenator := jwt.NewTokenator(userRepo)
 	userHandler := transport.NewAuthHandler(userRepo, logger, tokenator)
 
-	productRepo := repository.NewProductRepo()
+	productRepo := repository.NewProductRepository()
 	productHandler := transport.NewProductHandler(productRepo, logger)
 
 	router := mux.NewRouter().PathPrefix("/api").Subrouter()

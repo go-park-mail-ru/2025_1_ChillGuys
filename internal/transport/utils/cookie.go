@@ -1,9 +1,10 @@
 package utils
 
 import (
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
 	"net/http"
 	"time"
+
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
 )
 
 type CookieKeys string

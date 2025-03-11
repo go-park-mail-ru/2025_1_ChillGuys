@@ -3,10 +3,12 @@ package jwt
 import (
 	"errors"
 	"fmt"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
-	"github.com/golang-jwt/jwt/v4"
 	"os"
 	"time"
+
+	"github.com/golang-jwt/jwt/v4"
+
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 )
 
 const (
