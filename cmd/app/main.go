@@ -1,7 +1,7 @@
 //	@title			ChillGuys API
 //	@version		1.0
 //	@description	API for ChillGuys marketplace
-//	@host			localhost:8080
+//	@host			90.156.217.63:8081
 //	@BasePath		/api
 
 //	@securityDefinitions.basic	BasicAuth
