@@ -40,18 +40,23 @@ func (r *UserRepository) CreateUser(ctx context.Context, user models.UserDB) err
 
 func (r *UserRepository) GetUserCurrentVersion(ctx context.Context, userID string) (int, error) {
 	var version int
+
 	err := r.db.QueryRowContext(ctx, queryGetUserVersion, userID).Scan(&version)
+
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return 0, models.ErrUserNotFound
 		}
+
 		return 0, err
 	}
+
 	return version, nil
 }
 
 func (r *UserRepository) GetUserByEmail(ctx context.Context, email string) (*models.UserDB, error) {
 	var user models.UserDB
+
 	err := r.db.QueryRowContext(ctx, queryGetUserByEmail, email).Scan(
 		&user.ID,
 		&user.Email,
@@ -60,17 +65,21 @@ func (r *UserRepository) GetUserByEmail(ctx context.Context, email string) (*mod
 		&user.PasswordHash,
 		&user.Version,
 	)
+
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, models.ErrUserNotFound
 		}
+
 		return nil, err
 	}
+
 	return &user, nil
 }
 
 func (r *UserRepository) GetUserByID(ctx context.Context, id uuid.UUID) (*models.UserDB, error) {
 	var user models.UserDB
+
 	err := r.db.QueryRowContext(ctx, queryGetUserByID, id).Scan(
 		&user.ID,
 		&user.Email,
@@ -79,12 +88,15 @@ func (r *UserRepository) GetUserByID(ctx context.Context, id uuid.UUID) (*models
 		&user.PasswordHash,
 		&user.Version,
 	)
+
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, models.ErrUserNotFound
 		}
+
 		return nil, err
 	}
+
 	return &user, nil
 }
 
@@ -107,7 +119,9 @@ func (r *UserRepository) IncrementUserVersion(ctx context.Context, userID string
 
 func (r *UserRepository) CheckUserVersion(ctx context.Context, userID string, version int) bool {
 	var currentVersion int
+
 	err := r.db.QueryRowContext(ctx, queryGetUserVersion, userID).Scan(&currentVersion)
+
 	if errors.Is(err, sql.ErrNoRows) {
 		return false
 	}

@@ -62,18 +62,18 @@ func NewAuthHandler(
 	}
 }
 
-// @Summary			Login user
-// @Description		Авторизация пользователя
-// @Tags			auth
-// @Accept			json
-// @Produce			json
-// @Param			request	body		models.UserLoginRequestDTO	true	"User credentials"
-// @success			200		{}			-							"No Content"
-// @Header			200		{string}	Set-Cookie					"Устанавливает JWT-токен в куки"
-// @Failure			400		{object}	utils.ErrorResponse			"Ошибка валидации"
-// @Failure			401		{object}	utils.ErrorResponse			"Неверные email или пароль"
-// @Failure			500		{object}	utils.ErrorResponse			"Внутренняя ошибка сервера"
-// @Router			/auth/login [post]
+//	@Summary		Login user
+//	@Description	Авторизация пользователя
+//	@Tags			auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			request	body		models.UserLoginRequestDTO	true	"User credentials"
+//	@success		200		{}			-							"No Content"
+//	@Header			200		{string}	Set-Cookie					"Устанавливает JWT-токен в куки"
+//	@Failure		400		{object}	utils.ErrorResponse			"Ошибка валидации"
+//	@Failure		401		{object}	utils.ErrorResponse			"Неверные email или пароль"
+//	@Failure		500		{object}	utils.ErrorResponse			"Внутренняя ошибка сервера"
+//	@Router			/auth/login [post]
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var request models.UserLoginRequestDTO
 	if errStatusCode, err := utils.ParseData(r.Body, &request); err != nil {
@@ -104,18 +104,18 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	utils.SendSuccessResponse(w, http.StatusOK, nil)
 }
 
-// @Summary			Register user
-// @Description		Создает нового пользователя, хеширует пароль и устанавливает JWT-токен в куки
-// @Tags			auth
-// @Accept			json
-// @Produce			json
-// @Param			input	body		models.UserRegisterRequestDTO	true	"Данные для регистрации"
-// @success			200		{}			-								"No Content"
-// @Header			200		{string}	Set-Cookie						"Устанавливает JWT-токен в куки"
-// @Failure			400		{object}	utils.ErrorResponse				"Некорректный запрос"
-// @Failure			409		{object}	utils.ErrorResponse				"Пользователь уже существует"
-// @Failure			500		{object}	utils.ErrorResponse				"Внутренняя ошибка сервера"
-// @Router			/auth/register [post]
+//	@Summary		Register user
+//	@Description	Создает нового пользователя, хеширует пароль и устанавливает JWT-токен в куки
+//	@Tags			auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			input	body		models.UserRegisterRequestDTO	true	"Данные для регистрации"
+//	@success		200		{}			-								"No Content"
+//	@Header			200		{string}	Set-Cookie						"Устанавливает JWT-токен в куки"
+//	@Failure		400		{object}	utils.ErrorResponse				"Некорректный запрос"
+//	@Failure		409		{object}	utils.ErrorResponse				"Пользователь уже существует"
+//	@Failure		500		{object}	utils.ErrorResponse				"Внутренняя ошибка сервера"
+//	@Router			/auth/register [post]
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var request models.UserRegisterRequestDTO
 	if errStatusCode, err := utils.ParseData(r.Body, &request); err != nil {
@@ -133,11 +133,10 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	token, err := h.u.Register(r.Context(), request)
 	if err != nil {
 		if err == models.ErrUserAlreadyExists {
-			utils.SendErrorResponse(w, http.StatusConflict, "User already exists")
+			utils.SendErrorResponse(w, http.StatusConflict, "user already exists")
 			return
 		}
 
-		// В случае других ошибок
 		utils.SendErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -146,13 +145,14 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	utils.SendSuccessResponse(w, http.StatusOK, nil)
 }
 
-// @Summary			Logout user
-// @Description		Выход пользователя
-// @Tags			auth
-// @Security		TokenAuth
-// @Success			200	{}			"No Content"
-// @Failure			500	{object}	utils.ErrorResponse	"Ошибка сервера"
-// @Router			/auth/logout [post]
+//	@Summary		Logout user
+//	@Description	Выход пользователя
+//	@Tags			auth
+//	@Security		TokenAuth
+//	@Success		200	{}			"No Content"
+//	@Failure		401	{object}	utils.ErrorResponse	"Пользователь не найден"
+//	@Failure		500	{object}	utils.ErrorResponse	"Ошибка сервера"
+//	@Router			/auth/logout [post]
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	if err := h.u.Logout(r.Context()); err != nil {
 		utils.SendErrorResponse(w, http.StatusInternalServerError, err.Error())
@@ -171,23 +171,23 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	utils.SendSuccessResponse(w, http.StatusOK, nil)
 }
 
-// @Summary			Get user info
-// @Description	П	олучение информации о текущем пользователе
-// @Tags			users
-// @Security		TokenAuth
-// @Produce			json
-// @Success			200	{object}	models.User			"Информация о пользователе"
-// @Failure			400	{object}	utils.ErrorResponse	"Некорректный запрос"
-// @Failure			401	{object}	utils.ErrorResponse	"Пользователь не найден"
-// @Failure			500	{object}	utils.ErrorResponse	"Ошибка сервера"
-// @Router			/users/me [get]
+//	@Summary		Get user info
+//	@Description	Получение информации о текущем пользователе
+//	@Tags			users
+//	@Security		TokenAuth
+//	@Produce		json
+//	@Success		200	{object}	models.User			"Информация о пользователе"
+//	@Failure		400	{object}	utils.ErrorResponse	"Некорректный запрос"
+//	@Failure		401	{object}	utils.ErrorResponse	"Пользователь не найден"
+//	@Failure		500	{object}	utils.ErrorResponse	"Ошибка сервера"
+//	@Router			/users/me [get]
 func (h *AuthHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 	user, err := h.u.GetMe(r.Context())
 	if err != nil {
 		if err == models.ErrUserNotFound {
-			utils.SendErrorResponse(w, http.StatusUnauthorized, "User not found")
+			utils.SendErrorResponse(w, http.StatusUnauthorized, "user not found")
 		} else if err == models.ErrInvalidUserID {
-			utils.SendErrorResponse(w, http.StatusBadRequest, "Invalid user id format")
+			utils.SendErrorResponse(w, http.StatusBadRequest, "invalid user id format")
 		} else {
 			utils.SendErrorResponse(w, http.StatusInternalServerError, err.Error())
 		}

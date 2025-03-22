@@ -3,16 +3,8 @@ package utils
 import (
 	"errors"
 	"fmt"
-	"github.com/joho/godotenv"
 	"os"
 )
-
-func LoadEnv() error {
-	if err := godotenv.Load(".env"); err != nil {
-		return errors.New("failed to load .env file")
-	}
-	return nil
-}
 
 func GetConnectionString() (string, error) {
 	user, userExists := os.LookupEnv("POSTGRES_USER")

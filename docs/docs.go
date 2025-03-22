@@ -92,6 +92,12 @@ const docTemplate = `{
                             "type": ""
                         }
                     },
+                    "401": {
+                        "description": "Пользователь не найден",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
                     "500": {
                         "description": "Ошибка сервера",
                         "schema": {
@@ -304,7 +310,7 @@ const docTemplate = `{
                             "$ref": "#/definitions/utils.ErrorResponse"
                         }
                     },
-                    "404": {
+                    "401": {
                         "description": "Пользователь не найден",
                         "schema": {
                             "$ref": "#/definitions/utils.ErrorResponse"
