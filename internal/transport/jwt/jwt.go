@@ -1,6 +1,7 @@
 package jwt
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -16,7 +17,7 @@ const (
 )
 
 type VersionChecker interface {
-	CheckUserVersion(userID string, version int) bool
+	CheckUserVersion(ctx context.Context, userID string, version int) bool
 }
 
 // JWTClaims структура для данных токена

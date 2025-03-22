@@ -1,6 +1,7 @@
 package transport
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -10,7 +11,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/crypto/bcrypt"
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
@@ -26,11 +26,20 @@ var (
 )
 
 //go:generate mockgen -source=user.go -destination=../repository/mocks/user_repo_mock.go -package=mocks IUserRepository
+type IAuthUsecase interface {
+	Register(ctx context.Context, user models.UserRegisterRequestDTO) (string, error)
+	Login(ctx context.Context, user models.UserLoginRequestDTO) (string, error)
+	Logout(ctx context.Context) error
+	GetMe(ctx context.Context) (models.User, error)
+}
+
 type IUserRepository interface {
-	CreateUser(user models.UserDB) error
-	GetUserByEmail(email string) (*models.UserDB, error)
-	GetUserByID(id uuid.UUID) (*models.UserDB, error)
-	IncrementUserVersion(userID string) error
+	CreateUser(context.Context, models.UserDB) error
+	GetUserByEmail(context.Context, string) (*models.UserDB, error)
+	GetUserByID(context.Context, uuid.UUID) (*models.UserDB, error)
+	IncrementUserVersion(context.Context, string) error
+	GetUserCurrentVersion(context.Context, string) (int, error)
+	CheckUserVersion(context.Context, string, int) bool
 }
 
 type ITokenator interface {
@@ -39,31 +48,32 @@ type ITokenator interface {
 }
 
 type AuthHandler struct {
-	repo  IUserRepository
-	token ITokenator
-	log   *logrus.Logger
+	u   IAuthUsecase
+	log *logrus.Logger
 }
 
-func NewAuthHandler(repo IUserRepository, log *logrus.Logger, token ITokenator) *AuthHandler {
+func NewAuthHandler(
+	u IAuthUsecase,
+	log *logrus.Logger,
+) *AuthHandler {
 	return &AuthHandler{
-		repo:  repo,
-		token: token,
-		log:   log,
+		u:   u,
+		log: log,
 	}
 }
 
-//	@Summary		Login user
-//	@Description	Авторизация пользователя
-//	@Tags			auth
-//	@Accept			json
-//	@Produce		json
-//	@Param			request	body		models.UserLoginRequestDTO	true	"User credentials"
-//	@success		200		{}			-							"No Content"
-//	@Header			200		{string}	Set-Cookie					"Устанавливает JWT-токен в куки"
-//	@Failure		400		{object}	utils.ErrorResponse			"Ошибка валидации"
-//	@Failure		401		{object}	utils.ErrorResponse			"Неверные email или пароль"
-//	@Failure		500		{object}	utils.ErrorResponse			"Внутренняя ошибка сервера"
-//	@Router			/auth/login [post]
+// @Summary			Login user
+// @Description		Авторизация пользователя
+// @Tags			auth
+// @Accept			json
+// @Produce			json
+// @Param			request	body		models.UserLoginRequestDTO	true	"User credentials"
+// @success			200		{}			-							"No Content"
+// @Header			200		{string}	Set-Cookie					"Устанавливает JWT-токен в куки"
+// @Failure			400		{object}	utils.ErrorResponse			"Ошибка валидации"
+// @Failure			401		{object}	utils.ErrorResponse			"Неверные email или пароль"
+// @Failure			500		{object}	utils.ErrorResponse			"Внутренняя ошибка сервера"
+// @Router			/auth/login [post]
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var request models.UserLoginRequestDTO
 	if errStatusCode, err := utils.ParseData(r.Body, &request); err != nil {
@@ -78,21 +88,15 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userRepo, err := h.repo.GetUserByEmail(request.Email)
+	token, err := h.u.Login(r.Context(), request)
 	if err != nil {
-		h.log.Warn(err.Error())
-		utils.SendErrorResponse(w, http.StatusUnauthorized, "Invalid password or email")
-		return
-	}
-
-	if err := bcrypt.CompareHashAndPassword(userRepo.PasswordHash, []byte(request.Password)); err != nil {
-		utils.SendErrorResponse(w, http.StatusUnauthorized, "Invalid password or email")
-		return
-	}
-
-	token, err := h.token.CreateJWT(userRepo.ID.String(), userRepo.Version)
-	if err != nil {
-		utils.SendErrorResponse(w, http.StatusInternalServerError, err.Error())
+		if errors.Is(err, models.ErrInvalidCredentials) {
+			utils.SendErrorResponse(w, http.StatusUnauthorized, "invalid email or password")
+		} else if errors.Is(err, models.ErrUserNotFound) {
+			utils.SendErrorResponse(w, http.StatusUnauthorized, "user not found")
+		} else {
+			utils.SendErrorResponse(w, http.StatusInternalServerError, err.Error())
+		}
 		return
 	}
 
@@ -100,18 +104,18 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	utils.SendSuccessResponse(w, http.StatusOK, nil)
 }
 
-//	@Summary		Register user
-//	@Description	Создает нового пользователя, хеширует пароль и устанавливает JWT-токен в куки
-//	@Tags			auth
-//	@Accept			json
-//	@Produce		json
-//	@Param			input	body		models.UserRegisterRequestDTO	true	"Данные для регистрации"
-//	@success		200		{}			-								"No Content"
-//	@Header			200		{string}	Set-Cookie						"Устанавливает JWT-токен в куки"
-//	@Failure		400		{object}	utils.ErrorResponse				"Некорректный запрос"
-//	@Failure		409		{object}	utils.ErrorResponse				"Пользователь уже существует"
-//	@Failure		500		{object}	utils.ErrorResponse				"Внутренняя ошибка сервера"
-//	@Router			/auth/register [post]
+// @Summary			Register user
+// @Description		Создает нового пользователя, хеширует пароль и устанавливает JWT-токен в куки
+// @Tags			auth
+// @Accept			json
+// @Produce			json
+// @Param			input	body		models.UserRegisterRequestDTO	true	"Данные для регистрации"
+// @success			200		{}			-								"No Content"
+// @Header			200		{string}	Set-Cookie						"Устанавливает JWT-токен в куки"
+// @Failure			400		{object}	utils.ErrorResponse				"Некорректный запрос"
+// @Failure			409		{object}	utils.ErrorResponse				"Пользователь уже существует"
+// @Failure			500		{object}	utils.ErrorResponse				"Внутренняя ошибка сервера"
+// @Router			/auth/register [post]
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var request models.UserRegisterRequestDTO
 	if errStatusCode, err := utils.ParseData(r.Body, &request); err != nil {
@@ -126,34 +130,14 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	passwordHash, err := GeneratePasswordHash(request.Password)
+	token, err := h.u.Register(r.Context(), request)
 	if err != nil {
-		utils.SendErrorResponse(w, http.StatusInternalServerError, err.Error())
-		return
-	}
+		if err == models.ErrUserAlreadyExists {
+			utils.SendErrorResponse(w, http.StatusConflict, "User already exists")
+			return
+		}
 
-	existedUser, _ := h.repo.GetUserByEmail(request.Email)
-	if existedUser != nil {
-		utils.SendErrorResponse(w, http.StatusConflict, "User already exists")
-		return
-	}
-
-	userRepo := models.UserDB{
-		ID:           uuid.New(),
-		Email:        request.Email,
-		Name:         request.Name,
-		Surname:      request.Surname,
-		PasswordHash: passwordHash,
-		Version:      1,
-	}
-
-	if err := h.repo.CreateUser(userRepo); err != nil {
-		utils.SendErrorResponse(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	token, err := h.token.CreateJWT(userRepo.ID.String(), 1)
-	if err != nil {
+		// В случае других ошибок
 		utils.SendErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -162,21 +146,15 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	utils.SendSuccessResponse(w, http.StatusOK, nil)
 }
 
-//	@Summary		Logout user
-//	@Description	Выход пользователя
-//	@Tags			auth
-//	@Security		TokenAuth
-//	@Success		200	{}			"No Content"
-//	@Failure		500	{object}	utils.ErrorResponse	"Ошибка сервера"
-//	@Router			/auth/logout [post]
+// @Summary			Logout user
+// @Description		Выход пользователя
+// @Tags			auth
+// @Security		TokenAuth
+// @Success			200	{}			"No Content"
+// @Failure			500	{object}	utils.ErrorResponse	"Ошибка сервера"
+// @Router			/auth/logout [post]
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
-	userID, isExist := r.Context().Value(utils.UserIDKey).(string)
-	if !isExist {
-		utils.SendErrorResponse(w, http.StatusInternalServerError, "User id not found")
-		return
-	}
-
-	if err := h.repo.IncrementUserVersion(userID); err != nil {
+	if err := h.u.Logout(r.Context()); err != nil {
 		utils.SendErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -193,36 +171,29 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	utils.SendSuccessResponse(w, http.StatusOK, nil)
 }
 
-//	@Summary		Get user info
-//	@Description	Получение информации о текущем пользователе
-//	@Tags			users
-//	@Security		TokenAuth
-//	@Produce		json
-//	@Success		200	{object}	models.User			"Информация о пользователе"
-//	@Failure		400	{object}	utils.ErrorResponse	"Некорректный запрос"
-//	@Failure		404	{object}	utils.ErrorResponse	"Пользователь не найден"
-//	@Failure		500	{object}	utils.ErrorResponse	"Ошибка сервера"
-//	@Router			/users/me [get]
+// @Summary			Get user info
+// @Description	П	олучение информации о текущем пользователе
+// @Tags			users
+// @Security		TokenAuth
+// @Produce			json
+// @Success			200	{object}	models.User			"Информация о пользователе"
+// @Failure			400	{object}	utils.ErrorResponse	"Некорректный запрос"
+// @Failure			401	{object}	utils.ErrorResponse	"Пользователь не найден"
+// @Failure			500	{object}	utils.ErrorResponse	"Ошибка сервера"
+// @Router			/users/me [get]
 func (h *AuthHandler) GetMe(w http.ResponseWriter, r *http.Request) {
-	userIDStr, isExist := r.Context().Value(utils.UserIDKey).(string)
-	if !isExist {
-		utils.SendErrorResponse(w, http.StatusInternalServerError, "User id not found")
-		return
-	}
-
-	userID, err := uuid.Parse(userIDStr)
+	user, err := h.u.GetMe(r.Context())
 	if err != nil {
-		utils.SendErrorResponse(w, http.StatusBadRequest, "Invalid user id format")
+		if err == models.ErrUserNotFound {
+			utils.SendErrorResponse(w, http.StatusUnauthorized, "User not found")
+		} else if err == models.ErrInvalidUserID {
+			utils.SendErrorResponse(w, http.StatusBadRequest, "Invalid user id format")
+		} else {
+			utils.SendErrorResponse(w, http.StatusInternalServerError, err.Error())
+		}
 		return
 	}
 
-	userRepo, err := h.repo.GetUserByID(userID)
-	if err != nil {
-		utils.SendErrorResponse(w, http.StatusNotFound, "User not found")
-		return
-	}
-
-	user := userRepo.ConvertToUser()
 	utils.SendSuccessResponse(w, http.StatusOK, user)
 }
 
@@ -313,9 +284,4 @@ func sanitizeUserRegistrationRequest(req *models.UserRegisterRequestDTO) {
 func sanitizeUserLoginRequest(req *models.UserLoginRequestDTO) {
 	req.Email = strings.TrimSpace(req.Email)
 	req.Password = strings.TrimSpace(req.Password)
-}
-
-// GeneratePasswordHash Генерация хэша пароля
-func GeneratePasswordHash(password string) ([]byte, error) {
-	return bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
 }

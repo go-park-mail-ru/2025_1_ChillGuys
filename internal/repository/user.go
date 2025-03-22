@@ -1,91 +1,119 @@
 package repository
 
 import (
-	"sync"
-
+	"context"
+	"database/sql"
+	"errors"
 	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 )
 
+const (
+	queryCreateUser           = `INSERT INTO "user" (user_id, email, name, surname, password_hash, version) VALUES($1, $2, $3, $4, $5, $6);`
+	queryGetUserVersion       = `SELECT version FROM "user" WHERE user_id = $1`
+	queryGetUserByEmail       = `SELECT user_id, email, name, surname, password_hash, version FROM "user" WHERE email = $1`
+	queryGetUserByID          = `SELECT user_id, email, name, surname, password_hash, version FROM "user" WHERE user_id = $1`
+	queryIncrementUserVersion = `UPDATE "user" SET version = version + 1 WHERE user_id = $1`
+)
+
 type UserRepository struct {
-	users map[string]models.UserDB
-	mu    sync.RWMutex
+	db  *sql.DB
+	log *logrus.Logger
 }
 
-func NewUserRepository() *UserRepository {
+func NewUserRepository(db *sql.DB, log *logrus.Logger) *UserRepository {
 	return &UserRepository{
-		users: map[string]models.UserDB{},
+		db:  db,
+		log: log,
 	}
 }
 
-func (r *UserRepository) CreateUser(user models.UserDB) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	r.users[user.ID.String()] = user
+func (r *UserRepository) CreateUser(ctx context.Context, user models.UserDB) error {
+	_, err := r.db.ExecContext(ctx, queryCreateUser,
+		user.ID, user.Email, user.Name, user.Surname, user.PasswordHash, user.Version,
+	)
 
-	return nil
+	return err
 }
 
-func (r *UserRepository) GetUserCurrentVersion(userID string) (int, error) {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-
-	user, ok := r.users[userID]
-	if !ok {
-		return 0, models.ErrUserNotFound
-	}
-
-	return user.Version, nil
-}
-
-func (r *UserRepository) GetUserByEmail(email string) (*models.UserDB, error) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	for _, user := range r.users {
-		if user.Email == email {
-			return &user, nil
+func (r *UserRepository) GetUserCurrentVersion(ctx context.Context, userID string) (int, error) {
+	var version int
+	err := r.db.QueryRowContext(ctx, queryGetUserVersion, userID).Scan(&version)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, models.ErrUserNotFound
 		}
+		return 0, err
 	}
-
-	return nil, models.ErrUserNotFound
+	return version, nil
 }
 
-func (r *UserRepository) GetUserByID(id uuid.UUID) (*models.UserDB, error) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	if user, ok := r.users[id.String()]; ok {
-		return &user, nil
+func (r *UserRepository) GetUserByEmail(ctx context.Context, email string) (*models.UserDB, error) {
+	var user models.UserDB
+	err := r.db.QueryRowContext(ctx, queryGetUserByEmail, email).Scan(
+		&user.ID,
+		&user.Email,
+		&user.Name,
+		&user.Surname,
+		&user.PasswordHash,
+		&user.Version,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, models.ErrUserNotFound
+		}
+		return nil, err
 	}
-
-	return nil, models.ErrUserNotFound
+	return &user, nil
 }
 
-func (r *UserRepository) IncrementUserVersion(userID string) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
+func (r *UserRepository) GetUserByID(ctx context.Context, id uuid.UUID) (*models.UserDB, error) {
+	var user models.UserDB
+	err := r.db.QueryRowContext(ctx, queryGetUserByID, id).Scan(
+		&user.ID,
+		&user.Email,
+		&user.Name,
+		&user.Surname,
+		&user.PasswordHash,
+		&user.Version,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, models.ErrUserNotFound
+		}
+		return nil, err
+	}
+	return &user, nil
+}
 
-	user, isExist := r.users[userID]
-	if !isExist {
+func (r *UserRepository) IncrementUserVersion(ctx context.Context, userID string) error {
+	res, err := r.db.ExecContext(ctx, queryIncrementUserVersion, userID)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
 		return models.ErrUserNotFound
 	}
 
-	user.Version++
-	r.users[userID] = user
-
 	return nil
 }
 
-func (r *UserRepository) CheckUserVersion(userID string, version int) bool {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	user, ok := r.users[userID]
-	if !ok {
+func (r *UserRepository) CheckUserVersion(ctx context.Context, userID string, version int) bool {
+	var currentVersion int
+	err := r.db.QueryRowContext(ctx, queryGetUserVersion, userID).Scan(&currentVersion)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false
+	}
+	if err != nil {
 		return false
 	}
 
-	return user.Version == version
+	return currentVersion == version
 }

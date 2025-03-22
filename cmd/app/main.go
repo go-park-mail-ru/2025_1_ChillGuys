@@ -12,7 +12,10 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils"
+	usecase2 "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase"
 	"log"
 	"net/http"
 	"os"
@@ -21,6 +24,7 @@ import (
 	_ "github.com/go-park-mail-ru/2025_1_ChillGuys/docs"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
+	_ "github.com/lib/pq"
 	"github.com/sirupsen/logrus"
 	httpSwagger "github.com/swaggo/http-swagger"
 
@@ -44,9 +48,26 @@ func main() {
 		return
 	}
 
-	userRepo := repository.NewUserRepository()
+	str, err := utils.GetConnectionString()
+	if err != nil {
+		logger.Error(err)
+		return
+	}
+
+	db, err := sql.Open("postgres", str)
+	if err != nil {
+		logger.Error(err)
+		return
+	}
+	defer db.Close()
+	db.SetMaxOpenConns(25)
+	db.SetMaxIdleConns(25)
+	db.SetConnMaxLifetime(5 * time.Minute)
+
+	userRepo := repository.NewUserRepository(db, logger)
 	tokenator := jwt.NewTokenator(userRepo)
-	userHandler := transport.NewAuthHandler(userRepo, logger, tokenator)
+	userUsecase := usecase2.NewAuthUsecase(userRepo, tokenator, logger)
+	userHandler := transport.NewAuthHandler(userUsecase, logger)
 
 	productRepo := repository.NewProductRepository()
 	productHandler := transport.NewProductHandler(productRepo, logger)
