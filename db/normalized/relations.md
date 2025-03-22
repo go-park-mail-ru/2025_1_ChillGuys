@@ -103,98 +103,98 @@
 erDiagram
 
     user {
-        id PK
-        email
-        phone_number
-        password_hash
-        name
-        surname
-        image_url
-        role FK
-        version
+        uuid id PK
+        string email 
+        string phone_number 
+        string password_hash
+        string name
+        string surname
+        string image_url
+        user_role role
+        int version
     }
 
     user_role {
-        seller
-        buyer
-        admin
+        string seller
+        string buyer
+        string admin
     }
 
     product {
-        id PK
-        seller_id FK
-        name
-        image_url
-        description
-        price
-        category_id FK
-        quantity
+        uuid id PK
+        uuid seller_id FK
+        string name
+        string image_url
+        string description
+        float price
+        uuid category_id FK
+        int quantity
     }
 
     discount {
-        id PK
-        end_date
-        product_id FK
-        discounted_price
+        uuid id PK
+        datetime end_date
+        uuid product_id FK
+        float discounted_price
     }
 
     category {
-        id PK
-        name
-        image_url
+        uuid id PK
+        string name
+        string image_url
     }
 
     order {
-        id PK
-        user_id FK
-        status
-        total_price
-        address_id FK
-        created_at
+        uuid id PK
+        uuid user_id FK
+        order_status status
+        float total_price
+        uuid address_id FK
+        datetime created_at
     }
 
     order_status {
-        pending
-        paid
-        shipped
-        delivered
-        canceled
+        string pending
+        string paid
+        string shipped
+        string delivered
+        string canceled
     }
 
     order_item {
-        id PK
-        order_id FK
-        product_id FK
-        quantity
+        uuid id PK
+        uuid order_id FK
+        uuid product_id FK
+        int quantity
     }
 
     basket {
-        id PK
-        user_id FK
+        uuid id PK
+        uuid user_id FK
     }
 
     basket_item {
-        id PK
-        basket_id FK
-        product_id FK
-        quantity
+        uuid id PK
+        uuid basket_id FK
+        uuid product_id FK
+        int quantity
     }
 
     review {
-        id PK
-        user_id FK
-        product_id FK
-        rating
-        comment
-        created_at
+        uuid id PK
+        uuid user_id FK
+        uuid product_id FK
+        int rating
+        string comment
+        datetime created_at
     }
 
     address {
-        id PK
-        user_id FK
-        city
-        street
-        zip_code
+        uuid id PK
+        uuid user_id FK
+        string city
+        string street
+        string zip_code
     }
 
     user ||--o{ order : "создает"
@@ -213,3 +213,4 @@ erDiagram
 
     basket ||--o{ basket_item : "содержит"
     basket_item }o--|| product : "относится к"
+```
