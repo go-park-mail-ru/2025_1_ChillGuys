@@ -54,8 +54,6 @@ func JWTMiddleware(tokenator *jwt.Tokenator, next http.Handler) http.Handler {
 			return
 		}
 
-		// передаём UserID в контексте запроса
-		ctx = r.Context()
 		ctx = context.WithValue(ctx, utils.UserIDKey, claims.UserID)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
