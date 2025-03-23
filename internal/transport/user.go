@@ -40,6 +40,7 @@ type IUserRepository interface {
 	IncrementUserVersion(context.Context, string) error
 	GetUserCurrentVersion(context.Context, string) (int, error)
 	CheckUserVersion(context.Context, string, int) bool
+	CheckUserExists(context.Context, string) (bool, error)
 }
 
 type ITokenator interface {

@@ -16,6 +16,7 @@ const (
 	queryGetUserByEmail       = `SELECT user_id, email, name, surname, password_hash, version FROM "user" WHERE email = $1`
 	queryGetUserByID          = `SELECT user_id, email, name, surname, password_hash, version FROM "user" WHERE user_id = $1`
 	queryIncrementUserVersion = `UPDATE "user" SET version = version + 1 WHERE user_id = $1`
+	queryCheckUserExists      = `SELECT EXISTS(SELECT 1 FROM "user" WHERE email = $1)`
 )
 
 type UserRepository struct {
@@ -130,4 +131,15 @@ func (r *UserRepository) CheckUserVersion(ctx context.Context, userID string, ve
 	}
 
 	return currentVersion == version
+}
+
+func (r *UserRepository) CheckUserExists(ctx context.Context, email string) (bool, error) {
+	var exists bool
+
+	err := r.db.QueryRowContext(ctx, queryCheckUserExists, email).Scan(&exists)
+	if err != nil {
+		return false, err
+	}
+
+	return exists, nil
 }

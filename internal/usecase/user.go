@@ -31,8 +31,11 @@ func (u *AuthUsecase) Register(ctx context.Context, user models.UserRegisterRequ
 		return "", err
 	}
 
-	existedUser, _ := u.repo.GetUserByEmail(ctx, user.Email)
-	if existedUser != nil {
+	existed, err := u.repo.CheckUserExists(ctx, user.Email)
+	if err != nil {
+		return "", err
+	}
+	if existed {
 		return "", models.ErrUserAlreadyExists
 	}
 
