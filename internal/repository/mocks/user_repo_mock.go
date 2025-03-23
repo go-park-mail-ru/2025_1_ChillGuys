@@ -38,10 +38,10 @@ func (m *MockIAuthUsecase) EXPECT() *MockIAuthUsecaseMockRecorder {
 }
 
 // GetMe mocks base method.
-func (m *MockIAuthUsecase) GetMe(ctx context.Context) (models.User, error) {
+func (m *MockIAuthUsecase) GetMe(ctx context.Context) (*models.User, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetMe", ctx)
-	ret0, _ := ret[0].(models.User)
+	ret0, _ := ret[0].(*models.User)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -117,6 +117,21 @@ func NewMockIUserRepository(ctrl *gomock.Controller) *MockIUserRepository {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockIUserRepository) EXPECT() *MockIUserRepositoryMockRecorder {
 	return m.recorder
+}
+
+// CheckUserExists mocks base method.
+func (m *MockIUserRepository) CheckUserExists(arg0 context.Context, arg1 string) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CheckUserExists", arg0, arg1)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CheckUserExists indicates an expected call of CheckUserExists.
+func (mr *MockIUserRepositoryMockRecorder) CheckUserExists(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckUserExists", reflect.TypeOf((*MockIUserRepository)(nil).CheckUserExists), arg0, arg1)
 }
 
 // CheckUserVersion mocks base method.

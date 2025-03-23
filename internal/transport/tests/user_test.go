@@ -252,7 +252,7 @@ func TestAuthHandler_Logout(t *testing.T) {
 				mockAuthUsecase.EXPECT().
 					Logout(gomock.Any()).
 					Return(nil).
-					Times(1) // Указываем, что метод должен быть вызван ровно один раз
+					Times(1)
 			},
 			expectedStatus: http.StatusOK,
 			expectedBody:   `{}`,
@@ -316,7 +316,7 @@ func TestUserHandler_GetMe(t *testing.T) {
 			mockBehavior: func() {
 				mockAuthUsecase.EXPECT().
 					GetMe(gomock.Any()).
-					Return(models.User{
+					Return(&models.User{
 						ID:          userID,
 						Email:       "test@example.com",
 						Name:        "John",
@@ -333,7 +333,7 @@ func TestUserHandler_GetMe(t *testing.T) {
 			mockBehavior: func() {
 				mockAuthUsecase.EXPECT().
 					GetMe(gomock.Any()).
-					Return(models.User{}, errors.New("user not found"))
+					Return((*models.User)(nil), errors.New("user not found"))
 			},
 			expectedStatus: http.StatusInternalServerError,
 			expectedBody:   `{"message":"user not found"}`,

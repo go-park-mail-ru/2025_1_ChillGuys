@@ -51,7 +51,7 @@ func (u *AuthUsecase) Register(ctx context.Context, user models.UserRegisterRequ
 		return "", err
 	}
 
-	token, err := u.token.CreateJWT(userRepo.ID.String(), 1)
+	token, err := u.token.CreateJWT(userRepo.ID.String(), userRepo.Version)
 	if err != nil {
 		return "", err
 	}
@@ -90,28 +90,28 @@ func (u *AuthUsecase) Logout(ctx context.Context) error {
 	return nil
 }
 
-func (u *AuthUsecase) GetMe(ctx context.Context) (models.User, error) {
+func (u *AuthUsecase) GetMe(ctx context.Context) (*models.User, error) {
 	userIDStr, isExist := ctx.Value(utils.UserIDKey).(string)
 	if !isExist {
-		return models.User{}, models.ErrUserNotFound
+		return nil, models.ErrUserNotFound
 	}
 
 	userID, err := uuid.Parse(userIDStr)
 	if err != nil {
-		return models.User{}, models.ErrInvalidUserID
+		return nil, models.ErrInvalidUserID
 	}
 
 	userRepo, err := u.repo.GetUserByID(ctx, userID)
 	if err != nil {
-		return models.User{}, err
+		return nil, err
 	}
 
 	user := userRepo.ConvertToUser()
 	if user == nil {
-		return models.User{}, models.ErrUserNotFound
+		return nil, models.ErrUserNotFound
 	}
 
-	return *user, nil
+	return user, nil
 }
 
 // GeneratePasswordHash Генерация хэша пароля

@@ -30,7 +30,7 @@ type IAuthUsecase interface {
 	Register(ctx context.Context, user models.UserRegisterRequestDTO) (string, error)
 	Login(ctx context.Context, user models.UserLoginRequestDTO) (string, error)
 	Logout(ctx context.Context) error
-	GetMe(ctx context.Context) (models.User, error)
+	GetMe(ctx context.Context) (*models.User, error)
 }
 
 type IUserRepository interface {
@@ -91,7 +91,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	token, err := h.u.Login(r.Context(), request)
 	if err != nil {
-		HandleError(w, err)
+		utils.HandleError(w, err)
 		return
 	}
 
@@ -127,7 +127,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 	token, err := h.u.Register(r.Context(), request)
 	if err != nil {
-		HandleError(w, err)
+		utils.HandleError(w, err)
 		return
 	}
 
@@ -145,7 +145,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 // @Router			/auth/logout [post]
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	if err := h.u.Logout(r.Context()); err != nil {
-		HandleError(w, err)
+		utils.HandleError(w, err)
 		return
 	}
 
@@ -174,7 +174,7 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 func (h *AuthHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 	user, err := h.u.GetMe(r.Context())
 	if err != nil {
-		HandleError(w, err)
+		utils.HandleError(w, err)
 		return
 	}
 
@@ -268,18 +268,4 @@ func sanitizeUserRegistrationRequest(req *models.UserRegisterRequestDTO) {
 func sanitizeUserLoginRequest(req *models.UserLoginRequestDTO) {
 	req.Email = strings.TrimSpace(req.Email)
 	req.Password = strings.TrimSpace(req.Password)
-}
-
-func HandleError(w http.ResponseWriter, err error) {
-	if errors.Is(err, models.ErrInvalidCredentials) {
-		utils.SendErrorResponse(w, http.StatusUnauthorized, "invalid email or password")
-	} else if errors.Is(err, models.ErrUserNotFound) {
-		utils.SendErrorResponse(w, http.StatusUnauthorized, "user not found")
-	} else if errors.Is(err, models.ErrUserAlreadyExists) {
-		utils.SendErrorResponse(w, http.StatusConflict, "user already exists")
-	} else if errors.Is(err, models.ErrInvalidUserID) {
-		utils.SendErrorResponse(w, http.StatusBadRequest, "invalid user id format")
-	} else {
-		utils.SendErrorResponse(w, http.StatusInternalServerError, err.Error())
-	}
 }

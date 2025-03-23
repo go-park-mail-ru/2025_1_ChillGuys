@@ -118,9 +118,7 @@ func (r *UserRepository) IncrementUserVersion(ctx context.Context, userID string
 func (r *UserRepository) CheckUserVersion(ctx context.Context, userID string, version int) bool {
 	var currentVersion int
 
-	err := r.db.QueryRowContext(ctx, queryGetUserVersion, userID).Scan(&currentVersion)
-
-	if err != nil {
+	if err := r.db.QueryRowContext(ctx, queryGetUserVersion, userID).Scan(&currentVersion); err != nil {
 		return false
 	}
 
@@ -130,8 +128,7 @@ func (r *UserRepository) CheckUserVersion(ctx context.Context, userID string, ve
 func (r *UserRepository) CheckUserExists(ctx context.Context, email string) (bool, error) {
 	var exists bool
 
-	err := r.db.QueryRowContext(ctx, queryCheckUserExists, email).Scan(&exists)
-	if err != nil {
+	if err := r.db.QueryRowContext(ctx, queryCheckUserExists, email).Scan(&exists); err != nil {
 		return false, err
 	}
 
