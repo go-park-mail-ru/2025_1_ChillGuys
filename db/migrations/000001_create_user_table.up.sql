@@ -13,5 +13,3 @@ CREATE TABLE "user"
     role          user_role,
     version       INTEGER
 );
-
-
