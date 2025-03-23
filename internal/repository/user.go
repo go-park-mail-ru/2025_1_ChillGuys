@@ -58,20 +58,17 @@ func (r *UserRepository) GetUserCurrentVersion(ctx context.Context, userID strin
 func (r *UserRepository) GetUserByEmail(ctx context.Context, email string) (*models.UserDB, error) {
 	var user models.UserDB
 
-	err := r.db.QueryRowContext(ctx, queryGetUserByEmail, email).Scan(
+	if err := r.db.QueryRowContext(ctx, queryGetUserByEmail, email).Scan(
 		&user.ID,
 		&user.Email,
 		&user.Name,
 		&user.Surname,
 		&user.PasswordHash,
 		&user.Version,
-	)
-
-	if err != nil {
+	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, models.ErrUserNotFound
 		}
-
 		return nil, err
 	}
 
@@ -123,9 +120,6 @@ func (r *UserRepository) CheckUserVersion(ctx context.Context, userID string, ve
 
 	err := r.db.QueryRowContext(ctx, queryGetUserVersion, userID).Scan(&currentVersion)
 
-	if errors.Is(err, sql.ErrNoRows) {
-		return false
-	}
 	if err != nil {
 		return false
 	}

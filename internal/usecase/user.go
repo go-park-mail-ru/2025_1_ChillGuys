@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"context"
-	"errors"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils"
@@ -63,9 +62,6 @@ func (u *AuthUsecase) Register(ctx context.Context, user models.UserRegisterRequ
 func (u *AuthUsecase) Login(ctx context.Context, user models.UserLoginRequestDTO) (string, error) {
 	userRepo, err := u.repo.GetUserByEmail(ctx, user.Email)
 	if err != nil {
-		if errors.Is(err, models.ErrUserNotFound) {
-			return "", models.ErrUserNotFound
-		}
 		return "", err
 	}
 
@@ -110,7 +106,12 @@ func (u *AuthUsecase) GetMe(ctx context.Context) (models.User, error) {
 		return models.User{}, err
 	}
 
-	return *userRepo.ConvertToUser(), nil
+	user := userRepo.ConvertToUser()
+	if user == nil {
+		return models.User{}, models.ErrUserNotFound
+	}
+
+	return *user, nil
 }
 
 // GeneratePasswordHash Генерация хэша пароля
