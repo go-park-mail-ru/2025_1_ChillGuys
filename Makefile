@@ -41,6 +41,9 @@ docker-push: docker-build
 	docker login
 	docker push $(DOCKER_USERNAME)/$(IMAGE_NAME):$(TAG)
 
+migrations:
+	go run ./cmd/migrations/main.go
+
 .PHONY: swag
 
 swag:

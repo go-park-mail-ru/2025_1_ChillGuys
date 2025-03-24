@@ -74,6 +74,7 @@ func main() {
 
 	router := mux.NewRouter().PathPrefix("/api").Subrouter()
 	router.Use(middleware.CORSMiddleware)
+	router.Use(middleware.NewLoggerMiddleware(logger).LogRequest)
 
 	router.PathPrefix("/swagger/").Handler(httpSwagger.WrapHandler)
 
