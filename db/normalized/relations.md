@@ -29,6 +29,12 @@
 - `category_id` — категория товара
 - `quantity` — количество товара в наличии
 
+### `product_image`
+Хранит изображения товаров.
+- `id` — уникальный идентификатор
+- `product_id` — идентификатор продавца
+- `image_url` — ссылка на изображение товара
+
 ### `discount`
 Содержит информацию о скидках на товары.
 - `id` — уникальный идентификатор
@@ -124,11 +130,17 @@ erDiagram
         uuid id PK
         uuid seller_id FK
         string name
-        string image_url
+        string preview_image_url
         string description
         float price
         uuid category_id FK
         int quantity
+    }
+    
+    product_image {
+        uuid id PK
+        uuid product_id FK
+        string image_url
     }
 
     discount {
@@ -207,6 +219,7 @@ erDiagram
     product ||--o{ review : "получает"
     product }o--|| category : "принадлежит"
     product ||--o{ discount : "имеет"
+    product ||--o{ product_image : "имеет"
 
     order ||--o{ order_item : "содержит"
     order }o--|| address : "доставляется в"
