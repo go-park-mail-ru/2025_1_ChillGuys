@@ -14,6 +14,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/minio"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils"
 	usecase2 "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase"
 	"log"
@@ -42,18 +43,12 @@ func main() {
 		log.Println("Error loading .env file")
 	}
 
-	port := os.Getenv("SERVER_PORT")
-	if port == "" {
-		logger.WithFields(logrus.Fields{"error": "SERVER_PORT is not set"}).Error("SERVER_PORT is not set in the .env file")
-		return
-	}
-
+	// Подключение базы данных
 	str, err := utils.GetConnectionString()
 	if err != nil {
 		logger.Error(err)
 		return
 	}
-
 	db, err := sql.Open("postgres", str)
 	if err != nil {
 		logger.Error(err)
@@ -63,6 +58,19 @@ func main() {
 	db.SetMaxOpenConns(25)
 	db.SetMaxIdleConns(25)
 	db.SetConnMaxLifetime(5 * time.Minute)
+
+	// Инициализация соединения с Minio
+	minioConf := minio.NewConfig()
+	_, err = minio.NewMinioClient(minioConf)
+	if err != nil {
+		log.Fatalf("Ошибка инициализации Minio: %v", err)
+	}
+
+	port := os.Getenv("SERVER_PORT")
+	if port == "" {
+		logger.WithFields(logrus.Fields{"error": "SERVER_PORT is not set"}).Error("SERVER_PORT is not set in the .env file")
+		return
+	}
 
 	userRepo := repository.NewUserRepository(db, logger)
 	tokenator := jwt.NewTokenator(userRepo)
@@ -101,6 +109,7 @@ func main() {
 			tokenator,
 			http.HandlerFunc(userHandler.GetMe)),
 		).Methods("GET")
+
 	}
 
 	srv := &http.Server{
