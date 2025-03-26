@@ -9,14 +9,8 @@
 - `name` — имя пользователя
 - `surname` — фамилия пользователя
 - `image_url` — ссылка на изображение профиля
-- `role` — роль пользователя (`seller`, `buyer`, `admin`)
+- `role` — роль пользователя (`SELLER`, `BUYER`, `ADMIN`)
 - `version` — версия сессии пользователя
-
-### `user_role`
-Определяет возможные роли пользователей.
-- `seller` — продавец
-- `buyer` — покупатель
-- `admin` — администратор
 
 ### `product`
 Содержит информацию о товарах, продаваемых на платформе.
@@ -46,24 +40,15 @@
 Хранит категории товаров.
 - `id` — уникальный идентификатор
 - `name` — название категории
-- `image_url` — изображение категории
 
 ### `order`
 Хранит информацию о заказах.
 - `id` — уникальный идентификатор
 - `user_id` — пользователь, сделавший заказ
-- `status` — статус заказа (`pending`, `paid`, `shipped`, `delivered`, `canceled`)
+- `status` — статус (`PENDING`, `PAID`, `SHIPPED`, `DELIVERED`, `COMPLETED`, `CANCELLED`, `REFUNDED`, `PROCESSING`)
 - `total_price` — общая сумма заказа
 - `address_id` — адрес доставки
 - `created_at` — дата создания заказа
-
-### `order_status`
-Определяет возможные статусы заказов.
-- `pending` — в ожидании
-- `paid` — оплачено
-- `shipped` — отправлено
-- `delivered` — доставлено
-- `canceled` — отменено
 
 ### `order_item`
 Связывает заказы с товарами.
@@ -100,7 +85,6 @@
 - `city` — город
 - `street` — улица
 - `zip_code` — почтовый индекс
-
 ---
 
 ## ER-диаграмма базы данных
@@ -110,20 +94,14 @@ erDiagram
 
     user {
         uuid id PK
-        string email 
-        string phone_number 
+        string email U
+        string phone_number
         string password_hash
         string name
         string surname
         string image_url
-        user_role role
+        enum role "SELLER, BUYER, ADMIN"  
         int version
-    }
-
-    user_role {
-        string seller
-        string buyer
-        string admin
     }
 
     product {
@@ -153,26 +131,17 @@ erDiagram
     category {
         uuid id PK
         string name
-        string image_url
     }
 
     order {
         uuid id PK
         uuid user_id FK
-        order_status status
+        enum status "PENDING, PAID, SHIPPED, DELIVERED, COMPLETED, CANCELLED, REFUNDED, PROCESSING"
         float total_price
         uuid address_id FK
         datetime created_at
     }
-
-    order_status {
-        string pending
-        string paid
-        string shipped
-        string delivered
-        string canceled
-    }
-
+    
     order_item {
         uuid id PK
         uuid order_id FK
