@@ -91,16 +91,15 @@
 
 ```mermaid
 erDiagram
-
     user {
         uuid id PK
-        string email U
+        string email
         string phone_number
         string password_hash
         string name
         string surname
         string image_url
-        string role 
+        string role
         int version
     }
 
@@ -136,7 +135,7 @@ erDiagram
     order {
         uuid id PK
         uuid user_id FK
-        string status 
+        string status
         float total_price
         uuid address_id FK
         datetime created_at
