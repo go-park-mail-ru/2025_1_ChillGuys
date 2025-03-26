@@ -100,7 +100,7 @@ erDiagram
         string name
         string surname
         string image_url
-        enum role "SELLER, BUYER, ADMIN"  
+        string role
         int version
     }
 
@@ -136,7 +136,7 @@ erDiagram
     order {
         uuid id PK
         uuid user_id FK
-        enum status "PENDING, PAID, SHIPPED, DELIVERED, COMPLETED, CANCELLED, REFUNDED, PROCESSING"
+        string status
         float total_price
         uuid address_id FK
         datetime created_at
