@@ -109,7 +109,6 @@ func main() {
 			tokenator,
 			http.HandlerFunc(userHandler.GetMe)),
 		).Methods("GET")
-
 	}
 
 	srv := &http.Server{

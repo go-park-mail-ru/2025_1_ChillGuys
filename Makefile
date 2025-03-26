@@ -30,6 +30,7 @@ run-build:
 clean:
 	rm -rf bin/
 
+
 .PHONY: docker-build docker-push
 
 # Сборка Docker-образа
