@@ -9,11 +9,11 @@
 - `name` — имя пользователя
 - `surname` — фамилия пользователя
 - `image_url` — ссылка на изображение профиля
-- `role` — роль пользователя (`SELLER`, `BUYER`, `ADMIN`)
+- `role` — роль пользователя 
 - `version` — версия сессии пользователя
 
 ### `product`
-Содержит информацию о товарах, продаваемых на платформе.
+Содержит информацию о товарах.
 - `id` — уникальный идентификатор
 - `seller_id` — идентификатор продавца
 - `name` — название товара
@@ -45,7 +45,7 @@
 Хранит информацию о заказах.
 - `id` — уникальный идентификатор
 - `user_id` — пользователь, сделавший заказ
-- `status` — статус (`PENDING`, `PAID`, `SHIPPED`, `DELIVERED`, `COMPLETED`, `CANCELLED`, `REFUNDED`, `PROCESSING`)
+- `status` — статус
 - `total_price` — общая сумма заказа
 - `address_id` — адрес доставки
 - `created_at` — дата создания заказа
@@ -100,7 +100,7 @@ erDiagram
         string name
         string surname
         string image_url
-        string role
+        enum role "SELLER, BUYER, ADMIN"  
         int version
     }
 
@@ -136,7 +136,7 @@ erDiagram
     order {
         uuid id PK
         uuid user_id FK
-        string status
+        enum status "PENDING, PAID, SHIPPED, DELIVERED, COMPLETED, CANCELLED, REFUNDED, PROCESSING"
         float total_price
         uuid address_id FK
         datetime created_at
