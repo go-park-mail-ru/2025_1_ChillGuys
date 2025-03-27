@@ -14,17 +14,16 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/minio"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils"
 	usecase2 "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase"
 	"log"
 	"net/http"
-	"os"
 	"time"
 
 	_ "github.com/go-park-mail-ru/2025_1_ChillGuys/docs"
 	"github.com/gorilla/mux"
-	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 	"github.com/sirupsen/logrus"
 	httpSwagger "github.com/swaggo/http-swagger"
@@ -38,13 +37,14 @@ import (
 func main() {
 	logger := logrus.New()
 
-	err := godotenv.Load()
+	// Получение конфигурации
+	conf, err := config.NewConfig()
 	if err != nil {
-		log.Println("Error loading .env file")
+		logger.Fatal(err)
 	}
 
 	// Подключение базы данных
-	str, err := utils.GetConnectionString()
+	str, err := utils.GetConnectionString(conf.DBConfig)
 	if err != nil {
 		logger.Error(err)
 		return
@@ -60,20 +60,13 @@ func main() {
 	db.SetConnMaxLifetime(5 * time.Minute)
 
 	// Инициализация соединения с Minio
-	minioConf := minio.NewConfig()
-	_, err = minio.NewMinioClient(minioConf)
+	_, err = minio.NewMinioClient(conf.MinioConfig)
 	if err != nil {
-		log.Fatalf("Ошибка инициализации Minio: %v", err)
-	}
-
-	port := os.Getenv("SERVER_PORT")
-	if port == "" {
-		logger.WithFields(logrus.Fields{"error": "SERVER_PORT is not set"}).Error("SERVER_PORT is not set in the .env file")
-		return
+		log.Fatalf("Minio initialization error: %v", err)
 	}
 
 	userRepo := repository.NewUserRepository(db, logger)
-	tokenator := jwt.NewTokenator(userRepo)
+	tokenator := jwt.NewTokenator(userRepo, conf.JWTConfig)
 	userUsecase := usecase2.NewAuthUsecase(userRepo, tokenator, logger)
 	userHandler := transport.NewAuthHandler(userUsecase, logger)
 
@@ -81,7 +74,9 @@ func main() {
 	productHandler := transport.NewProductHandler(productRepo, logger)
 
 	router := mux.NewRouter().PathPrefix("/api").Subrouter()
-	router.Use(middleware.CORSMiddleware)
+	router.Use(func(next http.Handler) http.Handler {
+		return middleware.CORSMiddleware(next, conf.ServerConfig)
+	})
 	router.Use(middleware.NewLoggerMiddleware(logger).LogRequest)
 
 	router.PathPrefix("/swagger/").Handler(httpSwagger.WrapHandler)
@@ -113,7 +108,7 @@ func main() {
 
 	srv := &http.Server{
 		Handler:      router,
-		Addr:         fmt.Sprintf(":%s", port),
+		Addr:         fmt.Sprintf(":%s", conf.ServerConfig.Port),
 		WriteTimeout: 10 * time.Second,
 		ReadTimeout:  10 * time.Second,
 		IdleTimeout:  30 * time.Second,

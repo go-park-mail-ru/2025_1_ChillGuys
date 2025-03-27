@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
 	"github.com/google/uuid"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
@@ -25,11 +26,11 @@ type Client interface {
 // minioClient реализация интерфейса MinioClient
 type minioClient struct {
 	mc     *minio.Client
-	config *Config
+	config *config.MinioConfig
 }
 
 // NewMinioClient создает новый экземпляр Minio Client
-func NewMinioClient(config *Config) (*minioClient, error) {
+func NewMinioClient(config *config.MinioConfig) (*minioClient, error) {
 	client, err := initMinio(config)
 	return &minioClient{
 		mc:     client,
@@ -39,14 +40,14 @@ func NewMinioClient(config *Config) (*minioClient, error) {
 
 // InitMinio подключается к Minio и создает бакет, если не существует
 // Бакет - это контейнер для хранения объектов в Minio. Он представляет собой пространство имен, в котором можно хранить и организовывать файлы и папки.
-func initMinio(config *Config) (*minio.Client, error) {
+func initMinio(config *config.MinioConfig) (*minio.Client, error) {
 	// Создание контекста с возможностью отмены операции
 	ctx := context.Background()
 
 	// Подключение к Minio с использованием имени пользователя и пароля
-	client, err := minio.New(config.MinioEndpoint, &minio.Options{
-		Creds:  credentials.NewStaticV4(config.MinioRootUser, config.MinioRootPassword, ""),
-		Secure: config.MinioUseSSL,
+	client, err := minio.New(config.Endpoint, &minio.Options{
+		Creds:  credentials.NewStaticV4(config.RootUser, config.RootPassword, ""),
+		Secure: config.UseSSL,
 	})
 	if err != nil {
 		return nil, err
@@ -82,13 +83,13 @@ func (m *minioClient) CreateOne(ctx context.Context, file FileDataType) (string,
 	// Загрузка данных в бакет Minio с использованием контекста для возможности отмены операции.
 	_, err := m.mc.PutObject(ctx, m.config.BucketName, objectID, reader, int64(len(file.Data)), minio.PutObjectOptions{})
 	if err != nil {
-		return "", fmt.Errorf("ошибка при создании объекта %s: %v", file.FileName, err)
+		return "", fmt.Errorf("failed to create object %s: %v", file.FileName, err)
 	}
 
 	// Получение URL для загруженного объекта
 	url, err := m.mc.PresignedGetObject(ctx, m.config.BucketName, objectID, time.Second*24*60*60, nil)
 	if err != nil {
-		return "", fmt.Errorf("ошибка при создании URL для объекта %s: %v", file.FileName, err)
+		return "", fmt.Errorf("failed to generate URL for object %s: %v", file.FileName, err)
 	}
 
 	return url.String(), nil
@@ -150,7 +151,7 @@ func (m *minioClient) GetOne(ctx context.Context, objectID string) (string, erro
 	// Получение предварительно подписанного URL для доступа к объекту Minio.
 	url, err := m.mc.PresignedGetObject(ctx, m.config.BucketName, objectID, time.Second*24*60*60, nil)
 	if err != nil {
-		return "", fmt.Errorf("ошибка при получении URL для объекта %s: %v", objectID, err)
+		return "", fmt.Errorf("failed to retrieve URL for object %s: %v", objectID, err)
 	}
 
 	return url.String(), nil
@@ -173,8 +174,8 @@ func (m *minioClient) GetMany(ctx context.Context, objectIDs []string) ([]string
 			defer wg.Done()                     // Уменьшение счетчика WaitGroup после завершения горутины
 			url, err := m.GetOne(ctx, objectID) // Получение URL-адреса объекта по его идентификатору с помощью метода GetOne
 			if err != nil {
-				errCh <- OperationError{ObjectID: objectID, Error: fmt.Errorf("ошибка при получении объекта %s: %v", objectID, err)} // Отправка ошибки в канал с ошибками
-				cancel()                                                                                                             // Отмена операции при возникновении ошибки
+				errCh <- OperationError{ObjectID: objectID, Error: fmt.Errorf("failed to retrieve object %s: %v", objectID, err)} // Отправка ошибки в канал с ошибками
+				cancel()                                                                                                          // Отмена операции при возникновении ошибки
 				return
 			}
 			urlCh <- url // Отправка URL-адреса объекта в канал с URL-адресами
@@ -200,7 +201,7 @@ func (m *minioClient) GetMany(ctx context.Context, objectIDs []string) ([]string
 
 	// Проверка наличия ошибок.
 	if len(errs) > 0 {
-		return nil, fmt.Errorf("ошибки при получении объектов: %v", errs) // Возврат ошибки, если возникли ошибки при получении объектов
+		return nil, fmt.Errorf("errors occurred while retrieving objects: %v", errs) // Возврат ошибки, если возникли ошибки при получении объектов
 	}
 
 	return urls, nil // Возврат массива URL-адресов, если ошибок не возникло
@@ -232,8 +233,8 @@ func (m *minioClient) DeleteMany(ctx context.Context, objectIDs []string) error 
 			defer wg.Done()                                                                     // Уменьшение счетчика WaitGroup после завершения горутины
 			err := m.mc.RemoveObject(ctx, m.config.BucketName, id, minio.RemoveObjectOptions{}) // Удаление объекта с использованием Minio клиента
 			if err != nil {
-				errCh <- OperationError{ObjectID: id, Error: fmt.Errorf("ошибка при удалении объекта %s: %v", id, err)} // Отправка ошибки в канал с ошибками
-				cancel()                                                                                                // Отмена операции при возникновении ошибки
+				errCh <- OperationError{ObjectID: id, Error: fmt.Errorf("failed to delete object %s: %v", id, err)} // Отправка ошибки в канал с ошибками
+				cancel()                                                                                            // Отмена операции при возникновении ошибки
 			}
 		}(objectID) // Передача идентификатора объекта в анонимную горутину
 	}
@@ -252,7 +253,7 @@ func (m *minioClient) DeleteMany(ctx context.Context, objectIDs []string) error 
 
 	// Проверка наличия ошибок.
 	if len(errs) > 0 {
-		return fmt.Errorf("ошибки при удалении объектов: %v", errs) // Возврат ошибки, если возникли ошибки при удалении объектов
+		return fmt.Errorf("errors occurred while deleting objects: %v", errs) // Возврат ошибки, если возникли ошибки при удалении объектов
 	}
 
 	return nil // Возврат nil, если ошибок не возникло
