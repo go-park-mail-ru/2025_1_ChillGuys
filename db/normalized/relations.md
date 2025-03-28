@@ -37,6 +37,7 @@
 - `name` — название товара
 - `preview_image_url` — изображение товара
 - `description` — описание товара
+- `status` — статус товара (`pending` — ожидает одобрения, `approved` — одобрено)
 - `price` — цена
 - `category_id` — категория товара
 - `quantity` — количество товара в наличии
@@ -169,6 +170,7 @@ erDiagram
         string name
         string preview_image_url
         string description
+        string status
         float price
         uuid category_id FK
         int quantity
