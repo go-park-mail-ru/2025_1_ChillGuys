@@ -39,9 +39,21 @@
 - `description` — описание товара
 - `status` — статус товара (`pending` — ожидает одобрения, `approved` — одобрено)
 - `price` — цена
-- `category_id` — категория товара
 - `quantity` — количество товара в наличии
 - `updated_at` — время последнего обновления
+
+### `product_category`
+Связывает товары и категории, реализуя отношение «многие ко многим».
+- `id` — уникальный идентификатор записи
+- `product_id` — идентификатор товара
+- `category_id` — идентификатор категории
+
+### `favorite`
+Хранит информацию о товарах, добавленных пользователями в избранное.
+- `id` — уникальный идентификатор записи избранного
+- `user_id` — идентификатор пользователя, добавившего товар в избранное
+- `product_id` — идентификатор товара, добавленного в избранное
+- `created_at` — дата и время добавления товара в избранное
 
 ### `product_image`
 Хранит изображения товаров.
@@ -127,6 +139,7 @@
 - `house` — номер дома
 - `apartment` — номер квартиры
 - `zip_code` — почтовый индекс
+
 ---
 
 ## ER-диаграмма базы данных
@@ -171,10 +184,16 @@ erDiagram
         string preview_image_url
         string description
         string status
-        float price
-        uuid category_id FK
+        int price
         int quantity
         datetime updated_at
+    }
+    
+    favorite {
+        uuid id PK
+        uuid user_id FK
+        uuid product_id FK
+        datetime created_at
     }
     
     product_image {
@@ -209,6 +228,12 @@ erDiagram
     category {
         uuid id PK
         string name
+    }
+    
+    product_category {
+        uuid id PK
+        uuid product_id FK
+        uuid category_id FK
     }
 
     order {
@@ -269,13 +294,16 @@ erDiagram
     user ||--o{ address : "имеет"
     user ||--o{ product : "продает"
     user ||--o{ review : "оставляет"
-    user ||--o{ basket : "имеет"
+    user ||--|| basket : "имеет"
+    user ||--o{ favorite : "добавляет в избранное"
 
     product ||--o{ order_item : "включается в"
     product ||--o{ review : "получает"
-    product }o--|| category : "принадлежит"
-    product ||--o{ discount : "имеет"
     product ||--o{ product_image : "имеет"
+    product ||--o{ discount : "имеет"
+    product ||--o{ product_category : "связан с"
+
+    category ||--o{ product_category : "содержит"
 
     order ||--o{ order_item : "содержит"
     order }o--|| address : "доставляется в"
