@@ -6,7 +6,7 @@ import (
 )
 
 func GetConnectionString(conf *config.DBConfig) (string, error) {
-	connStr := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
+	connStr := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable",
 		conf.User, conf.Password, conf.Host, conf.Port, conf.DB,
 	)
 

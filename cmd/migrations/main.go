@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
@@ -18,13 +19,19 @@ func main() {
 		log.Fatalf("Ошибка загрузки .env файла: %v", err)
 	}
 
+	// Загружаем конфигурацию
+	cfg, err := config.NewConfig()
+	if err != nil {
+		log.Fatalf("Ошибка загрузки конфигурации: %v", err)
+	}
+
 	// Формируем DSN строку
-	dsn, err := utils.GetConnectionString()
+	dsn, err := utils.GetConnectionString(cfg.DBConfig)
 	if err != nil {
 		log.Fatalf("Can't connect to database: %v", err)
 	}
 	fmt.Println("Connected to database")
-
+	
 	// Настройка источника миграций
 	migrationsPath := "file://db/migrations"
 
