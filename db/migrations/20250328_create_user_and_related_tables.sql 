@@ -35,7 +35,7 @@ CREATE TYPE address_type AS ENUM (
 );
 
 -- Создание таблицы пользователей
-CREATE TABLE "user" (
+CREATE TABLE IF NOT EXISTS "user" (
     id            UUID PRIMARY KEY,
     email         TEXT UNIQUE NOT NULL,
     phone_number  TEXT UNIQUE NOT NULL,
@@ -46,13 +46,13 @@ CREATE TABLE "user" (
 );
 
 -- Создание таблицы ролей
-CREATE TABLE role (
+CREATE TABLE IF NOT EXISTS role (
     id   UUID PRIMARY KEY,
     name TEXT UNIQUE NOT NULL
 );
 
 -- Создание таблицы user_role
-CREATE TABLE user_role (
+CREATE TABLE IF NOT EXISTS user_role (
     id      UUID PRIMARY KEY,
     user_id UUID REFERENCES "user" (id) ON DELETE CASCADE,
     role_id UUID REFERENCES role (id) ON DELETE CASCADE,
@@ -60,7 +60,7 @@ CREATE TABLE user_role (
 );
 
 -- Версии пользователя
-CREATE TABLE user_version (
+CREATE TABLE IF NOT EXISTS user_version (
     id         UUID PRIMARY KEY,
     user_id    UUID REFERENCES "user" (id) ON DELETE CASCADE,
     version    INT DEFAULT 1 CHECK (version > 0),
@@ -68,7 +68,7 @@ CREATE TABLE user_version (
 );
 
 -- Товары
-CREATE TABLE product (
+CREATE TABLE IF NOT EXISTS product (
     id                  UUID PRIMARY KEY,
     seller_id           UUID REFERENCES "user" (id) ON DELETE CASCADE,
     name                TEXT NOT NULL,
@@ -81,7 +81,7 @@ CREATE TABLE product (
 );
 
 -- Избранные товары
-CREATE TABLE favorite (
+CREATE TABLE IF NOT EXISTS favorite (
     id          UUID PRIMARY KEY,
     user_id     UUID REFERENCES "user" (id) ON DELETE CASCADE,
     product_id  UUID REFERENCES product (id) ON DELETE CASCADE,
@@ -90,7 +90,7 @@ CREATE TABLE favorite (
 );
 
 -- Картинки товаров
-CREATE TABLE product_image (
+CREATE TABLE IF NOT EXISTS product_image (
     id          UUID PRIMARY KEY,
     product_id  UUID REFERENCES product (id) ON DELETE CASCADE,
     image_url   TEXT NOT NULL,
@@ -98,7 +98,7 @@ CREATE TABLE product_image (
 );
 
 -- Скидки
-CREATE TABLE discount (
+CREATE TABLE IF NOT EXISTS discount (
     id               UUID PRIMARY KEY,
     start_date       TIMESTAMPTZ NOT NULL,
     end_date         TIMESTAMPTZ NOT NULL,
@@ -108,7 +108,7 @@ CREATE TABLE discount (
 );
 
 -- Промокоды
-CREATE TABLE promo_code (
+CREATE TABLE IF NOT EXISTS promo_code (
     id                UUID PRIMARY KEY,
     user_id           UUID REFERENCES "user" (id) ON DELETE CASCADE,
     category_id       UUID REFERENCES category (id) ON DELETE CASCADE,
@@ -122,13 +122,13 @@ CREATE TABLE promo_code (
 );
 
 -- Категории
-CREATE TABLE category (
+CREATE TABLE IF NOT EXISTS category (
     id   UUID PRIMARY KEY,
     name TEXT UNIQUE NOT NULL
 );
 
 -- Привязка товаров к категориям
-CREATE TABLE product_category (
+CREATE TABLE IF NOT EXISTS product_category (
     id          UUID PRIMARY KEY,
     product_id  UUID REFERENCES product (id) ON DELETE CASCADE,
     category_id UUID REFERENCES category (id) ON DELETE CASCADE,
@@ -136,7 +136,7 @@ CREATE TABLE product_category (
 );
 
 -- Заказы
-CREATE TABLE "order" (
+CREATE TABLE IF NOT EXISTS "order" (
     id           UUID PRIMARY KEY,
     user_id      UUID REFERENCES "user" (id) ON DELETE CASCADE,
     status       order_status NOT NULL,
@@ -147,7 +147,7 @@ CREATE TABLE "order" (
 );
 
 -- Элементы заказа
-CREATE TABLE order_item (
+CREATE TABLE IF NOT EXISTS order_item (
     id          UUID PRIMARY KEY,
     order_id    UUID REFERENCES "order" (id) ON DELETE CASCADE,
     product_id  UUID REFERENCES product (id) ON DELETE CASCADE,
@@ -156,13 +156,13 @@ CREATE TABLE order_item (
 );
 
 -- Корзина
-CREATE TABLE basket (
+CREATE TABLE IF NOT EXISTS basket (
     id       UUID PRIMARY KEY,
     user_id  UUID REFERENCES "user" (id) ON DELETE CASCADE UNIQUE
 );
 
 -- Элементы корзины
-CREATE TABLE basket_item (
+CREATE TABLE IF NOT EXISTS basket_item (
     id         UUID PRIMARY KEY,
     basket_id  UUID REFERENCES basket (id) ON DELETE CASCADE,
     product_id UUID REFERENCES product (id) ON DELETE CASCADE,
@@ -171,7 +171,7 @@ CREATE TABLE basket_item (
 );
 
 -- Отзывы
-CREATE TABLE review (
+CREATE TABLE IF NOT EXISTS review (
     id         UUID PRIMARY KEY,
     user_id    UUID,
     product_id UUID REFERENCES product (id) ON DELETE CASCADE,
@@ -182,7 +182,7 @@ CREATE TABLE review (
 );
 
 -- Таблица для ПВЗ
-CREATE TABLE pickup_point (
+CREATE TABLE IF NOT EXISTS pickup_point (
     id          UUID PRIMARY KEY,
     city        TEXT NOT NULL,
     street      TEXT NOT NULL,
@@ -193,7 +193,7 @@ CREATE TABLE pickup_point (
 );
 
 -- Связующая таблица для ПВЗ и пользователей
-CREATE TABLE user_pickup_point (
+CREATE TABLE IF NOT EXISTS user_pickup_point (
     id              UUID PRIMARY KEY,
     user_id         UUID REFERENCES "user" (id) ON DELETE CASCADE,
     pickup_point_id UUID REFERENCES pickup_point (id) ON DELETE CASCADE,
@@ -201,7 +201,7 @@ CREATE TABLE user_pickup_point (
 );
 
 -- Адреса
-CREATE TABLE address (
+CREATE TABLE IF NOT EXISTS address (
     id                UUID PRIMARY KEY,
     user_id           UUID REFERENCES "user" (id) ON DELETE CASCADE,
     city              TEXT NOT NULL,
