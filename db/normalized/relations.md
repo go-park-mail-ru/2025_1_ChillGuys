@@ -12,9 +12,14 @@
 
 ### `user_role`
 Хранит информацию о ролях пользователей.
-- `id` — уникальный идентификатор
+- `id` — уникальный идентификатор записи
 - `user_id` — идентификатор пользователя
-- `role` — роль пользователя
+- `role_id` — идентификатор роли
+
+### `role`
+Хранит информацию о ролях.
+- `id` — уникальный идентификатор
+- `name` — название роли (например, `admin`, `seller`, `buyer`)
 
 ### `user_balance`
 Хранит баланс пользователей.
@@ -130,15 +135,34 @@
 - `created_at` — дата отзыва
 - `updated_at` — время последнего обновления
 
+### `pickup_point`
+Таблица для ПВЗ (пунктов выдачи заказов).
+- `id` — уникальный идентификатор ПВЗ
+- `city` — город, в котором находится ПВЗ
+- `street` — улица, на которой расположен ПВЗ
+- `house` — номер дома, в котором находится ПВЗ
+- `zip_code` — почтовый индекс ПВЗ
+- `created_at` — дата и время создания записи
+- `updated_at` — дата и время последнего обновления записи
+
+### `user_pickup_point`
+Связующая таблица для связи пользователей с пунктами выдачи заказов (ПВЗ).
+- `id` — уникальный идентификатор записи
+- `user_id` — идентификатор пользователя, связанного с ПВЗ
+- `pickup_point_id` — идентификатор ПВЗ, с которым связан пользователь
+- `created_at` — дата и время создания записи
+
 ### `address`
-Хранит адреса пользователей.
-- `id` — уникальный идентификатор
-- `user_id` — идентификатор владельца адреса
+Таблица для хранения адресов пользователей.
+- `id` — уникальный идентификатор адреса
+- `user_id` — идентификатор владельца адреса (пользователя)
 - `city` — город
 - `street` — улица
 - `house` — номер дома
 - `apartment` — номер квартиры
 - `zip_code` — почтовый индекс
+- `address_type` — тип адреса (может быть `user` для адреса пользователя или `pickup` для адреса ПВЗ)
+- `updated_at` — дата и время последнего обновления записи
 
 ---
 
@@ -151,7 +175,7 @@
 **3NF**: Нет транзитивных зависимостей, все неключевые атрибуты зависят только от первичного ключа.  
 **NFBC**: Соответствует, так как детерминант (id) является ключом.
 
-### user_role
+### user_role // FIXME: теперь две таблицы, т.к. связь многие ко многим
 `{id} → {user_id, role}`  
 Все нормальные формы соблюдаются аналогично отношению user.
 
@@ -211,7 +235,7 @@
 `{id} → {user_id, product_id, rating, comment, created_at, updated_at}`  
 Все нормальные формы соблюдаются.
 
-### address
+### address //FIXME: обновить и добавить зависимости для таблиц с пвз 
 `{id} → {user_id, city, street, house, apartment, zip_code}`  
 Все нормальные формы соблюдаются.
 
@@ -241,11 +265,16 @@ erDiagram
         string surname
         string image_url
     }
+    
+    role {
+        uuid id PK
+        string name
+    }
 
     user_role {
         uuid id PK
         uuid user_id FK
-        string role
+        uuid role_id FK
     }
 
     user_balance {
@@ -362,6 +391,23 @@ erDiagram
         datetime updated_at
     }
 
+    pickup_point {
+        uuid id PK
+        string city
+        string street
+        string house
+        string zip_code
+        datetime created_at
+        datetime updated_at
+    }
+
+    user_pickup_point {
+        uuid id PK
+        uuid user_id FK
+        uuid pickup_point_id FK
+        datetime created_at
+    }
+    
     address {
         uuid id PK
         uuid user_id FK
@@ -370,9 +416,12 @@ erDiagram
         string house
         string apartment
         string zip_code
+        string address_type
+        datetime updated_at
     }
-
+    
     user ||--o{ user_role : "имеет роль"
+    role ||--o{ user_role : "имеет пользователей"
     user ||--o{ user_balance : "имеет баланс"
     user ||--o{ user_version : "имеет версию"
     user ||--o{ order : "создает"
@@ -381,6 +430,7 @@ erDiagram
     user ||--o{ review : "оставляет"
     user ||--|| basket : "имеет"
     user ||--o{ favorite : "добавляет в избранное"
+    user ||--o{ user_pickup_point : "может иметь точку самовывоза"
 
     product ||--o{ order_item : "включается в"
     product ||--o{ review : "получает"
@@ -399,4 +449,8 @@ erDiagram
     promo_code ||--|| user : "принадлежит"
     promo_code ||--|| category : "может применяться к категории"
     promo_code ||--|| user : "может применяться к продавцу"
+    
+    pickup_point ||--o{ user_pickup_point : "имеет пользователей"
+    user_pickup_point ||--|| user : "принадлежит пользователю"
+    user_pickup_point ||--|| pickup_point : "относится к точке самовывоза"
 ```
