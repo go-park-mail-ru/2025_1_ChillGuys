@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
@@ -35,9 +35,9 @@ type Tokenator struct {
 }
 
 // NewTokenator создает новый экземпляр Tokenator
-func NewTokenator(vc VersionChecker) *Tokenator {
+func NewTokenator(vc VersionChecker, conf *config.JWTConfig) *Tokenator {
 	return &Tokenator{
-		sign: os.Getenv("JWT_SIGNATURE"),
+		sign: conf.Signature,
 		VC:   vc,
 	}
 }
