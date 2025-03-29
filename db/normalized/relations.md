@@ -166,88 +166,97 @@
 
 ---
 
-## Функциональные зависимости и нормальные формы
+## Сущности и их функциональные зависимости
 
 ### user
 `{id} → {email, phone_number, password_hash, name, surname, image_url}`  
-**1NF**: Все атрибуты атомарны, нет повторяющихся групп.  
-**2NF**: Нет частичных зависимостей, так как первичный ключ состоит из одного атрибута.  
-**3NF**: Нет транзитивных зависимостей, все неключевые атрибуты зависят только от первичного ключа.  
-**NFBC**: Соответствует, так как детерминант (id) является ключом.
+**1NF**: ✓ **2NF**: ✓ **3NF**: ✓ **NFBC**: ✓
 
-### user_role // FIXME: теперь две таблицы, т.к. связь многие ко многим
-`{id} → {user_id, role}`  
-Все нормальные формы соблюдаются аналогично отношению user.
+### role
+`{id} → {name}`  
+**1NF**: ✓ **2NF**: ✓ **3NF**: ✓ **NFBC**: ✓
+
+### user_role (многие-ко-многим)
+`{id} → {user_id, role_id}`  
+**1NF**: ✓ **2NF**: ✓ **3NF**: ✓ **NFBC**: ✓
 
 ### user_balance
 `{id} → {user_id, balance, updated_at}`  
-Все нормальные формы соблюдаются.
+**1NF**: ✓ **2NF**: ✓ **3NF**: ✓ **NFBC**: ✓
 
 ### user_version
 `{id} → {user_id, version, updated_at}`  
-Все нормальные формы соблюдаются.
+**1NF**: ✓ **2NF**: ✓ **3NF**: ✓ **NFBC**: ✓
 
 ### product
 `{id} → {seller_id, name, preview_image_url, description, status, price, quantity, updated_at}`  
-Все нормальные формы соблюдаются.
+**1NF**: ✓ **2NF**: ✓ **3NF**: ✓ **NFBC**: ✓
 
 ### favorite
 `{id} → {user_id, product_id, created_at}`  
-Все нормальные формы соблюдаются.
+**1NF**: ✓ **2NF**: ✓ **3NF**: ✓ **NFBC**: ✓
 
 ### product_image
 `{id} → {product_id, image_url, num}`  
-Все нормальные формы соблюдаются.
+**1NF**: ✓ **2NF**: ✓ **3NF**: ✓ **NFBC**: ✓
 
 ### discount
 `{id} → {start_date, end_date, product_id, discounted_price, updated_at}`  
-Все нормальные формы соблюдаются.
+**1NF**: ✓ **2NF**: ✓ **3NF**: ✓ **NFBC**: ✓
 
 ### promo_code
 `{id} → {user_id, category_id, seller_id, code, relative_discount, absolute_discount, start_date, end_date, updated_at}`  
-Все нормальные формы соблюдаются.
+**1NF**: ✓ **2NF**: ✓ **3NF**: ✓ **NFBC**: ✓
 
 ### category
 `{id} → {name}`  
-Все нормальные формы соблюдаются.
+**1NF**: ✓ **2NF**: ✓ **3NF**: ✓ **NFBC**: ✓
 
 ### product_category
 `{id} → {product_id, category_id}`  
-Все нормальные формы соблюдаются.
+**1NF**: ✓ **2NF**: ✓ **3NF**: ✓ **NFBC**: ✓
 
 ### order
 `{id} → {user_id, status, total_price, address_id, created_at, updated_at}`  
-Все нормальные формы соблюдаются.
+**1NF**: ✓ **2NF**: ✓ **3NF**: ✓ **NFBC**: ✓
 
 ### order_item
 `{id} → {order_id, product_id, quantity, updated_at}`  
-Все нормальные формы соблюдаются.
+**1NF**: ✓ **2NF**: ✓ **3NF**: ✓ **NFBC**: ✓
 
 ### basket
 `{id} → {user_id}`  
-Все нормальные формы соблюдаются.
+**1NF**: ✓ **2NF**: ✓ **3NF**: ✓ **NFBC**: ✓
 
 ### basket_item
 `{id} → {basket_id, product_id, quantity, updated_at}`  
-Все нормальные формы соблюдаются.
+**1NF**: ✓ **2NF**: ✓ **3NF**: ✓ **NFBC**: ✓
 
 ### review
 `{id} → {user_id, product_id, rating, comment, created_at, updated_at}`  
-Все нормальные формы соблюдаются.
+**1NF**: ✓ **2NF**: ✓ **3NF**: ✓ **NFBC**: ✓
 
-### address //FIXME: обновить и добавить зависимости для таблиц с пвз 
-`{id} → {user_id, city, street, house, apartment, zip_code}`  
-Все нормальные формы соблюдаются.
+### pickup_point
+`{id} → {city, street, house, zip_code, created_at, updated_at}`  
+**1NF**: ✓ **2NF**: ✓ **3NF**: ✓ **NFBC**: ✓
+
+### user_pickup_point
+`{id} → {user_id, pickup_point_id, created_at}`  
+**1NF**: ✓ **2NF**: ✓ **3NF**: ✓ **NFBC**: ✓
+
+### address
+`{id} → {user_id, city, street, house, apartment, zip_code, address_type, updated_at}`  
+**1NF**: ✓ **2NF**: ✓ **3NF**: ✓ **NFBC**: ✓
 
 ## Общее заключение
 
-Все отношения в схеме соответствуют:  
-1. **1NF** - все атрибуты атомарны, нет повторяющихся групп  
-2. **2NF** - нет частичных зависимостей (все PK состоят из одного атрибута)  
-3. **3NF** - нет транзитивных зависимостей  
-4. **NFBC** - все детерминанты являются потенциальными ключами  
+Все отношения в схеме соответствуют требованиям:
+- **1NF**: Все атрибуты атомарны, нет повторяющихся групп
+- **2NF**: Нет частичных зависимостей (все PK состоят из одного атрибута)
+- **3NF**: Нет транзитивных зависимостей
+- **NFBC**: Все детерминанты являются потенциальными ключами
 
-Схема хорошо нормализована и не содержит аномалий вставки, обновления и удаления.
+Схема полностью нормализована и не содержит аномалий вставки, обновления и удаления.
 
 ---
 
