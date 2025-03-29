@@ -1,6 +1,7 @@
 package transport
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -10,7 +11,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/crypto/bcrypt"
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
@@ -26,11 +26,21 @@ var (
 )
 
 //go:generate mockgen -source=user.go -destination=../repository/mocks/user_repo_mock.go -package=mocks IUserRepository
+type IAuthUsecase interface {
+	Register(ctx context.Context, user models.UserRegisterRequestDTO) (string, error)
+	Login(ctx context.Context, user models.UserLoginRequestDTO) (string, error)
+	Logout(ctx context.Context) error
+	GetMe(ctx context.Context) (*models.User, error)
+}
+
 type IUserRepository interface {
-	CreateUser(user models.UserDB) error
-	GetUserByEmail(email string) (*models.UserDB, error)
-	GetUserByID(id uuid.UUID) (*models.UserDB, error)
-	IncrementUserVersion(userID string) error
+	CreateUser(context.Context, models.UserDB) error
+	GetUserByEmail(context.Context, string) (*models.UserDB, error)
+	GetUserByID(context.Context, uuid.UUID) (*models.UserDB, error)
+	IncrementUserVersion(context.Context, string) error
+	GetUserCurrentVersion(context.Context, string) (int, error)
+	CheckUserVersion(context.Context, string, int) bool
+	CheckUserExists(context.Context, string) (bool, error)
 }
 
 type ITokenator interface {
@@ -39,16 +49,17 @@ type ITokenator interface {
 }
 
 type AuthHandler struct {
-	repo  IUserRepository
-	token ITokenator
-	log   *logrus.Logger
+	u   IAuthUsecase
+	log *logrus.Logger
 }
 
-func NewAuthHandler(repo IUserRepository, log *logrus.Logger, token ITokenator) *AuthHandler {
+func NewAuthHandler(
+	u IAuthUsecase,
+	log *logrus.Logger,
+) *AuthHandler {
 	return &AuthHandler{
-		repo:  repo,
-		token: token,
-		log:   log,
+		u:   u,
+		log: log,
 	}
 }
 
@@ -78,21 +89,9 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userRepo, err := h.repo.GetUserByEmail(request.Email)
+	token, err := h.u.Login(r.Context(), request)
 	if err != nil {
-		h.log.Warn(err.Error())
-		utils.SendErrorResponse(w, http.StatusUnauthorized, "Invalid password or email")
-		return
-	}
-
-	if err := bcrypt.CompareHashAndPassword(userRepo.PasswordHash, []byte(request.Password)); err != nil {
-		utils.SendErrorResponse(w, http.StatusUnauthorized, "Invalid password or email")
-		return
-	}
-
-	token, err := h.token.CreateJWT(userRepo.ID.String(), userRepo.Version)
-	if err != nil {
-		utils.SendErrorResponse(w, http.StatusInternalServerError, err.Error())
+		utils.HandleError(w, err)
 		return
 	}
 
@@ -126,35 +125,9 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	passwordHash, err := GeneratePasswordHash(request.Password)
+	token, err := h.u.Register(r.Context(), request)
 	if err != nil {
-		utils.SendErrorResponse(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	existedUser, _ := h.repo.GetUserByEmail(request.Email)
-	if existedUser != nil {
-		utils.SendErrorResponse(w, http.StatusConflict, "User already exists")
-		return
-	}
-
-	userRepo := models.UserDB{
-		ID:           uuid.New(),
-		Email:        request.Email,
-		Name:         request.Name,
-		Surname:      request.Surname,
-		PasswordHash: passwordHash,
-		Version:      1,
-	}
-
-	if err := h.repo.CreateUser(userRepo); err != nil {
-		utils.SendErrorResponse(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	token, err := h.token.CreateJWT(userRepo.ID.String(), 1)
-	if err != nil {
-		utils.SendErrorResponse(w, http.StatusInternalServerError, err.Error())
+		utils.HandleError(w, err)
 		return
 	}
 
@@ -167,17 +140,12 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 //	@Tags			auth
 //	@Security		TokenAuth
 //	@Success		200	{}			"No Content"
+//	@Failure		401	{object}	utils.ErrorResponse	"Пользователь не найден"
 //	@Failure		500	{object}	utils.ErrorResponse	"Ошибка сервера"
 //	@Router			/auth/logout [post]
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
-	userID, isExist := r.Context().Value(utils.UserIDKey).(string)
-	if !isExist {
-		utils.SendErrorResponse(w, http.StatusInternalServerError, "User id not found")
-		return
-	}
-
-	if err := h.repo.IncrementUserVersion(userID); err != nil {
-		utils.SendErrorResponse(w, http.StatusInternalServerError, err.Error())
+	if err := h.u.Logout(r.Context()); err != nil {
+		utils.HandleError(w, err)
 		return
 	}
 
@@ -200,29 +168,16 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 //	@Produce		json
 //	@Success		200	{object}	models.User			"Информация о пользователе"
 //	@Failure		400	{object}	utils.ErrorResponse	"Некорректный запрос"
-//	@Failure		404	{object}	utils.ErrorResponse	"Пользователь не найден"
+//	@Failure		401	{object}	utils.ErrorResponse	"Пользователь не найден"
 //	@Failure		500	{object}	utils.ErrorResponse	"Ошибка сервера"
 //	@Router			/users/me [get]
 func (h *AuthHandler) GetMe(w http.ResponseWriter, r *http.Request) {
-	userIDStr, isExist := r.Context().Value(utils.UserIDKey).(string)
-	if !isExist {
-		utils.SendErrorResponse(w, http.StatusInternalServerError, "User id not found")
-		return
-	}
-
-	userID, err := uuid.Parse(userIDStr)
+	user, err := h.u.GetMe(r.Context())
 	if err != nil {
-		utils.SendErrorResponse(w, http.StatusBadRequest, "Invalid user id format")
+		utils.HandleError(w, err)
 		return
 	}
 
-	userRepo, err := h.repo.GetUserByID(userID)
-	if err != nil {
-		utils.SendErrorResponse(w, http.StatusNotFound, "User not found")
-		return
-	}
-
-	user := userRepo.ConvertToUser()
 	utils.SendSuccessResponse(w, http.StatusOK, user)
 }
 
@@ -313,9 +268,4 @@ func sanitizeUserRegistrationRequest(req *models.UserRegisterRequestDTO) {
 func sanitizeUserLoginRequest(req *models.UserLoginRequestDTO) {
 	req.Email = strings.TrimSpace(req.Email)
 	req.Password = strings.TrimSpace(req.Password)
-}
-
-// GeneratePasswordHash Генерация хэша пароля
-func GeneratePasswordHash(password string) ([]byte, error) {
-	return bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
 }

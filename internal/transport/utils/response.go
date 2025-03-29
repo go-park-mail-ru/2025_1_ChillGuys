@@ -2,7 +2,9 @@ package utils
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 	"io"
 	"net/http"
 )
@@ -47,5 +49,19 @@ func SendSuccessResponse(w http.ResponseWriter, statusCode int, body interface{}
 			return
 		}
 		_, _ = w.Write(response)
+	}
+}
+
+func HandleError(w http.ResponseWriter, err error) {
+	if errors.Is(err, models.ErrInvalidCredentials) {
+		SendErrorResponse(w, http.StatusUnauthorized, "invalid email or password")
+	} else if errors.Is(err, models.ErrUserNotFound) {
+		SendErrorResponse(w, http.StatusUnauthorized, "user not found")
+	} else if errors.Is(err, models.ErrUserAlreadyExists) {
+		SendErrorResponse(w, http.StatusConflict, "user already exists")
+	} else if errors.Is(err, models.ErrInvalidUserID) {
+		SendErrorResponse(w, http.StatusBadRequest, "invalid user id format")
+	} else {
+		SendErrorResponse(w, http.StatusInternalServerError, err.Error())
 	}
 }

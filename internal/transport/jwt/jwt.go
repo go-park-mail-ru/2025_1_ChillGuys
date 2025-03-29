@@ -1,9 +1,10 @@
 package jwt
 
 import (
+	"context"
 	"errors"
 	"fmt"
-	"os"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
@@ -16,7 +17,7 @@ const (
 )
 
 type VersionChecker interface {
-	CheckUserVersion(userID string, version int) bool
+	CheckUserVersion(ctx context.Context, userID string, version int) bool
 }
 
 // JWTClaims структура для данных токена
@@ -34,9 +35,9 @@ type Tokenator struct {
 }
 
 // NewTokenator создает новый экземпляр Tokenator
-func NewTokenator(vc VersionChecker) *Tokenator {
+func NewTokenator(vc VersionChecker, conf *config.JWTConfig) *Tokenator {
 	return &Tokenator{
-		sign: os.Getenv("JWT_SIGNATURE"),
+		sign: conf.Signature,
 		VC:   vc,
 	}
 }

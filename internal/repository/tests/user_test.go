@@ -1,145 +1,262 @@
 package tests
 
 import (
-	"testing"
-
-	"github.com/golang/mock/gomock"
-	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
-
+	"context"
+	"database/sql"
+	"errors"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/repository"
+	"github.com/guregu/null"
+	"testing"
+
+	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCreateUser(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
 
-	repo := repository.NewUserRepository()
+	repo := repository.NewUserRepository(db, logrus.New())
+
 	user := models.UserDB{
-		ID:      uuid.New(),
-		Email:   "test@example.com",
-		Version: 1,
+		ID:           uuid.New(),
+		Email:        "test@example.com",
+		Name:         "Test",
+		Surname:      null.StringFrom("User"),
+		PasswordHash: []byte("hashedpassword"),
+		Version:      1,
 	}
 
-	// Проверяем, что создание пользователя работает
-	err := repo.CreateUser(user)
+	mock.ExpectExec("INSERT INTO \"user\"").WithArgs(
+		user.ID, user.Email, user.Name, user.Surname, user.PasswordHash, user.Version,
+	).WillReturnResult(sqlmock.NewResult(1, 1))
+
+	err = repo.CreateUser(context.Background(), user)
 	assert.NoError(t, err)
 
-	// Проверяем, что пользователь добавлен
-	storedUser, err := repo.GetUserByEmail(user.Email)
+	err = mock.ExpectationsWereMet()
 	assert.NoError(t, err)
-	assert.Equal(t, user.ID, storedUser.ID)
 }
 
-func TestGetUserByEmail(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	repo := repository.NewUserRepository()
-	user := models.UserDB{
-		ID:      uuid.New(),
-		Email:   "test@example.com",
-		Version: 1,
+func TestGetUserCurrentVersion(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
 	}
+	defer db.Close()
 
-	// Создаем пользователя
-	err := repo.CreateUser(user)
-	assert.NoError(t, err)
+	repo := repository.NewUserRepository(db, logrus.New())
 
-	// Проверяем получение пользователя по email
-	storedUser, err := repo.GetUserByEmail(user.Email)
-	assert.NoError(t, err)
-	assert.Equal(t, user.ID, storedUser.ID)
+	userID := "test-user-id"
 
-	// Проверяем несуществующий email
-	_, err = repo.GetUserByEmail("nonexistent@example.com")
-	assert.Equal(t, models.ErrUserNotFound, err)
-}
+	mock.ExpectQuery("SELECT version FROM \"user\"").WithArgs(userID).WillReturnRows(
+		sqlmock.NewRows([]string{"version"}).AddRow(1),
+	)
 
-func TestGetUserByID(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	repo := repository.NewUserRepository()
-	user := models.UserDB{
-		ID:      uuid.New(),
-		Email:   "test@example.com",
-		Version: 1,
-	}
-
-	// Создаем пользователя
-	err := repo.CreateUser(user)
-	assert.NoError(t, err)
-
-	// Проверяем получение пользователя по ID
-	storedUser, err := repo.GetUserByID(user.ID)
-	assert.NoError(t, err)
-	assert.Equal(t, user.ID, storedUser.ID)
-
-	// Проверяем несуществующего пользователя
-	_, err = repo.GetUserByID(uuid.New())
-	assert.Equal(t, models.ErrUserNotFound, err)
-}
-
-func TestIncrementUserVersion(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	repo := repository.NewUserRepository()
-	user := models.UserDB{
-		ID:      uuid.New(),
-		Email:   "test@example.com",
-		Version: 1,
-	}
-
-	// Создаем пользователя
-	err := repo.CreateUser(user)
-	assert.NoError(t, err)
-
-	// Проверяем версию пользователя до инкремента
-	version, err := repo.GetUserCurrentVersion(user.ID.String())
+	version, err := repo.GetUserCurrentVersion(context.Background(), userID)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, version)
 
-	// Инкрементируем версию
-	err = repo.IncrementUserVersion(user.ID.String())
+	err = mock.ExpectationsWereMet()
 	assert.NoError(t, err)
+}
 
-	// Проверяем, что версия инкрементировалась
-	version, err = repo.GetUserCurrentVersion(user.ID.String())
+func TestGetUserByEmail(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	repo := repository.NewUserRepository(db, logrus.New())
+
+	email := "test@example.com"
+
+	mock.ExpectQuery("SELECT user_id, email, name, surname, password_hash, version FROM \"user\"").WithArgs(email).WillReturnRows(
+		sqlmock.NewRows([]string{"user_id", "email", "name", "surname", "password_hash", "version"}).
+			AddRow(uuid.New().String(), email, "Test", "User", "hashedpassword", 1),
+	)
+
+	user, err := repo.GetUserByEmail(context.Background(), email)
 	assert.NoError(t, err)
-	assert.Equal(t, 2, version)
+	assert.NotNil(t, user)
 
-	// Проверяем попытку инкремента версии несуществующего пользователя
-	err = repo.IncrementUserVersion("nonexistent")
-	assert.Equal(t, models.ErrUserNotFound, err)
+	assert.Equal(t, "Test", user.Name)
+	assert.Equal(t, email, user.Email)
+
+	err = mock.ExpectationsWereMet()
+	assert.NoError(t, err)
+}
+
+func TestGetUserByID(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	repo := repository.NewUserRepository(db, logrus.New())
+
+	userID := uuid.New()
+	expectedUserID := userID.String()
+
+	mock.ExpectQuery("SELECT user_id, email, name, surname, password_hash, version FROM \"user\"").WithArgs(userID).WillReturnRows(
+		sqlmock.NewRows([]string{"user_id", "email", "name", "surname", "password_hash", "version"}).
+			AddRow(expectedUserID, "test@example.com", "Test", "User", "hashedpassword", 1),
+	)
+
+	user, err := repo.GetUserByID(context.Background(), userID)
+	assert.NoError(t, err)
+	assert.NotNil(t, user)
+
+	assert.Equal(t, expectedUserID, user.ID.String())
+
+	err = mock.ExpectationsWereMet()
+	assert.NoError(t, err)
+}
+
+func TestCheckUserExists(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	repo := repository.NewUserRepository(db, logrus.New())
+
+	email := "test@example.com"
+
+	mock.ExpectQuery("SELECT EXISTS").WithArgs(email).WillReturnRows(
+		sqlmock.NewRows([]string{"exists"}).AddRow(true),
+	)
+
+	exists, err := repo.CheckUserExists(context.Background(), email)
+	assert.NoError(t, err)
+	assert.True(t, exists)
+
+	err = mock.ExpectationsWereMet()
+	assert.NoError(t, err)
+}
+
+func TestIncrementUserVersion(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	log := logrus.New()
+
+	repo := repository.NewUserRepository(db, log)
+
+	userID := "123"
+	expectedQuery := `UPDATE \"user\" SET version = version \+ 1 WHERE user_id = \$1`
+
+	t.Run("Success", func(t *testing.T) {
+		mock.ExpectExec(expectedQuery).
+			WithArgs(userID).
+			WillReturnResult(sqlmock.NewResult(0, 1))
+
+		err := repo.IncrementUserVersion(context.Background(), userID)
+
+		assert.NoError(t, err)
+
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("UserNotFound", func(t *testing.T) {
+		mock.ExpectExec(expectedQuery).
+			WithArgs(userID).
+			WillReturnResult(sqlmock.NewResult(0, 0))
+
+		err := repo.IncrementUserVersion(context.Background(), userID)
+
+		assert.True(t, errors.Is(err, models.ErrUserNotFound))
+
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("DatabaseError", func(t *testing.T) {
+		mock.ExpectExec(expectedQuery).
+			WithArgs(userID).
+			WillReturnError(sql.ErrConnDone)
+
+		err := repo.IncrementUserVersion(context.Background(), userID)
+
+		assert.Error(t, err)
+
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
 }
 
 func TestCheckUserVersion(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	repo := repository.NewUserRepository()
-	user := models.UserDB{
-		ID:      uuid.New(),
-		Email:   "test@example.com",
-		Version: 1,
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
 	}
+	defer db.Close()
 
-	// Создаем пользователя
-	err := repo.CreateUser(user)
-	assert.NoError(t, err)
+	log := logrus.New()
 
-	// Проверяем версию пользователя
-	isValid := repo.CheckUserVersion(user.ID.String(), 1)
-	assert.True(t, isValid)
+	repo := repository.NewUserRepository(db, log)
 
-	// Проверяем неправильную версию
-	isValid = repo.CheckUserVersion(user.ID.String(), 2)
-	assert.False(t, isValid)
+	userID := "123"
+	version := 5
+	expectedQuery := `SELECT version FROM "user" WHERE user_id = \$1`
 
-	// Проверяем несуществующего пользователя
-	isValid = repo.CheckUserVersion("nonexistent", 1)
-	assert.False(t, isValid)
+	t.Run("VersionMatches", func(t *testing.T) {
+		rows := sqlmock.NewRows([]string{"version"}).AddRow(version)
+		mock.ExpectQuery(expectedQuery).
+			WithArgs(userID).
+			WillReturnRows(rows)
+
+		result := repo.CheckUserVersion(context.Background(), userID, version)
+
+		assert.True(t, result)
+
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("VersionDoesNotMatch", func(t *testing.T) {
+		rows := sqlmock.NewRows([]string{"version"}).AddRow(version + 1)
+		mock.ExpectQuery(expectedQuery).
+			WithArgs(userID).
+			WillReturnRows(rows)
+
+		result := repo.CheckUserVersion(context.Background(), userID, version)
+
+		assert.False(t, result)
+
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("UserNotFound", func(t *testing.T) {
+		mock.ExpectQuery(expectedQuery).
+			WithArgs(userID).
+			WillReturnError(sql.ErrNoRows)
+
+		result := repo.CheckUserVersion(context.Background(), userID, version)
+
+		assert.False(t, result)
+
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("DatabaseError", func(t *testing.T) {
+		mock.ExpectQuery(expectedQuery).
+			WithArgs(userID).
+			WillReturnError(sql.ErrConnDone)
+
+		result := repo.CheckUserVersion(context.Background(), userID, version)
+
+		assert.False(t, result)
+
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
 }

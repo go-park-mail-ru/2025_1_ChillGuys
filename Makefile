@@ -30,6 +30,7 @@ run-build:
 clean:
 	rm -rf bin/
 
+
 .PHONY: docker-build docker-push
 
 # Сборка Docker-образа
@@ -40,6 +41,9 @@ docker-build:
 docker-push: docker-build
 	docker login
 	docker push $(DOCKER_USERNAME)/$(IMAGE_NAME):$(TAG)
+
+migrations:
+	go run ./cmd/migrations/main.go
 
 .PHONY: swag
 

@@ -86,6 +86,12 @@
                             "type": ""
                         }
                     },
+                    "401": {
+                        "description": "Пользователь не найден",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
                     "500": {
                         "description": "Ошибка сервера",
                         "schema": {
@@ -298,7 +304,7 @@
                             "$ref": "#/definitions/utils.ErrorResponse"
                         }
                     },
-                    "404": {
+                    "401": {
                         "description": "Пользователь не найден",
                         "schema": {
                             "$ref": "#/definitions/utils.ErrorResponse"
