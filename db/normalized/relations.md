@@ -248,6 +248,10 @@
 `{id} → {user_id, city, street, house, apartment, zip_code, address_type, updated_at}`  
 **1NF**: ✓ **2NF**: ✓ **3NF**: ✓ **NFBC**: ✓
 
+### user_balance
+`{id} → {user_id, balance, updated_at}`  
+**1NF**: ✓ **2NF**: ✓ **3NF**: ✓ **NFBC**: ✓  
+
 ## Общее заключение
 
 Все отношения в схеме соответствуют требованиям:

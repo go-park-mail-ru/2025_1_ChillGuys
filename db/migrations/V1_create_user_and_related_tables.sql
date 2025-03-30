@@ -45,6 +45,14 @@ CREATE TABLE IF NOT EXISTS "user" (
     image_url     TEXT
 );
 
+CREATE TABLE user_balance (
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+    balance INT NOT NULL DEFAULT 0 CHECK (balance >= 0),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(user_id)
+);
+
 -- Создание таблицы ролей
 CREATE TABLE IF NOT EXISTS role (
     id   UUID PRIMARY KEY,

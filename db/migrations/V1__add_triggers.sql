@@ -55,3 +55,8 @@ CREATE TRIGGER update_address_updated_at
     BEFORE UPDATE ON address
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at();
+
+CREATE TRIGGER update_user_balance_updated_at
+    BEFORE UPDATE ON user_balance
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at();
