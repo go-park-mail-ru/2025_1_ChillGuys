@@ -31,7 +31,7 @@ func main() {
 		log.Fatalf("Can't connect to database: %v", err)
 	}
 	fmt.Println("Connected to database")
-	
+
 	// Настройка источника миграций
 	migrationsPath := "file://db/migrations"
 
