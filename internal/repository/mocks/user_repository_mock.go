@@ -14,86 +14,57 @@ import (
 	uuid "github.com/google/uuid"
 )
 
-// MockIAuthUsecase is a mock of IAuthUsecase interface.
-type MockIAuthUsecase struct {
+// MockITokenator is a mock of ITokenator interface.
+type MockITokenator struct {
 	ctrl     *gomock.Controller
-	recorder *MockIAuthUsecaseMockRecorder
+	recorder *MockITokenatorMockRecorder
 }
 
-// MockIAuthUsecaseMockRecorder is the mock recorder for MockIAuthUsecase.
-type MockIAuthUsecaseMockRecorder struct {
-	mock *MockIAuthUsecase
+// MockITokenatorMockRecorder is the mock recorder for MockITokenator.
+type MockITokenatorMockRecorder struct {
+	mock *MockITokenator
 }
 
-// NewMockIAuthUsecase creates a new mock instance.
-func NewMockIAuthUsecase(ctrl *gomock.Controller) *MockIAuthUsecase {
-	mock := &MockIAuthUsecase{ctrl: ctrl}
-	mock.recorder = &MockIAuthUsecaseMockRecorder{mock}
+// NewMockITokenator creates a new mock instance.
+func NewMockITokenator(ctrl *gomock.Controller) *MockITokenator {
+	mock := &MockITokenator{ctrl: ctrl}
+	mock.recorder = &MockITokenatorMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockIAuthUsecase) EXPECT() *MockIAuthUsecaseMockRecorder {
+func (m *MockITokenator) EXPECT() *MockITokenatorMockRecorder {
 	return m.recorder
 }
 
-// GetMe mocks base method.
-func (m *MockIAuthUsecase) GetMe(ctx context.Context) (*models.User, error) {
+// CreateJWT mocks base method.
+func (m *MockITokenator) CreateJWT(userID string, version int) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetMe", ctx)
-	ret0, _ := ret[0].(*models.User)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetMe indicates an expected call of GetMe.
-func (mr *MockIAuthUsecaseMockRecorder) GetMe(ctx interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMe", reflect.TypeOf((*MockIAuthUsecase)(nil).GetMe), ctx)
-}
-
-// Login mocks base method.
-func (m *MockIAuthUsecase) Login(ctx context.Context, user models.UserLoginRequestDTO) (string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Login", ctx, user)
+	ret := m.ctrl.Call(m, "CreateJWT", userID, version)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// Login indicates an expected call of Login.
-func (mr *MockIAuthUsecaseMockRecorder) Login(ctx, user interface{}) *gomock.Call {
+// CreateJWT indicates an expected call of CreateJWT.
+func (mr *MockITokenatorMockRecorder) CreateJWT(userID, version interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Login", reflect.TypeOf((*MockIAuthUsecase)(nil).Login), ctx, user)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateJWT", reflect.TypeOf((*MockITokenator)(nil).CreateJWT), userID, version)
 }
 
-// Logout mocks base method.
-func (m *MockIAuthUsecase) Logout(ctx context.Context) error {
+// ParseJWT mocks base method.
+func (m *MockITokenator) ParseJWT(tokenString string) (*jwt.JWTClaims, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Logout", ctx)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Logout indicates an expected call of Logout.
-func (mr *MockIAuthUsecaseMockRecorder) Logout(ctx interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Logout", reflect.TypeOf((*MockIAuthUsecase)(nil).Logout), ctx)
-}
-
-// Register mocks base method.
-func (m *MockIAuthUsecase) Register(ctx context.Context, user models.UserRegisterRequestDTO) (string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Register", ctx, user)
-	ret0, _ := ret[0].(string)
+	ret := m.ctrl.Call(m, "ParseJWT", tokenString)
+	ret0, _ := ret[0].(*jwt.JWTClaims)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// Register indicates an expected call of Register.
-func (mr *MockIAuthUsecaseMockRecorder) Register(ctx, user interface{}) *gomock.Call {
+// ParseJWT indicates an expected call of ParseJWT.
+func (mr *MockITokenatorMockRecorder) ParseJWT(tokenString interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Register", reflect.TypeOf((*MockIAuthUsecase)(nil).Register), ctx, user)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParseJWT", reflect.TypeOf((*MockITokenator)(nil).ParseJWT), tokenString)
 }
 
 // MockIUserRepository is a mock of IUserRepository interface.
@@ -219,57 +190,4 @@ func (m *MockIUserRepository) IncrementUserVersion(arg0 context.Context, arg1 st
 func (mr *MockIUserRepositoryMockRecorder) IncrementUserVersion(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IncrementUserVersion", reflect.TypeOf((*MockIUserRepository)(nil).IncrementUserVersion), arg0, arg1)
-}
-
-// MockITokenator is a mock of ITokenator interface.
-type MockITokenator struct {
-	ctrl     *gomock.Controller
-	recorder *MockITokenatorMockRecorder
-}
-
-// MockITokenatorMockRecorder is the mock recorder for MockITokenator.
-type MockITokenatorMockRecorder struct {
-	mock *MockITokenator
-}
-
-// NewMockITokenator creates a new mock instance.
-func NewMockITokenator(ctrl *gomock.Controller) *MockITokenator {
-	mock := &MockITokenator{ctrl: ctrl}
-	mock.recorder = &MockITokenatorMockRecorder{mock}
-	return mock
-}
-
-// EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockITokenator) EXPECT() *MockITokenatorMockRecorder {
-	return m.recorder
-}
-
-// CreateJWT mocks base method.
-func (m *MockITokenator) CreateJWT(userID string, version int) (string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateJWT", userID, version)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// CreateJWT indicates an expected call of CreateJWT.
-func (mr *MockITokenatorMockRecorder) CreateJWT(userID, version interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateJWT", reflect.TypeOf((*MockITokenator)(nil).CreateJWT), userID, version)
-}
-
-// ParseJWT mocks base method.
-func (m *MockITokenator) ParseJWT(tokenString string) (*jwt.JWTClaims, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ParseJWT", tokenString)
-	ret0, _ := ret[0].(*jwt.JWTClaims)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ParseJWT indicates an expected call of ParseJWT.
-func (mr *MockITokenatorMockRecorder) ParseJWT(tokenString interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParseJWT", reflect.TypeOf((*MockITokenator)(nil).ParseJWT), tokenString)
 }

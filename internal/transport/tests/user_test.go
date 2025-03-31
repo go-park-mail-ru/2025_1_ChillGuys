@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/repository/mocks"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/mocks"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport"
 )
 

@@ -6,22 +6,16 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
+
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 )
 
 const (
 	queryGetAllProducts = "SELECT id, seller_id, name, preview_image_url, description, status, price, quantity, updated_at, rating, reviews_count FROM product WHERE status = 'approved'"
 	queryGetProductByID = "SELECT id, seller_id, name, preview_image_url, description, status, price, quantity, updated_at, rating, reviews_count FROM product WHERE id = $1"
 )
-
-//go:generate mockgen -source=product.go -destination=./mocks/product_repository_mock.go -package=mocks IProductRepository
-type IProductRepository interface {
-	GetAllProducts(ctx context.Context) ([]*models.Product, error)
-	GetProductByID(ctx context.Context, id uuid.UUID) (*models.Product, error)
-	GetProductCoverPath(ctx context.Context, id uuid.UUID) ([]byte, error)
-}
 
 type ProductRepository struct {
 	DB *sql.DB
