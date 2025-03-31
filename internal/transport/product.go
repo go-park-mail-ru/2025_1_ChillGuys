@@ -5,8 +5,8 @@ import (
 	"errors"
 	"net/http"
 	"os"
-	"strconv"
 
+	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
 
@@ -14,21 +14,21 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils"
 )
 
-//go:generate mockgen -source=product.go -destination=../repository/mocks/product_repo_mock.go -package=mocks IProductRepo
-type IProductRepo interface {
+//go:generate mockgen -source=product.go -destination=../usecase/mocks/product_usecase_mock.go -package=mocks IProductUsecase
+type IProductUsecase interface {
 	GetAllProducts(ctx context.Context) ([]*models.Product, error)
-	GetProductByID(ctx context.Context, id int) (*models.Product, error)
-	GetProductCoverPath(ctx context.Context, id int) ([]byte, error)
+	GetProductByID(ctx context.Context, id uuid.UUID) (*models.Product, error)
+	GetProductCover(ctx context.Context, id uuid.UUID) ([]byte, error)
 }
 
 type ProductHandler struct {
-	Repo IProductRepo
+	u IProductUsecase
 	log  *logrus.Logger
 }
 
-func NewProductHandler(repo IProductRepo, log *logrus.Logger) *ProductHandler {
+func NewProductHandler(u IProductUsecase, log *logrus.Logger) *ProductHandler {
 	return &ProductHandler{
-		Repo: repo,
+		u: u,
 		log:  log,
 	}
 }
@@ -42,7 +42,7 @@ func NewProductHandler(repo IProductRepo, log *logrus.Logger) *ProductHandler {
 //	@Failure		500	{object}	utils.ErrorResponse	"Ошибка сервера"
 //	@Router			/products/ [get]
 func (h *ProductHandler) GetAllProducts(w http.ResponseWriter, r *http.Request) {
-	products, err := h.Repo.GetAllProducts(r.Context())
+	products, err := h.u.GetAllProducts(r.Context())
 	if err != nil {
 		h.log.Warnf("Failed to get all products: %v", err)
 		utils.SendErrorResponse(w, http.StatusInternalServerError, "Failed get all products")
@@ -67,14 +67,14 @@ func (h *ProductHandler) GetAllProducts(w http.ResponseWriter, r *http.Request) 
 func (h *ProductHandler) GetProductByID(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	idStr := vars["id"]
-	id, err := strconv.Atoi(idStr)
+	id, err := uuid.Parse(idStr)
 	if err != nil {
 		h.log.Warnf("Invalid ID: %v", err)
 		utils.SendErrorResponse(w, http.StatusBadRequest, "Invalid ID")
 		return
 	}
 
-	product, err := h.Repo.GetProductByID(r.Context(), id)
+	product, err := h.u.GetProductByID(r.Context(), id)
 	if err != nil {
 		h.log.Warnf("Product not found (ID: %d): %v", id, err)
 		utils.SendErrorResponse(w, http.StatusNotFound, "Product not found")
@@ -98,14 +98,14 @@ func (h *ProductHandler) GetProductByID(w http.ResponseWriter, r *http.Request) 
 func (h *ProductHandler) GetProductCover(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	idStr := vars["id"]
-	id, err := strconv.Atoi(idStr)
+	id, err := uuid.Parse(idStr)
 	if err != nil {
 		h.log.Warnf("Invalid ID: %v", err)
 		utils.SendErrorResponse(w, http.StatusBadRequest, "Invalid ID")
 		return
 	}
 
-	fileData, err := h.Repo.GetProductCoverPath(r.Context(), id)
+	fileData, err := h.u.GetProductCover(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			h.log.Errorf("Cover file not found (ID: %d): %v", id, err)

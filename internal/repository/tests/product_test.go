@@ -2,61 +2,114 @@ package tests
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"testing"
+	"time"
 
+	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 
-    "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/repository"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/repository"
 )
 
 func TestGetAllProducts(t *testing.T){
-	repo := repository.NewProductRepository()
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
 
-	products, err := repo.GetAllProducts(context.Background())
+    repo := repository.NewProductRepository(db, logrus.New())
 
-	assert.NoError(t, err)
+    t.Run("Success", func(t *testing.T){
+        rows := sqlmock.NewRows([]string{
+            "id", "seller_id", "name", "preview_image_url", "description", 
+			"status", "price", "quantity", "updated_at", "rating", "reviews_count",
+        }).
+        AddRow(
+                uuid.New(), uuid.New(), "Product 1", "image1.jpg", "Description 1",
+                "approved", 1000, 10, time.Now(), 4, 20,
+        ).
+        AddRow(
+                uuid.New(), uuid.New(), "Product 2", "image2.jpg", "Description 2",
+				"approved", 2000, 5, time.Now(), 4, 15,
+        )
 
-	expectedCount := 15 // Мы заполнили репозиторий 15 продуктами в populateMockData
-    assert.Equal(t, expectedCount, len(products), "Expected %d products, got %d", expectedCount, len(products))
+        mock.ExpectQuery("SELECT id, seller_id, name, preview_image_url, description, status, price, quantity, updated_at, rating, reviews_count FROM product").
+			WillReturnRows(rows)
+
+        products, err := repo.GetAllProducts(context.Background())
+
+        assert.NoError(t, err)
+		assert.Len(t, products, 2)
+		assert.Equal(t, "Product 1", products[0].Name)
+		assert.Equal(t, "Product 2", products[1].Name)
+    })
+
+    t.Run("Error", func(t *testing.T){
+        mock.ExpectQuery("SELECT id, seller_id, name, preview_image_url, description, status, price, quantity, updated_at, rating, reviews_count FROM product").
+			WillReturnError(errors.New("database error"))
+
+		products, err := repo.GetAllProducts(context.Background())
+
+		assert.Error(t, err)
+		assert.Nil(t, products)
+    })
 }
 
 func TestGetProductByID(t *testing.T) {
-    repo := repository.NewProductRepository()
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
 
-    t.Run("Existing product", func(t *testing.T) {
-        testID := 1
+	repo := repository.NewProductRepository(db, logrus.New())
+	testID := uuid.New()
 
-        product, err := repo.GetProductByID(context.Background(), testID)
+	t.Run("Success", func(t *testing.T) {
+		row := sqlmock.NewRows([]string{
+			"id", "seller_id", "name", "preview_image_url", "description", 
+			"status", "price", "quantity", "updated_at", "rating", "reviews_count",
+		}).
+			AddRow(
+				testID, uuid.New(), "Test Product", "test.jpg", "Test Description",
+				"approved", 1500, 8, time.Now(), 4, 10,
+			)
 
-        // Проверка, что ошибки нет
-        assert.NoError(t, err, "GetProductByID should not return an error")
+		mock.ExpectQuery("SELECT id, seller_id, name, preview_image_url, description, status, price, quantity, updated_at, rating, reviews_count FROM product WHERE id = \\$1").
+			WithArgs(testID).
+			WillReturnRows(row)
 
-        // Проверка, что продукт не nil
-        assert.NotNil(t, product, "Product should not be nil")
+		product, err := repo.GetProductByID(context.Background(), testID)
 
-        // Проверка ID продукта
-        assert.Equal(t, testID, product.ID, "Expected product ID %d, got %d", testID, product.ID)
+		assert.NoError(t, err)
+		assert.Equal(t, "Test Product", product.Name)
+		assert.Equal(t, testID, product.ID)
+	})
 
-        // Проверка данных продукта
-        assert.NotEmpty(t, product.Name, "Product name should not be empty")
-        assert.NotEmpty(t, product.Description, "Product description should not be empty")
-        assert.Greater(t, product.Price, uint(0), "Product price should be greater than 0")
-        assert.GreaterOrEqual(t, product.Rating, 0.0, "Product rating should be greater than or equal to 0")
-    })
+	t.Run("NotFound", func(t *testing.T) {
+		mock.ExpectQuery("SELECT id, seller_id, name, preview_image_url, description, status, price, quantity, updated_at, rating, reviews_count FROM product WHERE id = \\$1").
+			WithArgs(testID).
+			WillReturnError(sql.ErrNoRows)
 
-    // Тест для несуществующего продукта
-    t.Run("Non-existing product", func(t *testing.T) {
-        nonExistingID := 999
+		product, err := repo.GetProductByID(context.Background(), testID)
 
-        product, err := repo.GetProductByID(context.Background(), nonExistingID)
+		assert.Error(t, err)
+		assert.Nil(t, product)
+	})
 
-        // Проверка, что ошибка есть
-        assert.Error(t, err, "GetProductByID should return an error for non-existing product")
+	t.Run("Error", func(t *testing.T) {
+		mock.ExpectQuery("SELECT id, seller_id, name, preview_image_url, description, status, price, quantity, updated_at, rating, reviews_count FROM product WHERE id = \\$1").
+			WithArgs(testID).
+			WillReturnError(errors.New("database error"))
 
-        // Проверка, что продукт nil
-        assert.Nil(t, product, "Product should be nil for non-existing ID")
+		product, err := repo.GetProductByID(context.Background(), testID)
 
-        // Проверка текста ошибки
-        assert.Contains(t, err.Error(), "not found", "Error message should contain 'not found'")
-    })
+		assert.Error(t, err)
+		assert.Nil(t, product)
+	})
 }

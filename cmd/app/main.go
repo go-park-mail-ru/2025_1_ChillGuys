@@ -71,7 +71,8 @@ func main() {
 	userHandler := transport.NewAuthHandler(userUsecase, logger)
 
 	productRepo := repository.NewProductRepository(db, logger)
-	productHandler := transport.NewProductHandler(productRepo, logger)
+	productUsecase := usecase2.NewProductUsecase(logger, productRepo)
+	productHandler := transport.NewProductHandler(productUsecase, logger)
 
 	router := mux.NewRouter().PathPrefix("/api").Subrouter()
 	router.Use(func(next http.Handler) http.Handler {
