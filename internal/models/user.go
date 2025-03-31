@@ -14,6 +14,9 @@ type User struct {
 }
 
 func (u *UserDB) ConvertToUser() *User {
+	if u == nil {
+        return nil
+    }
 	return &User{
 		ID:          u.ID,
 		Email:       u.Email,

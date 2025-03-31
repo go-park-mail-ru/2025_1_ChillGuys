@@ -7,15 +7,21 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/repository"
 )
+
+//go:generate mockgen -source=product.go -destination=../repository/mocks/product_repository_mock.go -package=mocks IProductRepository
+type IProductRepository interface {
+	GetAllProducts(ctx context.Context) ([]*models.Product, error)
+	GetProductByID(ctx context.Context, id uuid.UUID) (*models.Product, error)
+	GetProductCoverPath(ctx context.Context, id uuid.UUID) ([]byte, error)
+}
 
 type ProductUsecase struct {
 	log   *logrus.Logger
-	repo  repository.IProductRepository
+	repo  IProductRepository
 }
 
-func NewProductUsecase(log *logrus.Logger, repo repository.IProductRepository) *ProductUsecase{
+func NewProductUsecase(log *logrus.Logger, repo IProductRepository) *ProductUsecase{
 	return &ProductUsecase{
 		log: log,
 		repo: repo,

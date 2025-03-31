@@ -1,8 +1,9 @@
 package middleware
 
 import (
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
 	"net/http"
+
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
 )
 
 func CORSMiddleware(next http.Handler, conf *config.ServerConfig) http.Handler {

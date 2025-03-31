@@ -2,21 +2,39 @@ package usecase
 
 import (
 	"context"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils"
+
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
+
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils"
 )
+
+type ITokenator interface {
+	CreateJWT(userID string, version int) (string, error)
+	ParseJWT(tokenString string) (*jwt.JWTClaims, error)
+}
+
+//go:generate mockgen -source=user.go -destination=../repository/mocks/user_repository_mock.go -package=mocks IUserRepository
+type IUserRepository interface {
+	CreateUser(context.Context, models.UserDB) error
+	GetUserByEmail(context.Context, string) (*models.UserDB, error)
+	GetUserByID(context.Context, uuid.UUID) (*models.UserDB, error)
+	IncrementUserVersion(context.Context, string) error
+	GetUserCurrentVersion(context.Context, string) (int, error)
+	CheckUserVersion(context.Context, string, int) bool
+	CheckUserExists(context.Context, string) (bool, error)
+}
 
 type AuthUsecase struct {
 	log   *logrus.Logger
-	token transport.ITokenator
-	repo  transport.IUserRepository
+	token ITokenator
+	repo  IUserRepository
 }
 
-func NewAuthUsecase(repo transport.IUserRepository, token transport.ITokenator, log *logrus.Logger) *AuthUsecase {
+func NewAuthUsecase(repo IUserRepository, token ITokenator, log *logrus.Logger) *AuthUsecase {
 	return &AuthUsecase{
 		repo:  repo,
 		token: token,

@@ -9,11 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils"
 )
 
@@ -25,27 +23,12 @@ var (
 	uppercaseRegexp = regexp.MustCompile(`[A-Z]`)
 )
 
-//go:generate mockgen -source=user.go -destination=../repository/mocks/user_repo_mock.go -package=mocks IUserRepository
+//go:generate mockgen -source=user.go -destination=../usecase/mocks/user_usecase_mock.go -package=mocks IUserUsecase
 type IAuthUsecase interface {
 	Register(ctx context.Context, user models.UserRegisterRequestDTO) (string, error)
 	Login(ctx context.Context, user models.UserLoginRequestDTO) (string, error)
 	Logout(ctx context.Context) error
 	GetMe(ctx context.Context) (*models.User, error)
-}
-
-type IUserRepository interface {
-	CreateUser(context.Context, models.UserDB) error
-	GetUserByEmail(context.Context, string) (*models.UserDB, error)
-	GetUserByID(context.Context, uuid.UUID) (*models.UserDB, error)
-	IncrementUserVersion(context.Context, string) error
-	GetUserCurrentVersion(context.Context, string) (int, error)
-	CheckUserVersion(context.Context, string, int) bool
-	CheckUserExists(context.Context, string) (bool, error)
-}
-
-type ITokenator interface {
-	CreateJWT(userID string, version int) (string, error)
-	ParseJWT(tokenString string) (*jwt.JWTClaims, error)
 }
 
 type AuthHandler struct {
