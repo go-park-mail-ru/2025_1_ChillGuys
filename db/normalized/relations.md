@@ -315,6 +315,7 @@ erDiagram
         int quantity
         datetime updated_at
         int rating
+        int reviews_count
     }
     
     favorite {

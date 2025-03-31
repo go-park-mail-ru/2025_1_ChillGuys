@@ -105,13 +105,14 @@ CREATE TABLE IF NOT EXISTS product (
     id                  UUID PRIMARY KEY,
     seller_id           UUID REFERENCES "user" (id) ON DELETE CASCADE,
     name                TEXT NOT NULL,
-    preview_image_url   TEXT,
+    preview_image_url   TEXT DEFAULT 'media/product-default',
     description         TEXT,
     status              product_status NOT NULL,
     price               INT CHECK (price >= 0) NOT NULL,
     quantity            INT CHECK (quantity >= 0) NOT NULL,
     updated_at          TIMESTAMPTZ DEFAULT now(),
-    rating              INT CHECK (rating BETWEEN 0 AND 5)
+    rating              INT CHECK (rating BETWEEN 0 AND 5) DEFAULT 0,
+    reviews_count       INT CHECK (reviews_count >= 0) DEFAULT 0
 );
 
 -- Избранные товары
