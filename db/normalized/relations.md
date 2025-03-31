@@ -314,6 +314,7 @@ erDiagram
         int price
         int quantity
         datetime updated_at
+        int rating
     }
     
     favorite {

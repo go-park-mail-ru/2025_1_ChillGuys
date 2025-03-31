@@ -45,6 +45,31 @@ CREATE TABLE IF NOT EXISTS "user" (
     image_url     TEXT
 );
 
+-- Таблица для ПВЗ
+CREATE TABLE IF NOT EXISTS pickup_point (
+    id          UUID PRIMARY KEY,
+    city        TEXT NOT NULL,
+    street      TEXT NOT NULL,
+    house       TEXT NOT NULL,
+    zip_code    TEXT NOT NULL,
+    created_at  TIMESTAMPTZ DEFAULT now(),
+    updated_at  TIMESTAMPTZ DEFAULT now()
+);
+
+-- Адреса
+CREATE TABLE IF NOT EXISTS address (
+    id                UUID PRIMARY KEY,
+    user_id           UUID REFERENCES "user" (id) ON DELETE CASCADE,
+    city              TEXT NOT NULL,
+    street            TEXT NOT NULL,
+    house             TEXT NOT NULL,
+    apartment         TEXT,
+    zip_code          TEXT NOT NULL,
+    address_type      address_type NOT NULL,
+    pickup_point_id   UUID REFERENCES pickup_point (id) ON DELETE SET NULL,
+    updated_at        TIMESTAMPTZ DEFAULT now()
+);
+
 CREATE TABLE user_balance (
     id UUID PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
@@ -85,7 +110,8 @@ CREATE TABLE IF NOT EXISTS product (
     status              product_status NOT NULL,
     price               INT CHECK (price >= 0) NOT NULL,
     quantity            INT CHECK (quantity >= 0) NOT NULL,
-    updated_at          TIMESTAMPTZ DEFAULT now()
+    updated_at          TIMESTAMPTZ DEFAULT now(),
+    rating              INT CHECK (rating BETWEEN 0 AND 5)
 );
 
 -- Избранные товары
@@ -113,20 +139,6 @@ CREATE TABLE IF NOT EXISTS discount (
     product_id       UUID REFERENCES product (id) ON DELETE CASCADE,
     discounted_price NUMERIC CHECK (discounted_price >= 0),
     updated_at       TIMESTAMPTZ DEFAULT now()
-);
-
--- Промокоды
-CREATE TABLE IF NOT EXISTS promo_code (
-    id                UUID PRIMARY KEY,
-    user_id           UUID REFERENCES "user" (id) ON DELETE CASCADE,
-    category_id       UUID REFERENCES category (id) ON DELETE CASCADE,
-    seller_id         UUID REFERENCES "user" (id) ON DELETE CASCADE,
-    code              TEXT UNIQUE NOT NULL,
-    relative_discount NUMERIC CHECK (relative_discount BETWEEN 0 AND 1),
-    absolute_discount NUMERIC CHECK (absolute_discount >= 0),
-    start_date        TIMESTAMPTZ NOT NULL,
-    end_date          TIMESTAMPTZ NOT NULL,
-    updated_at        TIMESTAMPTZ DEFAULT now()
 );
 
 -- Категории
@@ -189,17 +201,6 @@ CREATE TABLE IF NOT EXISTS review (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Таблица для ПВЗ
-CREATE TABLE IF NOT EXISTS pickup_point (
-    id          UUID PRIMARY KEY,
-    city        TEXT NOT NULL,
-    street      TEXT NOT NULL,
-    house       TEXT NOT NULL,
-    zip_code    TEXT NOT NULL,
-    created_at  TIMESTAMPTZ DEFAULT now(),
-    updated_at  TIMESTAMPTZ DEFAULT now()
-);
-
 -- Связующая таблица для ПВЗ и пользователей
 CREATE TABLE IF NOT EXISTS user_pickup_point (
     id              UUID PRIMARY KEY,
@@ -208,16 +209,16 @@ CREATE TABLE IF NOT EXISTS user_pickup_point (
     created_at      TIMESTAMPTZ DEFAULT now()
 );
 
--- Адреса
-CREATE TABLE IF NOT EXISTS address (
+-- Промокоды
+CREATE TABLE IF NOT EXISTS promo_code (
     id                UUID PRIMARY KEY,
     user_id           UUID REFERENCES "user" (id) ON DELETE CASCADE,
-    city              TEXT NOT NULL,
-    street            TEXT NOT NULL,
-    house             TEXT NOT NULL,
-    apartment         TEXT,
-    zip_code          TEXT NOT NULL,
-    address_type      address_type NOT NULL,
-    pickup_point_id   UUID REFERENCES pickup_point (id) ON DELETE SET NULL,
+    category_id       UUID REFERENCES category (id) ON DELETE CASCADE,
+    seller_id         UUID REFERENCES "user" (id) ON DELETE CASCADE,
+    code              TEXT UNIQUE NOT NULL,
+    relative_discount NUMERIC CHECK (relative_discount BETWEEN 0 AND 1),
+    absolute_discount NUMERIC CHECK (absolute_discount >= 0),
+    start_date        TIMESTAMPTZ NOT NULL,
+    end_date          TIMESTAMPTZ NOT NULL,
     updated_at        TIMESTAMPTZ DEFAULT now()
 );
