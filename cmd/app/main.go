@@ -70,7 +70,7 @@ func main() {
 	userUsecase := usecase2.NewAuthUsecase(userRepo, tokenator, logger)
 	userHandler := transport.NewAuthHandler(userUsecase, logger)
 
-	productRepo := repository.NewProductRepository()
+	productRepo := repository.NewProductRepository(db, logger)
 	productHandler := transport.NewProductHandler(productRepo, logger)
 
 	router := mux.NewRouter().PathPrefix("/api").Subrouter()
