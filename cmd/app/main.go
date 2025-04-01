@@ -60,7 +60,7 @@ func main() {
 	db.SetConnMaxLifetime(5 * time.Minute)
 
 	// Инициализация соединения с Minio
-	_, err = minio.NewMinioClient(conf.MinioConfig)
+	minioClient, err := minio.NewMinioClient(conf.MinioConfig)
 	if err != nil {
 		log.Fatalf("Minio initialization error: %v", err)
 	}
@@ -72,7 +72,7 @@ func main() {
 
 	productRepo := repository.NewProductRepository(db, logger)
 	productUsecase := usecase2.NewProductUsecase(logger, productRepo)
-	productHandler := transport.NewProductHandler(productUsecase, logger)
+	productHandler := transport.NewProductHandler(productUsecase, logger, minioClient)
 
 	router := mux.NewRouter().PathPrefix("/api").Subrouter()
 	router.Use(func(next http.Handler) http.Handler {
@@ -87,6 +87,8 @@ func main() {
 		productsRouter.HandleFunc("/", productHandler.GetAllProducts).Methods("GET")
 		productsRouter.HandleFunc("/{id}", productHandler.GetProductByID).Methods("GET")
 		productsRouter.HandleFunc("/{id}/cover", productHandler.GetProductCover).Methods("GET")
+		productsRouter.HandleFunc("/upload", productHandler.CreateOne).Methods("POST")
+		router.HandleFunc("/files/{objectID}", productHandler.GetOne).Methods("GET")
 	}
 
 	authRouter := router.PathPrefix("/auth").Subrouter()

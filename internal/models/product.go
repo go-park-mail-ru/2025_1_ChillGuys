@@ -43,7 +43,7 @@ func GetProductCoverPath(id uuid.UUID) string {
 
 	if _, err := os.Stat(coverPath); os.IsNotExist(err) {
 		// Если файл не существует, используем дефолтный URL
-		coverPath = filepath.Join(MediaFolder, DefaultPathCoverName, CoverName)
+		coverPath = "http://minio:9000/bazaar-bucket/84cf2b13-318b-48e3-88f6-30abf86d4a6b?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minioadmin%2F20250401%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20250401T193024Z&X-Amz-Expires=86400&X-Amz-SignedHeaders=host&X-Amz-Signature=c3a6ef3254747741cc27459b428f981d15e3cc4ec92914efae6f7d65dc911c85"
 	}
 
 	return coverPath

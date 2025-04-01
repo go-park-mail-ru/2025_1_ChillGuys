@@ -65,7 +65,7 @@ services:
       MINIO_USE_SSL: "${MINIO_USE_SSL}"
       MINIO_DEFAULT_BUCKETS: "${MINIO_BUCKET_NAME}"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      test: ["CMD", "curl", "-f", "http://minio:9000/minio/health/live"]
       interval: 5s
       timeout: 10s
       retries: 15
