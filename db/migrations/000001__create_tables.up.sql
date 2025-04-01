@@ -38,7 +38,7 @@ CREATE TYPE address_type AS ENUM (
 CREATE TABLE IF NOT EXISTS "user" (
     id            UUID PRIMARY KEY,
     email         TEXT UNIQUE NOT NULL,
-    phone_number  TEXT UNIQUE NOT NULL,
+    phone_number  TEXT,
     password_hash TEXT NOT NULL,
     name          TEXT NOT NULL,
     surname       TEXT,
@@ -73,7 +73,7 @@ CREATE TABLE IF NOT EXISTS address (
 CREATE TABLE user_balance (
     id UUID PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
-    balance INT NOT NULL DEFAULT 0 CHECK (balance >= 0),
+    balance NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (balance >= 0),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE(user_id)
 );
@@ -108,7 +108,7 @@ CREATE TABLE IF NOT EXISTS product (
     preview_image_url   TEXT DEFAULT 'media/product-default',
     description         TEXT,
     status              product_status NOT NULL,
-    price               INT CHECK (price >= 0) NOT NULL,
+    price               NUMERIC(12,2) CHECK (price >= 0) NOT NULL,
     quantity            INT CHECK (quantity >= 0) NOT NULL,
     updated_at          TIMESTAMPTZ DEFAULT now(),
     rating              INT CHECK (rating BETWEEN 0 AND 5) DEFAULT 0,
@@ -138,7 +138,7 @@ CREATE TABLE IF NOT EXISTS discount (
     start_date       TIMESTAMPTZ NOT NULL,
     end_date         TIMESTAMPTZ NOT NULL,
     product_id       UUID REFERENCES product (id) ON DELETE CASCADE,
-    discounted_price NUMERIC CHECK (discounted_price >= 0),
+    discounted_price NUMERIC(12,2) CHECK (discounted_price >= 0),
     updated_at       TIMESTAMPTZ DEFAULT now()
 );
 
@@ -161,8 +161,8 @@ CREATE TABLE IF NOT EXISTS "order" (
     id           UUID PRIMARY KEY,
     user_id      UUID REFERENCES "user" (id) ON DELETE CASCADE,
     status       order_status NOT NULL,
-    total_price INT CHECK (price >= 0) NOT NULL,
-    total_price_discount INT CHECK (price >= 0) NOT NULL
+    total_price NUMERIC(12,2) CHECK (total_price >= 0) NOT NULL,
+    total_price_discount NUMERIC(12,2) CHECK (total_price_discount >= 0) NOT NULL,
     address_id   UUID REFERENCES address (id) ON DELETE SET NULL,
     created_at   TIMESTAMPTZ DEFAULT now(),
     updated_at   TIMESTAMPTZ DEFAULT now()
@@ -174,15 +174,16 @@ CREATE TABLE IF NOT EXISTS order_item (
     order_id    UUID REFERENCES "order" (id) ON DELETE CASCADE,
     product_id  UUID REFERENCES product (id) ON DELETE CASCADE,
     quantity    INT CHECK (quantity > 0) NOT NULL,
-    updated_at  TIMESTAMPTZ DEFAULT now()
+    updated_at  TIMESTAMPTZ DEFAULT now(),
+    UNIQUE (order_id, product_id)
 );
 
 -- Корзина
 CREATE TABLE IF NOT EXISTS basket (
     id       UUID PRIMARY KEY,
-    user_id  UUID REFERENCES "user" (id) ON DELETE CASCADE UNIQUE
-    total_price INT CHECK (price >= 0) NOT NULL,
-    total_price_discount INT CHECK (price >= 0) NOT NULL
+    user_id  UUID REFERENCES "user" (id) ON DELETE CASCADE UNIQUE,
+    total_price NUMERIC(12,2) CHECK (total_price >= 0) NOT NULL,
+    total_price_discount NUMERIC(12,2) CHECK (total_price_discount >= 0) NOT NULL,
 );
 
 -- Элементы корзины
@@ -191,13 +192,14 @@ CREATE TABLE IF NOT EXISTS basket_item (
     basket_id  UUID REFERENCES basket (id) ON DELETE CASCADE,
     product_id UUID REFERENCES product (id) ON DELETE CASCADE,
     quantity   INT CHECK (quantity > 0) NOT NULL,
-    updated_at TIMESTAMPTZ DEFAULT now()
+    updated_at TIMESTAMPTZ DEFAULT now(),
+    UNIQUE (basket_id, product_id)
 );
 
 -- Отзывы
 CREATE TABLE IF NOT EXISTS review (
     id         UUID PRIMARY KEY,
-    user_id    UUID,
+    user_id    UUID REFERENCES "user" (id) ON DELETE CASCADE,
     product_id UUID REFERENCES product (id) ON DELETE CASCADE,
     rating     INT CHECK (rating BETWEEN 1 AND 5) NOT NULL,
     comment    TEXT,
@@ -221,7 +223,7 @@ CREATE TABLE IF NOT EXISTS promo_code (
     seller_id         UUID REFERENCES "user" (id) ON DELETE CASCADE,
     code              TEXT UNIQUE NOT NULL,
     relative_discount INT CHECK (relative_discount BETWEEN 0 AND 1),
-    absolute_discount INT CHECK (absolute_discount >= 0),
+    absolute_discount NUMERIC(12,2) CHECK (absolute_discount >= 0),
     start_date        TIMESTAMPTZ NOT NULL,
     end_date          TIMESTAMPTZ NOT NULL,
     updated_at        TIMESTAMPTZ DEFAULT now()
