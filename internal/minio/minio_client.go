@@ -14,13 +14,12 @@ import (
 
 // Client интерфейс для взаимодействия с Minio
 type Client interface {
-	InitMinio() error                                     // Метод для инициализации подключения к Minio
-	CreateOne(file FileDataType) (string, error)          // Метод для создания одного объекта в бакете Minio
-	CreateMany(map[string]FileDataType) ([]string, error) // Метод для создания нескольких объектов в бакете Minio
-	GetOne(objectID string) (string, error)               // Метод для получения одного объекта из бакета Minio
-	GetMany(objectIDs []string) ([]string, error)         // Метод для получения нескольких объектов из бакета Minio
-	DeleteOne(objectID string) error                      // Метод для удаления одного объекта из бакета Minio
-	DeleteMany(objectIDs []string) error                  // Метод для удаления нескольких объектов из бакета Minio
+    CreateOne(ctx context.Context, file FileDataType) (*UploadResponse, error)
+    CreateMany(ctx context.Context, files map[string]FileDataType) ([]string, error)
+    GetOne(ctx context.Context, objectID string) (string, error)
+    GetMany(ctx context.Context, objectIDs []string) ([]string, error)
+    DeleteOne(ctx context.Context, objectID string) error
+    DeleteMany(ctx context.Context, objectIDs []string) error
 }
 
 // minioClient реализация интерфейса MinioClient
@@ -30,12 +29,15 @@ type minioClient struct {
 }
 
 // NewMinioClient создает новый экземпляр Minio Client
-func NewMinioClient(config *config.MinioConfig) (*minioClient, error) {
+func NewMinioClient(config *config.MinioConfig) (Client, error) {
 	client, err := initMinio(config)
-	return &minioClient{
-		mc:     client,
-		config: config,
-	}, err
+    if err != nil {
+        return nil, err
+    }
+    return &minioClient{
+        mc:     client,
+        config: config,
+    }, nil
 }
 
 // InitMinio подключается к Minio и создает бакет, если не существует
@@ -73,7 +75,7 @@ func initMinio(config *config.MinioConfig) (*minio.Client, error) {
 // Метод принимает структуру fileData, которая содержит имя файла и его данные.
 // В случае успешной загрузки данных в бакет, метод возвращает nil, иначе возвращает ошибку.
 // Все операции выполняются в контексте задачи.
-func (m *minioClient) CreateOne(ctx context.Context, file FileDataType) (string, error) {
+func (m *minioClient) CreateOne(ctx context.Context, file FileDataType) (*UploadResponse, error) {
 	// Генерация уникального идентификатора для нового объекта.
 	objectID := uuid.New().String()
 
@@ -83,16 +85,19 @@ func (m *minioClient) CreateOne(ctx context.Context, file FileDataType) (string,
 	// Загрузка данных в бакет Minio с использованием контекста для возможности отмены операции.
 	_, err := m.mc.PutObject(ctx, m.config.BucketName, objectID, reader, int64(len(file.Data)), minio.PutObjectOptions{})
 	if err != nil {
-		return "", fmt.Errorf("failed to create object %s: %v", file.FileName, err)
+		return nil, fmt.Errorf("failed to create object %s: %v", file.FileName, err)
 	}
 
 	// Получение URL для загруженного объекта
 	url, err := m.mc.PresignedGetObject(ctx, m.config.BucketName, objectID, time.Second*24*60*60, nil)
 	if err != nil {
-		return "", fmt.Errorf("failed to generate URL for object %s: %v", file.FileName, err)
+		return nil, fmt.Errorf("failed to generate URL for object %s: %v", file.FileName, err)
 	}
 
-	return url.String(), nil
+	return &UploadResponse{
+        URL:      url.String(),
+        ObjectID: objectID,
+    }, nil
 }
 
 // CreateMany создает несколько объектов в хранилище MinIO из переданных данных.
@@ -267,4 +272,9 @@ type FileDataType struct {
 type OperationError struct {
 	ObjectID string
 	Error    error
+}
+
+type UploadResponse struct {
+    URL      string `json:"url"`
+    ObjectID string `json:"object_id"`
 }

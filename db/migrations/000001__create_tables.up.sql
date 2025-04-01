@@ -112,7 +112,7 @@ CREATE TABLE IF NOT EXISTS product (
     quantity            INT CHECK (quantity >= 0) NOT NULL,
     updated_at          TIMESTAMPTZ DEFAULT now(),
     rating              INT CHECK (rating BETWEEN 0 AND 5) DEFAULT 0,
-    reviews_count       INT CHECK (reviews_count >= 0) DEFAULT 0
+    reviews_count       INT CHECK (reviews_count >= 0) DEFAULT 0        --trigger
 );
 
 -- Избранные товары
@@ -161,7 +161,8 @@ CREATE TABLE IF NOT EXISTS "order" (
     id           UUID PRIMARY KEY,
     user_id      UUID REFERENCES "user" (id) ON DELETE CASCADE,
     status       order_status NOT NULL,
-    total_price  NUMERIC CHECK (total_price >= 0) NOT NULL,
+    total_price INT CHECK (price >= 0) NOT NULL,
+    total_price_discount INT CHECK (price >= 0) NOT NULL
     address_id   UUID REFERENCES address (id) ON DELETE SET NULL,
     created_at   TIMESTAMPTZ DEFAULT now(),
     updated_at   TIMESTAMPTZ DEFAULT now()
@@ -180,6 +181,8 @@ CREATE TABLE IF NOT EXISTS order_item (
 CREATE TABLE IF NOT EXISTS basket (
     id       UUID PRIMARY KEY,
     user_id  UUID REFERENCES "user" (id) ON DELETE CASCADE UNIQUE
+    total_price INT CHECK (price >= 0) NOT NULL,
+    total_price_discount INT CHECK (price >= 0) NOT NULL
 );
 
 -- Элементы корзины
@@ -217,8 +220,8 @@ CREATE TABLE IF NOT EXISTS promo_code (
     category_id       UUID REFERENCES category (id) ON DELETE CASCADE,
     seller_id         UUID REFERENCES "user" (id) ON DELETE CASCADE,
     code              TEXT UNIQUE NOT NULL,
-    relative_discount NUMERIC CHECK (relative_discount BETWEEN 0 AND 1),
-    absolute_discount NUMERIC CHECK (absolute_discount >= 0),
+    relative_discount INT CHECK (relative_discount BETWEEN 0 AND 1),
+    absolute_discount INT CHECK (absolute_discount >= 0),
     start_date        TIMESTAMPTZ NOT NULL,
     end_date          TIMESTAMPTZ NOT NULL,
     updated_at        TIMESTAMPTZ DEFAULT now()
