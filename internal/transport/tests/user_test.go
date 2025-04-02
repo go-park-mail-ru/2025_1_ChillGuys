@@ -5,6 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/minio"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -16,17 +18,28 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/mocks"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/mocks"
 )
 
 func TestAuthHandler_Login(t *testing.T) {
 	ctrl := gomock.NewController(t)
+	minioConfig := &config.MinioConfig{
+		Port:         "9000",
+		Endpoint:     "localhost",
+		BucketName:   "my-bucket",
+		RootUser:     "minioadmin",
+		RootPassword: "minioadminpassword",
+		UseSSL:       false,
+	}
+	minio, err := minio.NewMinioClient(minioConfig)
+	assert.Error(t, err)
+
 	defer ctrl.Finish()
 
 	logger := logrus.New()
 	mockAuthUsecase := mocks.NewMockIAuthUsecase(ctrl)
-	handler := transport.NewAuthHandler(mockAuthUsecase, logger)
+	handler := transport.NewAuthHandler(mockAuthUsecase, logger, minio)
 
 	tests := []struct {
 		name           string
@@ -121,7 +134,18 @@ func TestAuthHandler_Register(t *testing.T) {
 
 	logger := logrus.New()
 	mockAuthUsecase := mocks.NewMockIAuthUsecase(ctrl)
-	handler := transport.NewAuthHandler(mockAuthUsecase, logger)
+	minioConfig := &config.MinioConfig{
+		Port:         "9000",
+		Endpoint:     "localhost",
+		BucketName:   "my-bucket",
+		RootUser:     "minioadmin",
+		RootPassword: "minioadminpassword",
+		UseSSL:       false,
+	}
+	minio, err := minio.NewMinioClient(minioConfig)
+	assert.Error(t, err)
+
+	handler := transport.NewAuthHandler(mockAuthUsecase, logger, minio)
 
 	tests := []struct {
 		name           string
@@ -236,7 +260,17 @@ func TestAuthHandler_Logout(t *testing.T) {
 
 	logger := logrus.New()
 	mockAuthUsecase := mocks.NewMockIAuthUsecase(ctrl)
-	handler := transport.NewAuthHandler(mockAuthUsecase, logger)
+	minioConfig := &config.MinioConfig{
+		Port:         "9000",
+		Endpoint:     "localhost",
+		BucketName:   "my-bucket",
+		RootUser:     "minioadmin",
+		RootPassword: "minioadminpassword",
+		UseSSL:       false,
+	}
+	minio, err := minio.NewMinioClient(minioConfig)
+	assert.Error(t, err)
+	handler := transport.NewAuthHandler(mockAuthUsecase, logger, minio)
 
 	tests := []struct {
 		name           string
@@ -299,7 +333,17 @@ func TestUserHandler_GetMe(t *testing.T) {
 
 	logger := logrus.New()
 	mockAuthUsecase := mocks.NewMockIAuthUsecase(ctrl)
-	handler := transport.NewAuthHandler(mockAuthUsecase, logger)
+	minioConfig := &config.MinioConfig{
+		Port:         "9000",
+		Endpoint:     "localhost",
+		BucketName:   "my-bucket",
+		RootUser:     "minioadmin",
+		RootPassword: "minioadminpassword",
+		UseSSL:       false,
+	}
+	minio, err := minio.NewMinioClient(minioConfig)
+	assert.Error(t, err)
+	handler := transport.NewAuthHandler(mockAuthUsecase, logger, minio)
 
 	userID := uuid.New()
 
@@ -322,10 +366,11 @@ func TestUserHandler_GetMe(t *testing.T) {
 						Name:        "John",
 						Surname:     null.StringFrom("Doe"),
 						PhoneNumber: null.StringFrom("1234567890"),
+						ImageURL:    null.String{},
 					}, nil)
 			},
 			expectedStatus: http.StatusOK,
-			expectedBody:   `{"id":"` + userID.String() + `","email":"test@example.com","name":"John","surname":"Doe","phoneNumber":"1234567890"}`,
+			expectedBody:   `{"id":"` + userID.String() + `","email":"test@example.com","name":"John","surname":"Doe","phoneNumber":"1234567890","imageURL":null}`,
 		},
 		{
 			name:   "User Not Found",

@@ -191,3 +191,17 @@ func (mr *MockIUserRepositoryMockRecorder) IncrementUserVersion(arg0, arg1 inter
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IncrementUserVersion", reflect.TypeOf((*MockIUserRepository)(nil).IncrementUserVersion), arg0, arg1)
 }
+
+// UpdateUserImageURL mocks base method.
+func (m *MockIUserRepository) UpdateUserImageURL(arg0 context.Context, arg1 uuid.UUID, arg2 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateUserImageURL", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateUserImageURL indicates an expected call of UpdateUserImageURL.
+func (mr *MockIUserRepositoryMockRecorder) UpdateUserImageURL(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUserImageURL", reflect.TypeOf((*MockIUserRepository)(nil).UpdateUserImageURL), arg0, arg1, arg2)
+}

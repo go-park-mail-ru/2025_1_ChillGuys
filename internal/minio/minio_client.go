@@ -12,6 +12,7 @@ import (
 	"time"
 )
 
+//go:generate mockgen -source=minio_client.go -destination=../minio/mocks/minio_client_mock.go -package=mocks Client
 // Client интерфейс для взаимодействия с Minio
 type Client interface {
     CreateOne(ctx context.Context, file FileDataType) (*UploadResponse, error)
