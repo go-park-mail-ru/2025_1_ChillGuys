@@ -3,7 +3,7 @@ package tests_test
 import (
 	"context"
 	"errors"
-	product2 "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/product/mocks"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/mocks"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/product"
 	"testing"
 
@@ -19,7 +19,7 @@ func TestProductUsecase_GetAllProducts(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockRepo := product2.NewMockIProductRepository(ctrl)
+	mockRepo := mocks.NewMockIProductRepository(ctrl)
 	logger := logrus.New()
 	uc := product.NewProductUsecase(logger, mockRepo)
 
@@ -64,7 +64,7 @@ func TestProductUsecase_GetProductByID(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockRepo := product2.NewMockIProductRepository(ctrl)
+	mockRepo := mocks.NewMockIProductRepository(ctrl)
 	logger := logrus.New()
 	uc := product.NewProductUsecase(logger, mockRepo)
 
@@ -122,7 +122,7 @@ func TestProductUsecase_GetProductCover(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockRepo := product2.NewMockIProductRepository(ctrl)
+	mockRepo := mocks.NewMockIProductRepository(ctrl)
 	logger := logrus.New()
 	uc := product.NewProductUsecase(logger, mockRepo)
 

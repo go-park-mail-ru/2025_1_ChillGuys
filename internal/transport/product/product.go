@@ -16,7 +16,7 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 )
 
-//go:generate mockgen -source=product.go -destination=../../infrastructure/repository/postgres/product/mocks/product_repository_mock.go -package=mocks IProductRepository
+//go:generate mockgen -source=product.go -destination=../../usecase/mocks/product_usecase_mock.go -package=mocks IProductUsecase
 type IProductUsecase interface {
 	GetAllProducts(ctx context.Context) ([]*models.Product, error)
 	GetProductByID(ctx context.Context, id uuid.UUID) (*models.Product, error)

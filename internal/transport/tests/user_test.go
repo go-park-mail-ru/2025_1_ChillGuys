@@ -8,7 +8,7 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/minio"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/user"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/user/mocks"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/mocks"
 	"net/http"
 	"net/http/httptest"
 	"testing"

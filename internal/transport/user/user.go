@@ -26,7 +26,7 @@ var (
 	uppercaseRegexp = regexp.MustCompile(`[A-Z]`)
 )
 
-//go:generate mockgen -source=user.go -destination=../../usecase/user/mocks/user_usecase_mock.go -package=mocks
+//go:generate mockgen -source=user.go -destination=../../usecase/mocks/user_usecase_mock.go -package=mocks
 type IAuthUsecase interface {
 	Register(context.Context, models.UserRegisterRequestDTO) (string, error)
 	Login(context.Context, models.UserLoginRequestDTO) (string, error)
