@@ -1,9 +1,10 @@
-package repository
+package user
 
 import (
 	"context"
 	"database/sql"
 	"errors"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 
@@ -93,7 +94,7 @@ func (r *UserRepository) GetUserCurrentVersion(ctx context.Context, userID strin
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return 0, models.ErrUserNotFound
+			return 0, errs.ErrUserNotFound
 		}
 
 		return 0, err
@@ -117,7 +118,7 @@ func (r *UserRepository) GetUserByEmail(ctx context.Context, email string) (*mod
 		&user.UserVersion.UpdatedAt,
 	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, models.ErrUserNotFound
+			return nil, errs.ErrUserNotFound
 		}
 		return nil, err
 	}
@@ -145,7 +146,7 @@ func (r *UserRepository) GetUserByID(ctx context.Context, id uuid.UUID) (*models
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, models.ErrUserNotFound
+			return nil, errs.ErrUserNotFound
 		}
 
 		return nil, err
@@ -165,7 +166,7 @@ func (r *UserRepository) IncrementUserVersion(ctx context.Context, userID string
 		return err
 	}
 	if rowsAffected == 0 {
-		return models.ErrUserNotFound
+		return errs.ErrUserNotFound
 	}
 
 	return nil
@@ -203,7 +204,7 @@ func (r *UserRepository) UpdateUserImageURL(ctx context.Context, userID uuid.UUI
 	}
 
 	if rowsAffected == 0 {
-		return models.ErrUserNotFound
+		return errs.ErrUserNotFound
 	}
 
 	return nil

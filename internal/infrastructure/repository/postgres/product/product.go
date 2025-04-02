@@ -1,4 +1,4 @@
-package repository
+package product
 
 import (
 	"context"
@@ -18,20 +18,20 @@ const (
 )
 
 type ProductRepository struct {
-	DB *sql.DB
+	DB  *sql.DB
 	log *logrus.Logger
 }
 
-//создание репозитория с заполнением данными
+// создание репозитория с заполнением данными
 func NewProductRepository(db *sql.DB, log *logrus.Logger) *ProductRepository {
 	return &ProductRepository{
-		DB: db,
+		DB:  db,
 		log: log,
 	}
 }
 
-//получение основной информации всех товаров
-func (p *ProductRepository) GetAllProducts(ctx context.Context) ([]*models.Product, error) { 
+// получение основной информации всех товаров
+func (p *ProductRepository) GetAllProducts(ctx context.Context) ([]*models.Product, error) {
 	productsList := []*models.Product{}
 
 	rows, err := p.DB.QueryContext(ctx, queryGetAllProducts)
@@ -56,19 +56,19 @@ func (p *ProductRepository) GetAllProducts(ctx context.Context) ([]*models.Produ
 			&product.ReviewsCount,
 		)
 		if err != nil {
-            return nil, err
-        }
-        productsList = append(productsList, product)
+			return nil, err
+		}
+		productsList = append(productsList, product)
 	}
 
 	if err = rows.Err(); err != nil {
-        return nil, err
-    }
+		return nil, err
+	}
 
 	return productsList, nil
 }
 
-//получение товара по id
+// получение товара по id
 func (p *ProductRepository) GetProductByID(ctx context.Context, id uuid.UUID) (*models.Product, error) {
 	product := &models.Product{}
 	err := p.DB.QueryRowContext(ctx, queryGetProductByID, id).
@@ -85,15 +85,15 @@ func (p *ProductRepository) GetProductByID(ctx context.Context, id uuid.UUID) (*
 			&product.Rating,
 			&product.ReviewsCount,
 		)
-	
+
 	if err != nil {
 		return nil, err
 	}
-	
-    return product, nil
+
+	return product, nil
 }
 
-func (p *ProductRepository) GetProductCoverPath(ctx context.Context, id uuid.UUID) ([]byte, error){
+func (p *ProductRepository) GetProductCoverPath(ctx context.Context, id uuid.UUID) ([]byte, error) {
 	storagePath := models.GetProductCoverPath(id)
 
 	if _, err := os.Stat(storagePath); os.IsNotExist(err) {

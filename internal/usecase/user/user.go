@@ -1,8 +1,10 @@
-package usecase
+package user
 
 import (
 	"context"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/minio"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/minio"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/cookie"
 	"time"
 
 	"github.com/google/uuid"
@@ -11,7 +13,6 @@ import (
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils"
 )
 
 type ITokenator interface {
@@ -19,7 +20,7 @@ type ITokenator interface {
 	ParseJWT(tokenString string) (*jwt.JWTClaims, error)
 }
 
-//go:generate mockgen -source=user.go -destination=../repository/mocks/user_repository_mock.go -package=mocks IUserRepository
+//go:generate mockgen -source=user.go -destination=../../infrastructure/repository/postgres/mocks/user_repository_mock.go -package=mocks IProductRepository
 type IUserRepository interface {
 	CreateUser(context.Context, models.UserDB) error
 	GetUserByEmail(context.Context, string) (*models.UserDB, error)
@@ -58,7 +59,7 @@ func (u *AuthUsecase) Register(ctx context.Context, user models.UserRegisterRequ
 		return "", err
 	}
 	if existed {
-		return "", models.ErrUserAlreadyExists
+		return "", errs.ErrUserAlreadyExists
 	}
 
 	userID := uuid.New()
@@ -95,7 +96,7 @@ func (u *AuthUsecase) Login(ctx context.Context, user models.UserLoginRequestDTO
 	}
 
 	if err := bcrypt.CompareHashAndPassword(userDB.PasswordHash, []byte(user.Password)); err != nil {
-		return "", models.ErrInvalidCredentials
+		return "", errs.ErrInvalidCredentials
 	}
 
 	token, err := u.token.CreateJWT(userDB.ID.String(), userDB.UserVersion.Version)
@@ -107,9 +108,9 @@ func (u *AuthUsecase) Login(ctx context.Context, user models.UserLoginRequestDTO
 }
 
 func (u *AuthUsecase) Logout(ctx context.Context) error {
-	userID, isExist := ctx.Value(utils.UserIDKey).(string)
+	userID, isExist := ctx.Value(cookie.UserIDKey).(string)
 	if !isExist {
-		return models.ErrUserNotFound
+		return errs.ErrUserNotFound
 	}
 
 	if err := u.repo.IncrementUserVersion(ctx, userID); err != nil {
@@ -120,14 +121,14 @@ func (u *AuthUsecase) Logout(ctx context.Context) error {
 }
 
 func (u *AuthUsecase) GetMe(ctx context.Context) (*models.User, error) {
-	userIDStr, isExist := ctx.Value(utils.UserIDKey).(string)
+	userIDStr, isExist := ctx.Value(cookie.UserIDKey).(string)
 	if !isExist {
-		return nil, models.ErrUserNotFound
+		return nil, errs.ErrUserNotFound
 	}
 
 	userID, err := uuid.Parse(userIDStr)
 	if err != nil {
-		return nil, models.ErrInvalidUserID
+		return nil, errs.ErrInvalidUserID
 	}
 
 	userRepo, err := u.repo.GetUserByID(ctx, userID)
@@ -137,21 +138,21 @@ func (u *AuthUsecase) GetMe(ctx context.Context) (*models.User, error) {
 
 	user := userRepo.ConvertToUser()
 	if user == nil {
-		return nil, models.ErrUserNotFound
+		return nil, errs.ErrUserNotFound
 	}
 
 	return user, nil
 }
 
 func (u *AuthUsecase) UploadAvatar(ctx context.Context, fileData minio.FileDataType) (string, error) {
-	userIDStr, isExist := ctx.Value(utils.UserIDKey).(string)
+	userIDStr, isExist := ctx.Value(cookie.UserIDKey).(string)
 	if !isExist {
-		return "", models.ErrUserNotFound
+		return "", errs.ErrUserNotFound
 	}
 
 	userID, err := uuid.Parse(userIDStr)
 	if err != nil {
-		return "", models.ErrInvalidUserID
+		return "", errs.ErrInvalidUserID
 	}
 
 	avatar, err := u.minioService.CreateOne(ctx, fileData)
@@ -159,8 +160,7 @@ func (u *AuthUsecase) UploadAvatar(ctx context.Context, fileData minio.FileDataT
 		return "", err
 	}
 
-	err = u.repo.UpdateUserImageURL(ctx, userID, avatar.URL)
-	if err != nil {
+	if err = u.repo.UpdateUserImageURL(ctx, userID, avatar.URL); err != nil {
 		return "", err
 	}
 

@@ -1,10 +1,14 @@
-package usecase_test
+package tests_test
 
 import (
 	"context"
 	"errors"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/minio"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/minio"
+	user2 "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/mocks"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/cookie"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/user"
 	"testing"
 	"time"
 
@@ -16,17 +20,14 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/repository/mocks"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase"
 )
 
 func TestAuthUsecase_Register(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockRepo := mocks.NewMockIUserRepository(ctrl)
-	mockToken := mocks.NewMockITokenator(ctrl)
+	mockRepo := user2.NewMockIUserRepository(ctrl)
+	mockToken := user2.NewMockITokenator(ctrl)
 	logger := logrus.New()
 	minioConfig := &config.MinioConfig{
 		Port:         "9000",
@@ -39,7 +40,7 @@ func TestAuthUsecase_Register(t *testing.T) {
 	minio, err := minio.NewMinioClient(minioConfig)
 
 	assert.Error(t, err)
-	uc := usecase.NewAuthUsecase(mockRepo, mockToken, logger, minio)
+	uc := user.NewAuthUsecase(mockRepo, mockToken, logger, minio)
 
 	testUser := models.UserRegisterRequestDTO{
 		Email:    "test@example.com",
@@ -129,8 +130,8 @@ func TestAuthUsecase_Login(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockRepo := mocks.NewMockIUserRepository(ctrl)
-	mockToken := mocks.NewMockITokenator(ctrl)
+	mockRepo := user2.NewMockIUserRepository(ctrl)
+	mockToken := user2.NewMockITokenator(ctrl)
 	logger := logrus.New()
 	minioConfig := &config.MinioConfig{
 		Port:         "9000",               // Порт Minio
@@ -143,7 +144,7 @@ func TestAuthUsecase_Login(t *testing.T) {
 	minio, err := minio.NewMinioClient(minioConfig)
 
 	assert.Error(t, err)
-	uc := usecase.NewAuthUsecase(mockRepo, mockToken, logger, minio)
+	uc := user.NewAuthUsecase(mockRepo, mockToken, logger, minio)
 
 	testUserID := uuid.New()
 
@@ -214,7 +215,7 @@ func TestAuthUsecase_Login(t *testing.T) {
 		token, err := uc.Login(context.Background(), testUser)
 
 		assert.Error(t, err)
-		assert.Equal(t, models.ErrInvalidCredentials, err)
+		assert.Equal(t, errs.ErrInvalidCredentials, err)
 		assert.Empty(t, token)
 	})
 
@@ -241,8 +242,8 @@ func TestAuthUsecase_Logout(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockRepo := mocks.NewMockIUserRepository(ctrl)
-	mockToken := mocks.NewMockITokenator(ctrl)
+	mockRepo := user2.NewMockIUserRepository(ctrl)
+	mockToken := user2.NewMockITokenator(ctrl)
 	logger := logrus.New()
 	minioConfig := &config.MinioConfig{
 		Port:         "9000",               // Порт Minio
@@ -255,12 +256,12 @@ func TestAuthUsecase_Logout(t *testing.T) {
 	minio, err := minio.NewMinioClient(minioConfig)
 
 	assert.Error(t, err)
-	uc := usecase.NewAuthUsecase(mockRepo, mockToken, logger, minio)
+	uc := user.NewAuthUsecase(mockRepo, mockToken, logger, minio)
 
 	testUserID := uuid.New().String()
 
 	t.Run("Success", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), utils.UserIDKey, testUserID)
+		ctx := context.WithValue(context.Background(), cookie.UserIDKey, testUserID)
 
 		mockRepo.EXPECT().
 			IncrementUserVersion(gomock.Any(), testUserID).
@@ -276,11 +277,11 @@ func TestAuthUsecase_Logout(t *testing.T) {
 		err := uc.Logout(context.Background())
 
 		assert.Error(t, err)
-		assert.Equal(t, models.ErrUserNotFound, err)
+		assert.Equal(t, errs.ErrUserNotFound, err)
 	})
 
 	t.Run("IncrementVersionError", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), utils.UserIDKey, testUserID)
+		ctx := context.WithValue(context.Background(), cookie.UserIDKey, testUserID)
 
 		mockRepo.EXPECT().
 			IncrementUserVersion(gomock.Any(), testUserID).
@@ -297,8 +298,8 @@ func TestAuthUsecase_GetMe(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockRepo := mocks.NewMockIUserRepository(ctrl)
-	mockToken := mocks.NewMockITokenator(ctrl)
+	mockRepo := user2.NewMockIUserRepository(ctrl)
+	mockToken := user2.NewMockITokenator(ctrl)
 	logger := logrus.New()
 	minioConfig := &config.MinioConfig{
 		Port:         "9000",               // Порт Minio
@@ -311,7 +312,7 @@ func TestAuthUsecase_GetMe(t *testing.T) {
 	minio, err := minio.NewMinioClient(minioConfig)
 
 	assert.Error(t, err)
-	uc := usecase.NewAuthUsecase(mockRepo, mockToken, logger, minio)
+	uc := user.NewAuthUsecase(mockRepo, mockToken, logger, minio)
 
 	testUserID := uuid.New()
 	testUserDB := &models.UserDB{
@@ -322,7 +323,7 @@ func TestAuthUsecase_GetMe(t *testing.T) {
 	}
 
 	t.Run("Success", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), utils.UserIDKey, testUserID.String())
+		ctx := context.WithValue(context.Background(), cookie.UserIDKey, testUserID.String())
 
 		mockRepo.EXPECT().
 			GetUserByID(gomock.Any(), testUserID).
@@ -341,22 +342,22 @@ func TestAuthUsecase_GetMe(t *testing.T) {
 		user, err := uc.GetMe(context.Background())
 
 		assert.Error(t, err)
-		assert.Equal(t, models.ErrUserNotFound, err)
+		assert.Equal(t, errs.ErrUserNotFound, err)
 		assert.Nil(t, user)
 	})
 
 	t.Run("InvalidUserID", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), utils.UserIDKey, "invalid-uuid")
+		ctx := context.WithValue(context.Background(), cookie.UserIDKey, "invalid-uuid")
 
 		user, err := uc.GetMe(ctx)
 
 		assert.Error(t, err)
-		assert.Equal(t, models.ErrInvalidUserID, err)
+		assert.Equal(t, errs.ErrInvalidUserID, err)
 		assert.Nil(t, user)
 	})
 
 	t.Run("GetUserByIDError", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), utils.UserIDKey, testUserID.String())
+		ctx := context.WithValue(context.Background(), cookie.UserIDKey, testUserID.String())
 
 		mockRepo.EXPECT().
 			GetUserByID(gomock.Any(), testUserID).
@@ -370,7 +371,7 @@ func TestAuthUsecase_GetMe(t *testing.T) {
 	})
 
 	t.Run("UserNotFoundInDB", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), utils.UserIDKey, testUserID.String())
+		ctx := context.WithValue(context.Background(), cookie.UserIDKey, testUserID.String())
 
 		mockRepo.EXPECT().
 			GetUserByID(gomock.Any(), testUserID).
@@ -380,7 +381,7 @@ func TestAuthUsecase_GetMe(t *testing.T) {
 		user, err := uc.GetMe(ctx)
 
 		assert.Error(t, err)
-		assert.Equal(t, models.ErrUserNotFound, err)
+		assert.Equal(t, errs.ErrUserNotFound, err)
 		assert.Nil(t, user)
 	})
 }

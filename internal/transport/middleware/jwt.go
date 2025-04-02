@@ -3,32 +3,33 @@ package middleware
 import (
 	"context"
 	"fmt"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/cookie"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/response"
 	"net/http"
 	"time"
 
 	"github.com/sirupsen/logrus"
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils"
 )
 
 // JWTMiddleware проверяет наличие и валидность JWT-токена в куках
 func JWTMiddleware(tokenator *jwt.Tokenator, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		cookie, err := r.Cookie(string(utils.Token))
+		cookieValue, err := r.Cookie(string(cookie.Token))
 		if err != nil {
 			logrus.Warn("Missing or invalid token cookie")
-			utils.SendErrorResponse(w, http.StatusUnauthorized, "Unauthorized")
+			response.SendErrorResponse(w, http.StatusUnauthorized, "Unauthorized")
 			return
 		}
 
 		// Получаем токен из куки
-		tokenString := cookie.Value
+		tokenString := cookieValue.Value
 
 		// Если токен пустой, возвращаем ошибку
 		if tokenString == "" {
 			logrus.Warn("Empty token")
-			utils.SendErrorResponse(w, http.StatusUnauthorized, "Unauthorized")
+			response.SendErrorResponse(w, http.StatusUnauthorized, "Unauthorized")
 			return
 		}
 
@@ -36,25 +37,25 @@ func JWTMiddleware(tokenator *jwt.Tokenator, next http.Handler) http.Handler {
 		claims, err := tokenator.ParseJWT(tokenString)
 		if err != nil {
 			logrus.Errorf("Invalid token: %v", err)
-			utils.SendErrorResponse(w, http.StatusUnauthorized, fmt.Sprintf("Invalid token: %v", err))
+			response.SendErrorResponse(w, http.StatusUnauthorized, fmt.Sprintf("Invalid token: %v", err))
 			return
 		}
 
 		// Проверяем, не истёк ли токен
 		if claims.ExpiresAt < time.Now().Unix() {
 			logrus.Warn("Token expired")
-			utils.SendErrorResponse(w, http.StatusUnauthorized, "Token expired")
+			response.SendErrorResponse(w, http.StatusUnauthorized, "Token expired")
 			return
 		}
 
 		ctx := r.Context()
 
 		if !tokenator.VC.CheckUserVersion(ctx, claims.UserID, claims.Version) {
-			utils.SendErrorResponse(w, http.StatusUnauthorized, "Token is invalid or expired")
+			response.SendErrorResponse(w, http.StatusUnauthorized, "Token is invalid or expired")
 			return
 		}
 
-		ctx = context.WithValue(ctx, utils.UserIDKey, claims.UserID)
+		ctx = context.WithValue(ctx, cookie.UserIDKey, claims.UserID)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

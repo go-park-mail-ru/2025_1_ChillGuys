@@ -6,7 +6,9 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/minio"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/minio"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/user"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/mocks"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -18,8 +20,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/mocks"
 )
 
 func TestAuthHandler_Login(t *testing.T) {
@@ -39,7 +39,7 @@ func TestAuthHandler_Login(t *testing.T) {
 
 	logger := logrus.New()
 	mockAuthUsecase := mocks.NewMockIAuthUsecase(ctrl)
-	handler := transport.NewAuthHandler(mockAuthUsecase, logger, minio)
+	handler := user.NewAuthHandler(mockAuthUsecase, logger, minio)
 
 	tests := []struct {
 		name           string
@@ -70,7 +70,7 @@ func TestAuthHandler_Login(t *testing.T) {
 			},
 			mockBehavior:   func() {},
 			expectedStatus: http.StatusBadRequest,
-			expectedBody:   null.StringFrom(`{"message":"Invalid email"}`),
+			expectedBody:   null.StringFrom(`{"message":"invalid email"}`),
 		},
 		{
 			name: "Invalid Password",
@@ -80,7 +80,7 @@ func TestAuthHandler_Login(t *testing.T) {
 			},
 			mockBehavior:   func() {},
 			expectedStatus: http.StatusBadRequest,
-			expectedBody:   null.StringFrom(`{"message":"Password must be at least 8 characters"}`),
+			expectedBody:   null.StringFrom(`{"message":"password must be at least 8 characters"}`),
 		},
 		{
 			name: "User Not Found",
@@ -145,7 +145,7 @@ func TestAuthHandler_Register(t *testing.T) {
 	minio, err := minio.NewMinioClient(minioConfig)
 	assert.Error(t, err)
 
-	handler := transport.NewAuthHandler(mockAuthUsecase, logger, minio)
+	handler := user.NewAuthHandler(mockAuthUsecase, logger, minio)
 
 	tests := []struct {
 		name           string
@@ -180,7 +180,7 @@ func TestAuthHandler_Register(t *testing.T) {
 			},
 			mockBehavior:   func() {},
 			expectedStatus: http.StatusBadRequest,
-			expectedBody:   null.StringFrom(`{"message":"Invalid email"}`),
+			expectedBody:   null.StringFrom(`{"message":"invalid email"}`),
 		},
 		{
 			name: "User Already Exists",
@@ -208,7 +208,7 @@ func TestAuthHandler_Register(t *testing.T) {
 			},
 			mockBehavior:   func() {},
 			expectedStatus: http.StatusBadRequest,
-			expectedBody:   null.StringFrom(`{"message":"Name must be between 2 and 24 characters long"}`),
+			expectedBody:   null.StringFrom(`{"message":"name must be between 2 and 24 characters long"}`),
 		},
 		{
 			name: "Short Password",
@@ -220,7 +220,7 @@ func TestAuthHandler_Register(t *testing.T) {
 			},
 			mockBehavior:   func() {},
 			expectedStatus: http.StatusBadRequest,
-			expectedBody:   null.StringFrom(`{"message":"Password must be at least 8 characters"}`),
+			expectedBody:   null.StringFrom(`{"message":"password must be at least 8 characters"}`),
 		},
 	}
 
@@ -270,7 +270,7 @@ func TestAuthHandler_Logout(t *testing.T) {
 	}
 	minio, err := minio.NewMinioClient(minioConfig)
 	assert.Error(t, err)
-	handler := transport.NewAuthHandler(mockAuthUsecase, logger, minio)
+	handler := user.NewAuthHandler(mockAuthUsecase, logger, minio)
 
 	tests := []struct {
 		name           string
@@ -343,7 +343,7 @@ func TestUserHandler_GetMe(t *testing.T) {
 	}
 	minio, err := minio.NewMinioClient(minioConfig)
 	assert.Error(t, err)
-	handler := transport.NewAuthHandler(mockAuthUsecase, logger, minio)
+	handler := user.NewAuthHandler(mockAuthUsecase, logger, minio)
 
 	userID := uuid.New()
 

@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	user2 "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/user"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
 	"testing"
 	"time"
 
@@ -14,7 +16,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/repository"
 )
 
 func TestCreateUser(t *testing.T) {
@@ -24,7 +25,7 @@ func TestCreateUser(t *testing.T) {
 	}
 	defer db.Close()
 
-	repo := repository.NewUserRepository(db, logrus.New())
+	repo := user2.NewUserRepository(db, logrus.New())
 
 	userID := uuid.New()
 	userVersionID := uuid.New()
@@ -53,7 +54,7 @@ func TestCreateUser(t *testing.T) {
 		user.PasswordHash,
 		user.ImageURL,
 	).WillReturnResult(sqlmock.NewResult(1, 1))
-	
+
 	mock.ExpectExec("INSERT INTO \"user_version\"").WithArgs(
 		user.UserVersion.ID,
 		user.UserVersion.UserID,
@@ -77,7 +78,7 @@ func TestGetUserByEmail(t *testing.T) {
 	}
 	defer db.Close()
 
-	repo := repository.NewUserRepository(db, logrus.New())
+	repo := user2.NewUserRepository(db, logrus.New())
 
 	email := "test@example.com"
 	userID := uuid.New()
@@ -109,7 +110,7 @@ func TestGetUserByID(t *testing.T) {
 	}
 	defer db.Close()
 
-	repo := repository.NewUserRepository(db, logrus.New())
+	repo := user2.NewUserRepository(db, logrus.New())
 
 	userID := uuid.New()
 	userVersionID := uuid.New()
@@ -155,7 +156,7 @@ func TestCheckUserExists(t *testing.T) {
 	}
 	defer db.Close()
 
-	repo := repository.NewUserRepository(db, logrus.New())
+	repo := user2.NewUserRepository(db, logrus.New())
 
 	email := "test@example.com"
 
@@ -178,7 +179,7 @@ func TestIncrementUserVersion(t *testing.T) {
 	}
 	defer db.Close()
 
-	repo := repository.NewUserRepository(db, logrus.New())
+	repo := user2.NewUserRepository(db, logrus.New())
 
 	userID := "123"
 	expectedQuery := `UPDATE "user_version" SET version = version \+ 1 WHERE user_id = \$1`
@@ -199,7 +200,7 @@ func TestIncrementUserVersion(t *testing.T) {
 			WillReturnResult(sqlmock.NewResult(0, 0))
 
 		err := repo.IncrementUserVersion(context.Background(), userID)
-		assert.True(t, errors.Is(err, models.ErrUserNotFound))
+		assert.True(t, errors.Is(err, errs.ErrUserNotFound))
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 
@@ -221,7 +222,7 @@ func TestCheckUserVersion(t *testing.T) {
 	}
 	defer db.Close()
 
-	repo := repository.NewUserRepository(db, logrus.New())
+	repo := user2.NewUserRepository(db, logrus.New())
 
 	userID := "123"
 	version := 5

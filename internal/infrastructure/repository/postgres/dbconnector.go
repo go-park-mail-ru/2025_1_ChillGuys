@@ -1,8 +1,8 @@
-package utils
+package postgres
 
 import (
 	"fmt"
-	
+
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
 )
 

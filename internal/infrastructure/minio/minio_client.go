@@ -13,32 +13,29 @@ import (
 )
 
 //go:generate mockgen -source=minio_client.go -destination=../minio/mocks/minio_client_mock.go -package=mocks Client
-// Client интерфейс для взаимодействия с Minio
 type Client interface {
-    CreateOne(ctx context.Context, file FileDataType) (*UploadResponse, error)
-    CreateMany(ctx context.Context, files map[string]FileDataType) ([]string, error)
-    GetOne(ctx context.Context, objectID string) (string, error)
-    GetMany(ctx context.Context, objectIDs []string) ([]string, error)
-    DeleteOne(ctx context.Context, objectID string) error
-    DeleteMany(ctx context.Context, objectIDs []string) error
+	CreateOne(context.Context, FileDataType) (*UploadResponse, error)
+	CreateMany(context.Context, map[string]FileDataType) ([]string, error)
+	GetOne(context.Context, string) (string, error)
+	GetMany(context.Context, []string) ([]string, error)
+	DeleteOne(context.Context, string) error
+	DeleteMany(context.Context, []string) error
 }
 
-// minioClient реализация интерфейса MinioClient
 type minioClient struct {
 	mc     *minio.Client
 	config *config.MinioConfig
 }
 
-// NewMinioClient создает новый экземпляр Minio Client
 func NewMinioClient(config *config.MinioConfig) (Client, error) {
 	client, err := initMinio(config)
-    if err != nil {
-        return nil, err
-    }
-    return &minioClient{
-        mc:     client,
-        config: config,
-    }, nil
+	if err != nil {
+		return nil, err
+	}
+	return &minioClient{
+		mc:     client,
+		config: config,
+	}, nil
 }
 
 // InitMinio подключается к Minio и создает бакет, если не существует
@@ -70,8 +67,6 @@ func initMinio(config *config.MinioConfig) (*minio.Client, error) {
 	return client, nil
 }
 
-// Контекст используется для передачи сигналов об отмене операции загрузки в случае необходимости.
-
 // CreateOne создает один объект в бакете Minio.
 // Метод принимает структуру fileData, которая содержит имя файла и его данные.
 // В случае успешной загрузки данных в бакет, метод возвращает nil, иначе возвращает ошибку.
@@ -96,45 +91,45 @@ func (m *minioClient) CreateOne(ctx context.Context, file FileDataType) (*Upload
 	}
 
 	return &UploadResponse{
-        URL:      url.String(),
-        ObjectID: objectID,
-    }, nil
+		URL:      url.String(),
+		ObjectID: objectID,
+	}, nil
 }
 
 // CreateMany создает несколько объектов в хранилище MinIO из переданных данных.
 // Если происходит ошибка при создании объекта, метод возвращает ошибку,
 // указывающую на неудачные объекты.
 func (m *minioClient) CreateMany(ctx context.Context, data map[string]FileDataType) ([]string, error) {
-	urls := make([]string, 0, len(data)) // Массив для хранения URL-адресов
+	urls := make([]string, 0, len(data))
 
-	ctx, cancel := context.WithCancel(ctx) // Создание контекста с возможностью отмены операции.
-	defer cancel()                         // Отложенный вызов функции отмены контекста при завершении функции CreateMany.
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 
 	// Создание канала для передачи URL-адресов с размером, равным количеству переданных данных.
 	urlCh := make(chan string, len(data))
 
-	var wg sync.WaitGroup // WaitGroup для ожидания завершения всех горутин.
+	var wg sync.WaitGroup
 
 	// Запуск горутин для создания каждого объекта.
 	for objectID, file := range data {
-		wg.Add(1) // Увеличение счетчика WaitGroup перед запуском каждой горутины.
+		wg.Add(1)
 		go func(objectID string, file FileDataType) {
 			defer wg.Done()                                                                                                                           // Уменьшение счетчика WaitGroup после завершения горутины.
 			_, err := m.mc.PutObject(ctx, m.config.BucketName, objectID, bytes.NewReader(file.Data), int64(len(file.Data)), minio.PutObjectOptions{}) // Создание объекта в бакете MinIO.
 			if err != nil {
-				cancel() // Отмена операции при возникновении ошибки.
+				cancel()
 				return
 			}
 
 			// Получение URL для загруженного объекта
 			url, err := m.mc.PresignedGetObject(ctx, m.config.BucketName, objectID, time.Second*24*60*60, nil)
 			if err != nil {
-				cancel() // Отмена операции при возникновении ошибки.
+				cancel()
 				return
 			}
 
-			urlCh <- url.String() // Отправка URL-адреса в канал с URL-адресами.
-		}(objectID, file) // Передача данных объекта в анонимную горутину.
+			urlCh <- url.String()
+		}(objectID, file)
 	}
 
 	// Ожидание завершения всех горутин и закрытие канала с URL-адресами.
@@ -143,9 +138,8 @@ func (m *minioClient) CreateMany(ctx context.Context, data map[string]FileDataTy
 		close(urlCh) // Закрытие канала с URL-адресами после завершения всех горутин.
 	}()
 
-	// Сбор URL-адресов из канала.
 	for url := range urlCh {
-		urls = append(urls, url) // Добавление URL-адреса в массив URL-адресов.
+		urls = append(urls, url)
 	}
 
 	return urls, nil
@@ -166,8 +160,8 @@ func (m *minioClient) GetOne(ctx context.Context, objectID string) (string, erro
 // GetMany получает несколько объектов из бакета Minio по их идентификаторам.
 func (m *minioClient) GetMany(ctx context.Context, objectIDs []string) ([]string, error) {
 	// Создание каналов для передачи URL-адресов объектов и ошибок
-	urlCh := make(chan string, len(objectIDs))         // Канал для URL-адресов объектов
-	errCh := make(chan OperationError, len(objectIDs)) // Канал для ошибок
+	urlCh := make(chan string, len(objectIDs))
+	errCh := make(chan OperationError, len(objectIDs))
 
 	var wg sync.WaitGroup                // WaitGroup для ожидания завершения всех горутин
 	_, cancel := context.WithCancel(ctx) // Создание контекста с возможностью отмены операции
@@ -175,17 +169,17 @@ func (m *minioClient) GetMany(ctx context.Context, objectIDs []string) ([]string
 
 	// Запуск горутин для получения URL-адресов каждого объекта.
 	for _, objectID := range objectIDs {
-		wg.Add(1) // Увеличение счетчика WaitGroup перед запуском каждой горутины
+		wg.Add(1)
 		go func(objectID string) {
-			defer wg.Done()                     // Уменьшение счетчика WaitGroup после завершения горутины
-			url, err := m.GetOne(ctx, objectID) // Получение URL-адреса объекта по его идентификатору с помощью метода GetOne
+			defer wg.Done()
+			url, err := m.GetOne(ctx, objectID)
 			if err != nil {
-				errCh <- OperationError{ObjectID: objectID, Error: fmt.Errorf("failed to retrieve object %s: %v", objectID, err)} // Отправка ошибки в канал с ошибками
-				cancel()                                                                                                          // Отмена операции при возникновении ошибки
+				errCh <- OperationError{ObjectID: objectID, Error: fmt.Errorf("failed to retrieve object %s: %v", objectID, err)}
+				cancel()
 				return
 			}
-			urlCh <- url // Отправка URL-адреса объекта в канал с URL-адресами
-		}(objectID) // Передача идентификатора объекта в анонимную горутину
+			urlCh <- url
+		}(objectID)
 	}
 
 	// Закрытие каналов после завершения всех горутин.
@@ -196,70 +190,66 @@ func (m *minioClient) GetMany(ctx context.Context, objectIDs []string) ([]string
 	}()
 
 	// Сбор URL-адресов объектов и ошибок из каналов.
-	var urls []string // Массив для хранения URL-адресов
-	var errs []error  // Массив для хранения ошибок
+	var urls []string
+	var errs []error
 	for url := range urlCh {
-		urls = append(urls, url) // Добавление URL-адреса в массив URL-адресов
+		urls = append(urls, url)
 	}
 	for opErr := range errCh {
-		errs = append(errs, opErr.Error) // Добавление ошибки в массив ошибок
+		errs = append(errs, opErr.Error)
 	}
 
-	// Проверка наличия ошибок.
 	if len(errs) > 0 {
-		return nil, fmt.Errorf("errors occurred while retrieving objects: %v", errs) // Возврат ошибки, если возникли ошибки при получении объектов
+		return nil, fmt.Errorf("errors occurred while retrieving objects: %v", errs)
 	}
 
-	return urls, nil // Возврат массива URL-адресов, если ошибок не возникло
+	return urls, nil
 }
 
 // DeleteOne удаляет один объект из бакета Minio по его идентификатору.
 func (m *minioClient) DeleteOne(ctx context.Context, objectID string) error {
 	// Удаление объекта из бакета Minio.
-	err := m.mc.RemoveObject(ctx, m.config.BucketName, objectID, minio.RemoveObjectOptions{})
-	if err != nil {
-		return err // Возвращаем ошибку, если не удалось удалить объект.
+	if err := m.mc.RemoveObject(ctx, m.config.BucketName, objectID, minio.RemoveObjectOptions{}); err != nil {
+		return err
 	}
-	return nil // Возвращаем nil, если объект успешно удалён.
+	return nil
 }
 
 // DeleteMany удаляет несколько объектов из бакета Minio по их идентификаторам с использованием горутин.
 func (m *minioClient) DeleteMany(ctx context.Context, objectIDs []string) error {
 	// Создание канала для передачи ошибок с размером, равным количеству объектов для удаления
-	errCh := make(chan OperationError, len(objectIDs)) // Канал для ошибок
-	var wg sync.WaitGroup                              // WaitGroup для ожидания завершения всех горутин
+	errCh := make(chan OperationError, len(objectIDs))
+	var wg sync.WaitGroup
 
-	ctx, cancel := context.WithCancel(ctx) // Создание контекста с возможностью отмены операции
-	defer cancel()                         // Отложенный вызов функции отмены контекста при завершении функции DeleteMany
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 
 	// Запуск горутин для удаления каждого объекта.
 	for _, objectID := range objectIDs {
-		wg.Add(1) // Увеличение счетчика WaitGroup перед запуском каждой горутины
+		wg.Add(1)
 		go func(id string) {
-			defer wg.Done()                                                                     // Уменьшение счетчика WaitGroup после завершения горутины
-			err := m.mc.RemoveObject(ctx, m.config.BucketName, id, minio.RemoveObjectOptions{}) // Удаление объекта с использованием Minio клиента
-			if err != nil {
-				errCh <- OperationError{ObjectID: id, Error: fmt.Errorf("failed to delete object %s: %v", id, err)} // Отправка ошибки в канал с ошибками
-				cancel()                                                                                            // Отмена операции при возникновении ошибки
+			defer wg.Done()
+			if err := m.mc.RemoveObject(ctx, m.config.BucketName, id, minio.RemoveObjectOptions{}); err != nil {
+				errCh <- OperationError{ObjectID: id, Error: fmt.Errorf("failed to delete object %s: %v", id, err)}
+				cancel()
 			}
-		}(objectID) // Передача идентификатора объекта в анонимную горутину
+		}(objectID)
 	}
 
 	// Ожидание завершения всех горутин и закрытие канала с ошибками.
 	go func() {
-		wg.Wait()    // Блокировка до тех пор, пока счетчик WaitGroup не станет равным 0
-		close(errCh) // Закрытие канала с ошибками после завершения всех горутин
+		wg.Wait()
+		close(errCh)
 	}()
 
 	// Сбор ошибок из канала.
-	var errs []error // Массив для хранения ошибок
+	var errs []error
 	for opErr := range errCh {
-		errs = append(errs, opErr.Error) // Добавление ошибки в массив ошибок
+		errs = append(errs, opErr.Error)
 	}
 
-	// Проверка наличия ошибок.
 	if len(errs) > 0 {
-		return fmt.Errorf("errors occurred while deleting objects: %v", errs) // Возврат ошибки, если возникли ошибки при удалении объектов
+		return fmt.Errorf("errors occurred while deleting objects: %v", errs)
 	}
 
 	return nil // Возврат nil, если ошибок не возникло
@@ -276,6 +266,6 @@ type OperationError struct {
 }
 
 type UploadResponse struct {
-    URL      string `json:"url"`
-    ObjectID string `json:"object_id"`
+	URL      string `json:"url"`
+	ObjectID string `json:"object_id"`
 }

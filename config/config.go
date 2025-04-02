@@ -16,8 +16,7 @@ type Config struct {
 }
 
 func NewConfig() (*Config, error) {
-	err := godotenv.Load()
-	if err != nil {
+	if err := godotenv.Load(); err != nil {
 		return nil, fmt.Errorf("error loading .env file. %v", err)
 	}
 
@@ -49,18 +48,16 @@ func NewConfig() (*Config, error) {
 	}, nil
 }
 
-// MinioConfig структура, обозначающая структуру .env файла
 type MinioConfig struct {
-	Port         string // Порт, на котором запускается сервер
-	Endpoint     string // Адрес конечной точки Minio
-	BucketName   string // Название конкретного бакета в Minio
-	RootUser     string // Имя пользователя для доступа к Minio
-	RootPassword string // Пароль для доступа к Minio
-	UseSSL       bool   // Переменная, отвечающая за
+	Port         string
+	Endpoint     string
+	BucketName   string
+	RootUser     string
+	RootPassword string
+	UseSSL       bool
 }
 
 func newMinioConfig() (*MinioConfig, error) {
-	// Проверяем обязательные переменные окружения
 	endpoint, endpointExists := os.LookupEnv("MINIO_ENDPOINT")
 	rootUser, userExists := os.LookupEnv("MINIO_ROOT_USER")
 	rootPassword, passwordExists := os.LookupEnv("MINIO_ROOT_PASSWORD")

@@ -1,8 +1,10 @@
-package usecase_test
+package tests_test
 
 import (
 	"context"
 	"errors"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/mocks"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/product"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -11,8 +13,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/repository/mocks"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase"
 )
 
 func TestProductUsecase_GetAllProducts(t *testing.T) {
@@ -21,7 +21,7 @@ func TestProductUsecase_GetAllProducts(t *testing.T) {
 
 	mockRepo := mocks.NewMockIProductRepository(ctrl)
 	logger := logrus.New()
-	uc := usecase.NewProductUsecase(logger, mockRepo)
+	uc := product.NewProductUsecase(logger, mockRepo)
 
 	t.Run("Success", func(t *testing.T) {
 		expectedProducts := []*models.Product{
@@ -49,14 +49,14 @@ func TestProductUsecase_GetAllProducts(t *testing.T) {
 	t.Run("RepositoryError", func(t *testing.T) {
 		mockRepo.EXPECT().
 			GetAllProducts(gomock.Any()).
-			Return(nil, errors.New("repository error")).
+			Return(nil, errors.New("infrastructure error")).
 			Times(1)
 
 		products, err := uc.GetAllProducts(context.Background())
 
 		assert.Error(t, err)
 		assert.Nil(t, products)
-		assert.Contains(t, err.Error(), "repository error")
+		assert.Contains(t, err.Error(), "infrastructure error")
 	})
 }
 
@@ -66,7 +66,7 @@ func TestProductUsecase_GetProductByID(t *testing.T) {
 
 	mockRepo := mocks.NewMockIProductRepository(ctrl)
 	logger := logrus.New()
-	uc := usecase.NewProductUsecase(logger, mockRepo)
+	uc := product.NewProductUsecase(logger, mockRepo)
 
 	t.Run("Success", func(t *testing.T) {
 		testID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440001")
@@ -124,7 +124,7 @@ func TestProductUsecase_GetProductCover(t *testing.T) {
 
 	mockRepo := mocks.NewMockIProductRepository(ctrl)
 	logger := logrus.New()
-	uc := usecase.NewProductUsecase(logger, mockRepo)
+	uc := product.NewProductUsecase(logger, mockRepo)
 
 	t.Run("Success", func(t *testing.T) {
 		testID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440001")

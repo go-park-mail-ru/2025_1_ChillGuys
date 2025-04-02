@@ -1,13 +1,12 @@
-package utils
+package response
 
 import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
 	"io"
 	"net/http"
-
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 )
 
 type ErrorResponse struct {
@@ -54,13 +53,13 @@ func SendSuccessResponse(w http.ResponseWriter, statusCode int, body interface{}
 }
 
 func HandleError(w http.ResponseWriter, err error) {
-	if errors.Is(err, models.ErrInvalidCredentials) {
+	if errors.Is(err, errs.ErrInvalidCredentials) {
 		SendErrorResponse(w, http.StatusUnauthorized, "invalid email or password")
-	} else if errors.Is(err, models.ErrUserNotFound) {
+	} else if errors.Is(err, errs.ErrUserNotFound) {
 		SendErrorResponse(w, http.StatusUnauthorized, "user not found")
-	} else if errors.Is(err, models.ErrUserAlreadyExists) {
+	} else if errors.Is(err, errs.ErrUserAlreadyExists) {
 		SendErrorResponse(w, http.StatusConflict, "user already exists")
-	} else if errors.Is(err, models.ErrInvalidUserID) {
+	} else if errors.Is(err, errs.ErrInvalidUserID) {
 		SendErrorResponse(w, http.StatusBadRequest, "invalid user id format")
 	} else {
 		SendErrorResponse(w, http.StatusInternalServerError, err.Error())
