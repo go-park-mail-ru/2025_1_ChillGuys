@@ -20,9 +20,7 @@ type ITokenator interface {
 	ParseJWT(tokenString string) (*jwt.JWTClaims, error)
 }
 
-// FIXME: переписать путь моков
-//
-//go:generate mockgen -source=user.go -destination=./mocks/user_repository_mock.go -package=mocks IUserRepository
+//go:generate mockgen -source=user.go -destination=../../infrastructure/repository/postgres/user/mocks/user_repository_mock.go -package=mocks IProductRepository
 type IUserRepository interface {
 	CreateUser(context.Context, models.UserDB) error
 	GetUserByEmail(context.Context, string) (*models.UserDB, error)

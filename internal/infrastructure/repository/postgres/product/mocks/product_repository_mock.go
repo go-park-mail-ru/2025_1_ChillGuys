@@ -13,31 +13,31 @@ import (
 	uuid "github.com/google/uuid"
 )
 
-// MockIProductRepository is a mock of IProductRepository interface.
-type MockIProductRepository struct {
+// MockIProductUsecase is a mock of IProductUsecase interface.
+type MockIProductUsecase struct {
 	ctrl     *gomock.Controller
-	recorder *MockIProductRepositoryMockRecorder
+	recorder *MockIProductUsecaseMockRecorder
 }
 
-// MockIProductRepositoryMockRecorder is the mock recorder for MockIProductRepository.
-type MockIProductRepositoryMockRecorder struct {
-	mock *MockIProductRepository
+// MockIProductUsecaseMockRecorder is the mock recorder for MockIProductUsecase.
+type MockIProductUsecaseMockRecorder struct {
+	mock *MockIProductUsecase
 }
 
-// NewMockIProductRepository creates a new mock instance.
-func NewMockIProductRepository(ctrl *gomock.Controller) *MockIProductRepository {
-	mock := &MockIProductRepository{ctrl: ctrl}
-	mock.recorder = &MockIProductRepositoryMockRecorder{mock}
+// NewMockIProductUsecase creates a new mock instance.
+func NewMockIProductUsecase(ctrl *gomock.Controller) *MockIProductUsecase {
+	mock := &MockIProductUsecase{ctrl: ctrl}
+	mock.recorder = &MockIProductUsecaseMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockIProductRepository) EXPECT() *MockIProductRepositoryMockRecorder {
+func (m *MockIProductUsecase) EXPECT() *MockIProductUsecaseMockRecorder {
 	return m.recorder
 }
 
 // GetAllProducts mocks base method.
-func (m *MockIProductRepository) GetAllProducts(ctx context.Context) ([]*models.Product, error) {
+func (m *MockIProductUsecase) GetAllProducts(ctx context.Context) ([]*models.Product, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetAllProducts", ctx)
 	ret0, _ := ret[0].([]*models.Product)
@@ -46,13 +46,13 @@ func (m *MockIProductRepository) GetAllProducts(ctx context.Context) ([]*models.
 }
 
 // GetAllProducts indicates an expected call of GetAllProducts.
-func (mr *MockIProductRepositoryMockRecorder) GetAllProducts(ctx interface{}) *gomock.Call {
+func (mr *MockIProductUsecaseMockRecorder) GetAllProducts(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllProducts", reflect.TypeOf((*MockIProductRepository)(nil).GetAllProducts), ctx)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllProducts", reflect.TypeOf((*MockIProductUsecase)(nil).GetAllProducts), ctx)
 }
 
 // GetProductByID mocks base method.
-func (m *MockIProductRepository) GetProductByID(ctx context.Context, id uuid.UUID) (*models.Product, error) {
+func (m *MockIProductUsecase) GetProductByID(ctx context.Context, id uuid.UUID) (*models.Product, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetProductByID", ctx, id)
 	ret0, _ := ret[0].(*models.Product)
@@ -61,22 +61,22 @@ func (m *MockIProductRepository) GetProductByID(ctx context.Context, id uuid.UUI
 }
 
 // GetProductByID indicates an expected call of GetProductByID.
-func (mr *MockIProductRepositoryMockRecorder) GetProductByID(ctx, id interface{}) *gomock.Call {
+func (mr *MockIProductUsecaseMockRecorder) GetProductByID(ctx, id interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProductByID", reflect.TypeOf((*MockIProductRepository)(nil).GetProductByID), ctx, id)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProductByID", reflect.TypeOf((*MockIProductUsecase)(nil).GetProductByID), ctx, id)
 }
 
-// GetProductCoverPath mocks base method.
-func (m *MockIProductRepository) GetProductCoverPath(ctx context.Context, id uuid.UUID) ([]byte, error) {
+// GetProductCover mocks base method.
+func (m *MockIProductUsecase) GetProductCover(ctx context.Context, id uuid.UUID) ([]byte, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetProductCoverPath", ctx, id)
+	ret := m.ctrl.Call(m, "GetProductCover", ctx, id)
 	ret0, _ := ret[0].([]byte)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetProductCoverPath indicates an expected call of GetProductCoverPath.
-func (mr *MockIProductRepositoryMockRecorder) GetProductCoverPath(ctx, id interface{}) *gomock.Call {
+// GetProductCover indicates an expected call of GetProductCover.
+func (mr *MockIProductUsecaseMockRecorder) GetProductCover(ctx, id interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProductCoverPath", reflect.TypeOf((*MockIProductRepository)(nil).GetProductCoverPath), ctx, id)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProductCover", reflect.TypeOf((*MockIProductUsecase)(nil).GetProductCover), ctx, id)
 }

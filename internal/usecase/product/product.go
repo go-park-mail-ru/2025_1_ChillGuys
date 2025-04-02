@@ -9,9 +9,7 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 )
 
-// FIXME: переписать путь моков
-//
-//go:generate mockgen -source=product.go -destination=./mocks/product_repository_mock.go -package=mocks IProductRepository
+//go:generate mockgen -source=product.go -destination=../../repository/mocks/product_repository_mock.go -package=mocks IProductRepository
 type IProductRepository interface {
 	GetAllProducts(ctx context.Context) ([]*models.Product, error)
 	GetProductByID(ctx context.Context, id uuid.UUID) (*models.Product, error)
