@@ -146,10 +146,10 @@ func (h *ProductHandler) GetProductCover(w http.ResponseWriter, r *http.Request)
 //	@Tags			products
 //	@Accept			multipart/form-data
 //	@Produce		json
-//	@Param			file	formData	file							true	"Файл для загрузки"
-//	@Success		200		{object}	models.SuccessResponse	"Файл успешно загружен"
-//	@Failure		400		{object}	response.ErrorResponse			"Ошибка в запросе"
-//	@Failure		500		{object}	response.ErrorResponse			"Ошибка сервера"
+//	@Param			file	formData	file					true	"Файл для загрузки"
+//	@Success		200		{object}	map[string]string		"Информация о загруженном файле"
+//	@Failure		400		{object}	response.ErrorResponse	"Ошибка в запросе"
+//	@Failure		500		{object}	response.ErrorResponse	"Ошибка сервера"
 //	@Router			/products/upload [post]
 func (h *ProductHandler) CreateOne(w http.ResponseWriter, r *http.Request) {
 	// Проверяем, что запрос содержит multipart/form-data
@@ -203,7 +203,7 @@ func (h *ProductHandler) CreateOne(w http.ResponseWriter, r *http.Request) {
 //	@Tags			files
 //	@Produce		json
 //	@Param			objectID	path		string					true	"ID объекта в MinIO"
-//	@Success		200			{object}	models.SuccessResponse	"Успешный ответ с URL файла"
+//	@Success		200			{object}	map[string]string		"Ссылка на файл"
 //	@Failure		400			{object}	response.ErrorResponse	"Неверный ID объекта"
 //	@Failure		404			{object}	response.ErrorResponse	"Файл не найден"
 //	@Failure		500			{object}	response.ErrorResponse	"Ошибка сервера"

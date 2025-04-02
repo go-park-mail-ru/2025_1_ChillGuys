@@ -167,7 +167,33 @@ const docTemplate = `{
         },
         "/files/{objectID}": {
             "get": {
+                "description": "Возвращает URL для доступа к файлу в MinIO",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "files"
+                ],
+                "summary": "Получить файл по ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID объекта в MinIO",
+                        "name": "objectID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
                 "responses": {
+                    "200": {
+                        "description": "Ссылка на файл",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
                     "400": {
                         "description": "Неверный ID объекта",
                         "schema": {
@@ -220,7 +246,36 @@ const docTemplate = `{
         },
         "/products/upload": {
             "post": {
+                "description": "Загружает один файл в хранилище MinIO",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "products"
+                ],
+                "summary": "Загрузить файл в MinIO",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "Файл для загрузки",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
                 "responses": {
+                    "200": {
+                        "description": "Информация о загруженном файле",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
                     "400": {
                         "description": "Ошибка в запросе",
                         "schema": {
@@ -352,6 +407,15 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
+                    "200": {
+                        "description": "URL загруженного аватара",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
                     "400": {
                         "description": "Ошибка при обработке формы",
                         "schema": {
@@ -509,6 +573,16 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        }
+    },
+    "securityDefinitions": {
+        "BasicAuth": {
+            "type": "basic"
+        },
+        "TokenAuth": {
+            "type": "apiKey",
+            "name": "token",
+            "in": "cookie"
         }
     }
 }`

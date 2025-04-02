@@ -1,3 +1,4 @@
+basePath: /api
 definitions:
   models.Product:
     properties:
@@ -63,8 +64,12 @@ definitions:
       message:
         type: string
     type: object
+host: 90.156.217.63:8081
 info:
   contact: {}
+  description: API for ChillGuys marketplace
+  title: ChillGuys API
+  version: "1.0"
 paths:
   /auth/login:
     post:
@@ -166,7 +171,22 @@ paths:
       - auth
   /files/{objectID}:
     get:
+      description: Возвращает URL для доступа к файлу в MinIO
+      parameters:
+      - description: ID объекта в MinIO
+        in: path
+        name: objectID
+        required: true
+        type: string
+      produces:
+      - application/json
       responses:
+        "200":
+          description: Ссылка на файл
+          schema:
+            additionalProperties:
+              type: string
+            type: object
         "400":
           description: Неверный ID объекта
           schema:
@@ -179,6 +199,9 @@ paths:
           description: Ошибка сервера
           schema:
             $ref: '#/definitions/response.ErrorResponse'
+      summary: Получить файл по ID
+      tags:
+      - files
   /products/:
     get:
       description: Возвращает список всех продуктов
@@ -258,7 +281,24 @@ paths:
       - products
   /products/upload:
     post:
+      consumes:
+      - multipart/form-data
+      description: Загружает один файл в хранилище MinIO
+      parameters:
+      - description: Файл для загрузки
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
       responses:
+        "200":
+          description: Информация о загруженном файле
+          schema:
+            additionalProperties:
+              type: string
+            type: object
         "400":
           description: Ошибка в запросе
           schema:
@@ -267,6 +307,9 @@ paths:
           description: Ошибка сервера
           schema:
             $ref: '#/definitions/response.ErrorResponse'
+      summary: Загрузить файл в MinIO
+      tags:
+      - products
   /users/avatar:
     post:
       consumes:
@@ -281,6 +324,12 @@ paths:
       produces:
       - application/json
       responses:
+        "200":
+          description: URL загруженного аватара
+          schema:
+            additionalProperties:
+              type: string
+            type: object
         "400":
           description: Ошибка при обработке формы
           schema:
@@ -321,4 +370,11 @@ paths:
       summary: Get user info
       tags:
       - users
+securityDefinitions:
+  BasicAuth:
+    type: basic
+  TokenAuth:
+    in: cookie
+    name: token
+    type: apiKey
 swagger: "2.0"
