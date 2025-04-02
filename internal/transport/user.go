@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/minio"
+	"io"
 	"net/http"
 	"regexp"
 	"strings"
@@ -29,35 +31,39 @@ type IAuthUsecase interface {
 	Login(ctx context.Context, user models.UserLoginRequestDTO) (string, error)
 	Logout(ctx context.Context) error
 	GetMe(ctx context.Context) (*models.User, error)
+	UploadAvatar(ctx context.Context, fileData minio.FileDataType) (string, error)
 }
 
 type AuthHandler struct {
-	u   IAuthUsecase
-	log *logrus.Logger
+	u            IAuthUsecase
+	log          *logrus.Logger
+	minioService minio.Client
 }
 
 func NewAuthHandler(
 	u IAuthUsecase,
 	log *logrus.Logger,
+	mS minio.Client,
 ) *AuthHandler {
 	return &AuthHandler{
-		u:   u,
-		log: log,
+		u:            u,
+		log:          log,
+		minioService: mS,
 	}
 }
 
-//	@Summary		Login user
-//	@Description	Авторизация пользователя
-//	@Tags			auth
-//	@Accept			json
-//	@Produce		json
-//	@Param			request	body		models.UserLoginRequestDTO	true	"User credentials"
-//	@success		200		{}			-							"No Content"
-//	@Header			200		{string}	Set-Cookie					"Устанавливает JWT-токен в куки"
-//	@Failure		400		{object}	utils.ErrorResponse			"Ошибка валидации"
-//	@Failure		401		{object}	utils.ErrorResponse			"Неверные email или пароль"
-//	@Failure		500		{object}	utils.ErrorResponse			"Внутренняя ошибка сервера"
-//	@Router			/auth/login [post]
+// @Summary			Login user
+// @Description		Авторизация пользователя
+// @Tags			auth
+// @Accept			json
+// @Produce			json
+// @Param			request	body		models.UserLoginRequestDTO	true	"User credentials"
+// @success			200		{}			-							"No Content"
+// @Header			200		{string}	Set-Cookie					"Устанавливает JWT-токен в куки"
+// @Failure			400		{object}	utils.ErrorResponse			"Ошибка валидации"
+// @Failure			401		{object}	utils.ErrorResponse			"Неверные email или пароль"
+// @Failure			500		{object}	utils.ErrorResponse			"Внутренняя ошибка сервера"
+// @Router			/auth/login [post]
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var request models.UserLoginRequestDTO
 	if errStatusCode, err := utils.ParseData(r.Body, &request); err != nil {
@@ -82,18 +88,18 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	utils.SendSuccessResponse(w, http.StatusOK, nil)
 }
 
-//	@Summary		Register user
-//	@Description	Создает нового пользователя, хеширует пароль и устанавливает JWT-токен в куки
-//	@Tags			auth
-//	@Accept			json
-//	@Produce		json
-//	@Param			input	body		models.UserRegisterRequestDTO	true	"Данные для регистрации"
-//	@success		200		{}			-								"No Content"
-//	@Header			200		{string}	Set-Cookie						"Устанавливает JWT-токен в куки"
-//	@Failure		400		{object}	utils.ErrorResponse				"Некорректный запрос"
-//	@Failure		409		{object}	utils.ErrorResponse				"Пользователь уже существует"
-//	@Failure		500		{object}	utils.ErrorResponse				"Внутренняя ошибка сервера"
-//	@Router			/auth/register [post]
+// @Summary			Register user
+// @Description		Создает нового пользователя, хеширует пароль и устанавливает JWT-токен в куки
+// @Tags			auth
+// @Accept			json
+// @Produce			json
+// @Param			input	body		models.UserRegisterRequestDTO	true	"Данные для регистрации"
+// @success			200		{}			-								"No Content"
+// @Header			200		{string}	Set-Cookie						"Устанавливает JWT-токен в куки"
+// @Failure			400		{object}	utils.ErrorResponse				"Некорректный запрос"
+// @Failure			409		{object}	utils.ErrorResponse				"Пользователь уже существует"
+// @Failure			500		{object}	utils.ErrorResponse				"Внутренняя ошибка сервера"
+// @Router			/auth/register [post]
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var request models.UserRegisterRequestDTO
 	if errStatusCode, err := utils.ParseData(r.Body, &request); err != nil {
@@ -118,14 +124,14 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	utils.SendSuccessResponse(w, http.StatusOK, nil)
 }
 
-//	@Summary		Logout user
-//	@Description	Выход пользователя
-//	@Tags			auth
-//	@Security		TokenAuth
-//	@Success		200	{}			"No Content"
-//	@Failure		401	{object}	utils.ErrorResponse	"Пользователь не найден"
-//	@Failure		500	{object}	utils.ErrorResponse	"Ошибка сервера"
-//	@Router			/auth/logout [post]
+// @Summary			Logout user
+// @Description		Выход пользователя
+// @Tags			auth
+// @Security		TokenAuth
+// @Success			200	{}			"No Content"
+// @Failure			401	{object}	utils.ErrorResponse	"Пользователь не найден"
+// @Failure			500	{object}	utils.ErrorResponse	"Ошибка сервера"
+// @Router			/auth/logout [post]
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	if err := h.u.Logout(r.Context()); err != nil {
 		utils.HandleError(w, err)
@@ -144,16 +150,16 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	utils.SendSuccessResponse(w, http.StatusOK, nil)
 }
 
-//	@Summary		Get user info
-//	@Description	Получение информации о текущем пользователе
-//	@Tags			users
-//	@Security		TokenAuth
-//	@Produce		json
-//	@Success		200	{object}	models.User			"Информация о пользователе"
-//	@Failure		400	{object}	utils.ErrorResponse	"Некорректный запрос"
-//	@Failure		401	{object}	utils.ErrorResponse	"Пользователь не найден"
-//	@Failure		500	{object}	utils.ErrorResponse	"Ошибка сервера"
-//	@Router			/users/me [get]
+// @Summary			Get user info
+// @Description		Получение информации о текущем пользователе
+// @Tags			users
+// @Security		TokenAuth
+// @Produce			json
+// @Success			200	{object}	models.User			"Информация о пользователе"
+// @Failure			400	{object}	utils.ErrorResponse	"Некорректный запрос"
+// @Failure			401	{object}	utils.ErrorResponse	"Пользователь не найден"
+// @Failure			500	{object}	utils.ErrorResponse	"Ошибка сервера"
+// @Router			/users/me [get]
 func (h *AuthHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 	user, err := h.u.GetMe(r.Context())
 	if err != nil {
@@ -162,6 +168,54 @@ func (h *AuthHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.SendSuccessResponse(w, http.StatusOK, user)
+}
+
+// @Summary      Upload avatar
+// @Description  Загружает аватар пользователя
+// @Tags         users
+// @Accept       multipart/form-data
+// @Produce      json
+// @Param        file  formData  file  true  "Файл изображения"
+// @Success      200   {object}  utils.SuccessResponse  "URL загруженного изображения"
+// @Failure      400   {object}  utils.ErrorResponse    "Ошибка при обработке формы"
+// @Failure      500   {object}  utils.ErrorResponse    "Ошибка загрузки файла"
+// @Security     TokenAuth
+// @Router       /users/avatar [post]
+func (h *AuthHandler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseMultipartForm(10 << 20); err != nil {
+		h.log.Warnf("Error parsing multipart form: %v", err)
+		utils.SendErrorResponse(w, http.StatusBadRequest, "Failed to parse form data")
+		return
+	}
+
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		h.log.Warnf("Error getting file from form: %v", err)
+		utils.SendErrorResponse(w, http.StatusBadRequest, "No file uploaded")
+		return
+	}
+	defer file.Close()
+
+	fileBytes, err := io.ReadAll(file)
+	if err != nil {
+		h.log.Errorf("Error reading file: %v", err)
+		utils.SendErrorResponse(w, http.StatusInternalServerError, "Failed to read file")
+		return
+	}
+
+	fileData := minio.FileDataType{
+		FileName: header.Filename,
+		Data:     fileBytes,
+	}
+
+	avatarURL, err := h.u.UploadAvatar(r.Context(), fileData)
+	if err != nil {
+		h.log.Errorf("Upload error: %v", err)
+		utils.SendErrorResponse(w, http.StatusInternalServerError, "Upload failed")
+		return
+	}
+
+	utils.SendSuccessResponse(w, http.StatusOK, avatarURL)
 }
 
 // ValidateLoginCreds проверяет корректность данных при авторизации

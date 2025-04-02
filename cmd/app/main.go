@@ -67,8 +67,8 @@ func main() {
 
 	userRepo := repository.NewUserRepository(db, logger)
 	tokenator := jwt.NewTokenator(userRepo, conf.JWTConfig)
-	userUsecase := usecase2.NewAuthUsecase(userRepo, tokenator, logger)
-	userHandler := transport.NewAuthHandler(userUsecase, logger)
+	userUsecase := usecase2.NewAuthUsecase(userRepo, tokenator, logger, minioClient)
+	userHandler := transport.NewAuthHandler(userUsecase, logger, minioClient)
 
 	productRepo := repository.NewProductRepository(db, logger)
 	productUsecase := usecase2.NewProductUsecase(logger, productRepo)
@@ -107,6 +107,12 @@ func main() {
 			tokenator,
 			http.HandlerFunc(userHandler.GetMe)),
 		).Methods("GET")
+
+		userRouter.Handle("/upload-avatar", middleware.JWTMiddleware(
+			tokenator,
+			http.HandlerFunc(userHandler.UploadAvatar),
+		)).Methods("POST")
+
 	}
 
 	srv := &http.Server{

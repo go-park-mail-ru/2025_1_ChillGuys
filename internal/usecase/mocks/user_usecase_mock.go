@@ -8,6 +8,7 @@ import (
 	context "context"
 	reflect "reflect"
 
+	minio "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/minio"
 	models "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 	gomock "github.com/golang/mock/gomock"
 )
@@ -92,4 +93,19 @@ func (m *MockIAuthUsecase) Register(ctx context.Context, user models.UserRegiste
 func (mr *MockIAuthUsecaseMockRecorder) Register(ctx, user interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Register", reflect.TypeOf((*MockIAuthUsecase)(nil).Register), ctx, user)
+}
+
+// UploadAvatar mocks base method.
+func (m *MockIAuthUsecase) UploadAvatar(ctx context.Context, fileData minio.FileDataType) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UploadAvatar", ctx, fileData)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UploadAvatar indicates an expected call of UploadAvatar.
+func (mr *MockIAuthUsecaseMockRecorder) UploadAvatar(ctx, fileData interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadAvatar", reflect.TypeOf((*MockIAuthUsecase)(nil).UploadAvatar), ctx, fileData)
 }
