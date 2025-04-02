@@ -10,32 +10,32 @@ import (
 )
 
 const (
-	MediaFolder = "./media"
-	CoverName = "cover.jpeg"
+	MediaFolder          = "./media"
+	CoverName            = "cover.jpeg"
 	DefaultPathCoverName = "product-default"
 )
 
 type Product struct {
-	ID             			uuid.UUID 	`json:"id" db:"id"`
-	SellerID       			uuid.UUID 	`json:"seller_id" db:"seller_id"`
-	Name           			string    	`json:"name" db:"name"`
-	PreviewImageURL 		string    	`json:"preview_image_url,omitempty" db:"preview_image_url"`
-	Description    			string    	`json:"description,omitempty" db:"description"`
-	Status        			string    	`json:"status" db:"status"` 
-	Price         			uint      	`json:"price" db:"price"`
-	Quantity      			uint      	`json:"quantity" db:"quantity"`
-	UpdatedAt     			time.Time 	`json:"updated_at" db:"updated_at"`
-	Rating        			int      	`json:"rating,omitempty" db:"rating"` 
-	ReviewsCount  			uint        `json:"reviews_count" db:"reviews_count"` // Добавлено поле
+	ID              uuid.UUID `json:"id" db:"id"`
+	SellerID        uuid.UUID `json:"seller_id" db:"seller_id"`
+	Name            string    `json:"name" db:"name"`
+	PreviewImageURL string    `json:"preview_image_url,omitempty" db:"preview_image_url"`
+	Description     string    `json:"description,omitempty" db:"description"`
+	Status          string    `json:"status" db:"status"`
+	Price           uint      `json:"price" db:"price"`
+	Quantity        uint      `json:"quantity" db:"quantity"`
+	UpdatedAt       time.Time `json:"updated_at" db:"updated_at"`
+	Rating          int       `json:"rating,omitempty" db:"rating"`
+	ReviewsCount    uint      `json:"reviews_count" db:"reviews_count"` // Добавлено поле
 }
 
 type BriefProduct struct {
-	ID           uuid.UUID      `json:"id"`
-	Name         string  		`json:"name"`
-	ImageURL     string  		`json:"image"`
-	Price        uint    		`json:"price"`
-	ReviewsCount uint    		`json:"reviews_count"`
-	Rating       int 			`json:"rating"`
+	ID           uuid.UUID `json:"id"`
+	Name         string    `json:"name"`
+	ImageURL     string    `json:"image"`
+	Price        uint      `json:"price"`
+	ReviewsCount uint      `json:"reviews_count"`
+	Rating       int       `json:"rating"`
 }
 
 func GetProductCoverPath(id uuid.UUID) string {
@@ -49,7 +49,7 @@ func GetProductCoverPath(id uuid.UUID) string {
 	return coverPath
 }
 
-func ConvertToBriefProduct(product *Product) BriefProduct{
+func ConvertToBriefProduct(product *Product) BriefProduct {
 	coverPath := GetProductCoverPath(product.ID)
 
 	return BriefProduct{
@@ -63,8 +63,8 @@ func ConvertToBriefProduct(product *Product) BriefProduct{
 }
 
 type ProductsResponse struct {
-	Total    int                       `json:"total"`
-	Products []BriefProduct 		   `json:"products"`
+	Total    int            `json:"total"`
+	Products []BriefProduct `json:"products"`
 }
 
 func ConvertToProductsResponse(products []*Product) ProductsResponse {

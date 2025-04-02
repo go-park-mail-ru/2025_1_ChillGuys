@@ -15,9 +15,14 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/minio"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils"
-	usecase2 "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/minio"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres"
+	product2 "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/product"
+	user2 "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/user"
+	product3 "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/product"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/user"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/product"
+	usecase2 "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/user"
 	"log"
 	"net/http"
 	"time"
@@ -28,8 +33,6 @@ import (
 	"github.com/sirupsen/logrus"
 	httpSwagger "github.com/swaggo/http-swagger"
 
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/repository"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware"
 )
@@ -44,7 +47,7 @@ func main() {
 	}
 
 	// Подключение базы данных
-	str, err := utils.GetConnectionString(conf.DBConfig)
+	str, err := postgres.GetConnectionString(conf.DBConfig)
 	if err != nil {
 		logger.Error(err)
 		return
@@ -65,14 +68,14 @@ func main() {
 		log.Fatalf("Minio initialization error: %v", err)
 	}
 
-	userRepo := repository.NewUserRepository(db, logger)
+	userRepo := user2.NewUserRepository(db, logger)
 	tokenator := jwt.NewTokenator(userRepo, conf.JWTConfig)
 	userUsecase := usecase2.NewAuthUsecase(userRepo, tokenator, logger, minioClient)
-	userHandler := transport.NewAuthHandler(userUsecase, logger, minioClient)
+	userHandler := user.NewAuthHandler(userUsecase, logger, minioClient)
 
-	productRepo := repository.NewProductRepository(db, logger)
-	productUsecase := usecase2.NewProductUsecase(logger, productRepo)
-	productHandler := transport.NewProductHandler(productUsecase, logger, minioClient)
+	productRepo := product2.NewProductRepository(db, logger)
+	productUsecase := product.NewProductUsecase(logger, productRepo)
+	productHandler := product3.NewProductHandler(productUsecase, logger, minioClient)
 
 	router := mux.NewRouter().PathPrefix("/api").Subrouter()
 	router.Use(func(next http.Handler) http.Handler {

@@ -1,27 +1,37 @@
-basePath: /api
 definitions:
   models.Product:
     properties:
-      count:
-        type: integer
       description:
         type: string
       id:
-        type: integer
+        type: string
       name:
+        type: string
+      preview_image_url:
         type: string
       price:
         type: integer
-      rating:
-        type: number
-      reviews_count:
+      quantity:
         type: integer
+      rating:
+        type: integer
+      reviews_count:
+        description: Добавлено поле
+        type: integer
+      seller_id:
+        type: string
+      status:
+        type: string
+      updated_at:
+        type: string
     type: object
   models.User:
     properties:
       email:
         type: string
       id:
+        type: string
+      imageURL:
         type: string
       name:
         type: string
@@ -48,17 +58,13 @@ definitions:
       surname:
         type: string
     type: object
-  utils.ErrorResponse:
+  response.ErrorResponse:
     properties:
       message:
         type: string
     type: object
-host: 90.156.217.63:8081
 info:
   contact: {}
-  description: API for ChillGuys marketplace
-  title: ChillGuys API
-  version: "1.0"
 paths:
   /auth/login:
     post:
@@ -86,15 +92,15 @@ paths:
         "400":
           description: Ошибка валидации
           schema:
-            $ref: '#/definitions/utils.ErrorResponse'
+            $ref: '#/definitions/response.ErrorResponse'
         "401":
           description: Неверные email или пароль
           schema:
-            $ref: '#/definitions/utils.ErrorResponse'
+            $ref: '#/definitions/response.ErrorResponse'
         "500":
           description: Внутренняя ошибка сервера
           schema:
-            $ref: '#/definitions/utils.ErrorResponse'
+            $ref: '#/definitions/response.ErrorResponse'
       summary: Login user
       tags:
       - auth
@@ -109,11 +115,11 @@ paths:
         "401":
           description: Пользователь не найден
           schema:
-            $ref: '#/definitions/utils.ErrorResponse'
+            $ref: '#/definitions/response.ErrorResponse'
         "500":
           description: Ошибка сервера
           schema:
-            $ref: '#/definitions/utils.ErrorResponse'
+            $ref: '#/definitions/response.ErrorResponse'
       security:
       - TokenAuth: []
       summary: Logout user
@@ -146,18 +152,33 @@ paths:
         "400":
           description: Некорректный запрос
           schema:
-            $ref: '#/definitions/utils.ErrorResponse'
+            $ref: '#/definitions/response.ErrorResponse'
         "409":
           description: Пользователь уже существует
           schema:
-            $ref: '#/definitions/utils.ErrorResponse'
+            $ref: '#/definitions/response.ErrorResponse'
         "500":
           description: Внутренняя ошибка сервера
           schema:
-            $ref: '#/definitions/utils.ErrorResponse'
+            $ref: '#/definitions/response.ErrorResponse'
       summary: Register user
       tags:
       - auth
+  /files/{objectID}:
+    get:
+      responses:
+        "400":
+          description: Неверный ID объекта
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "404":
+          description: Файл не найден
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: Ошибка сервера
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
   /products/:
     get:
       description: Возвращает список всех продуктов
@@ -173,7 +194,7 @@ paths:
         "500":
           description: Ошибка сервера
           schema:
-            $ref: '#/definitions/utils.ErrorResponse'
+            $ref: '#/definitions/response.ErrorResponse'
       summary: Получить все продукты
       tags:
       - products
@@ -196,11 +217,11 @@ paths:
         "400":
           description: Некорректный ID
           schema:
-            $ref: '#/definitions/utils.ErrorResponse'
+            $ref: '#/definitions/response.ErrorResponse'
         "404":
           description: Продукт не найден
           schema:
-            $ref: '#/definitions/utils.ErrorResponse'
+            $ref: '#/definitions/response.ErrorResponse'
       summary: Получить продукт по ID
       tags:
       - products
@@ -223,18 +244,56 @@ paths:
         "400":
           description: Некорректный ID
           schema:
-            $ref: '#/definitions/utils.ErrorResponse'
+            $ref: '#/definitions/response.ErrorResponse'
         "404":
           description: Обложка не найдена
           schema:
-            $ref: '#/definitions/utils.ErrorResponse'
+            $ref: '#/definitions/response.ErrorResponse'
         "500":
           description: Ошибка сервера
           schema:
-            $ref: '#/definitions/utils.ErrorResponse'
+            $ref: '#/definitions/response.ErrorResponse'
       summary: Получить обложку продукта
       tags:
       - products
+  /products/upload:
+    post:
+      responses:
+        "400":
+          description: Ошибка в запросе
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: Ошибка сервера
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+  /users/avatar:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Загружает аватар пользователя
+      parameters:
+      - description: Файл изображения
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "400":
+          description: Ошибка при обработке формы
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: Ошибка загрузки файла
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      security:
+      - TokenAuth: []
+      summary: Upload avatar
+      tags:
+      - users
   /users/me:
     get:
       description: Получение информации о текущем пользователе
@@ -248,25 +307,18 @@ paths:
         "400":
           description: Некорректный запрос
           schema:
-            $ref: '#/definitions/utils.ErrorResponse'
+            $ref: '#/definitions/response.ErrorResponse'
         "401":
           description: Пользователь не найден
           schema:
-            $ref: '#/definitions/utils.ErrorResponse'
+            $ref: '#/definitions/response.ErrorResponse'
         "500":
           description: Ошибка сервера
           schema:
-            $ref: '#/definitions/utils.ErrorResponse'
+            $ref: '#/definitions/response.ErrorResponse'
       security:
       - TokenAuth: []
       summary: Get user info
       tags:
       - users
-securityDefinitions:
-  BasicAuth:
-    type: basic
-  TokenAuth:
-    in: cookie
-    name: token
-    type: apiKey
 swagger: "2.0"

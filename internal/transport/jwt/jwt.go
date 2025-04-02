@@ -4,12 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
 	"time"
 
-	"github.com/golang-jwt/jwt/v4"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
-
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
+	"github.com/golang-jwt/jwt/v4"
 )
 
 const (
@@ -82,5 +81,5 @@ func (t *Tokenator) ParseJWT(tokenString string) (*JWTClaims, error) {
 		return claims, nil
 	}
 
-	return nil, models.ErrInvalidToken
+	return nil, errs.ErrInvalidToken
 }

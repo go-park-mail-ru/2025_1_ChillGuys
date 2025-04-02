@@ -183,7 +183,7 @@ CREATE TABLE IF NOT EXISTS basket (
     id       UUID PRIMARY KEY,
     user_id  UUID REFERENCES "user" (id) ON DELETE CASCADE UNIQUE,
     total_price NUMERIC(12,2) CHECK (total_price >= 0) NOT NULL,
-    total_price_discount NUMERIC(12,2) CHECK (total_price_discount >= 0) NOT NULL,
+    total_price_discount NUMERIC(12,2) CHECK (total_price_discount >= 0) NOT NULL
 );
 
 -- Элементы корзины
