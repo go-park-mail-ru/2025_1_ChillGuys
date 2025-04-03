@@ -6,12 +6,15 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/minio"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/order"
 	product2 "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/product"
 	user2 "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/user"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware"
+	order3 "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/order"
 	product3 "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/product"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/user"
+	order2 "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/order"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/product"
 	usecase2 "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/user"
 	"github.com/gorilla/mux"
@@ -60,6 +63,10 @@ func Run() error {
 	productUsecase := product.NewProductUsecase(logger, productRepo)
 	productHandler := product3.NewProductHandler(productUsecase, logger, minioClient)
 
+	orderRepo := order.NewOrderRepository(db, logger)
+	orderUsecase := order2.NewOrderUsecase(orderRepo, logger)
+	orderHandler := order3.NewOrderHandler(orderUsecase, logger)
+
 	router := mux.NewRouter().PathPrefix("/api").Subrouter()
 	router.Use(func(next http.Handler) http.Handler {
 		return middleware.CORSMiddleware(next, conf.ServerConfig)
@@ -97,6 +104,14 @@ func Run() error {
 		userRouter.Handle("/upload-avatar", middleware.JWTMiddleware(
 			tokenator,
 			http.HandlerFunc(userHandler.UploadAvatar),
+		)).Methods("POST")
+	}
+
+	orderRouter := router.PathPrefix("/order").Subrouter()
+	{
+		orderRouter.Handle("/", middleware.JWTMiddleware(
+			tokenator,
+			http.HandlerFunc(orderHandler.CreateOrder),
 		)).Methods("POST")
 	}
 
