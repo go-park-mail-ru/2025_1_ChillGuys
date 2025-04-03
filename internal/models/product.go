@@ -22,7 +22,7 @@ type Product struct {
 	PreviewImageURL string    `json:"preview_image_url,omitempty" db:"preview_image_url"`
 	Description     string    `json:"description,omitempty" db:"description"`
 	Status          string    `json:"status" db:"status"`
-	Price           uint      `json:"price" db:"price"`
+	Price           float64   `json:"price" db:"price"`
 	Quantity        uint      `json:"quantity" db:"quantity"`
 	UpdatedAt       time.Time `json:"updated_at" db:"updated_at"`
 	Rating          int       `json:"rating,omitempty" db:"rating"`
@@ -33,7 +33,7 @@ type BriefProduct struct {
 	ID           uuid.UUID `json:"id"`
 	Name         string    `json:"name"`
 	ImageURL     string    `json:"image"`
-	Price        uint      `json:"price"`
+	Price        float64   `json:"price"`
 	ReviewsCount uint      `json:"reviews_count"`
 	Rating       int       `json:"rating"`
 }
