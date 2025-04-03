@@ -78,3 +78,27 @@ func ConvertToProductsResponse(products []*Product) ProductsResponse {
 		Products: briefProducts,
 	}
 }
+
+type Category struct {
+	ID              uuid.UUID `json:"id" db:"id"`
+	Name            string    `json:"name" db:"name"`
+}
+
+type CategoryResponse struct {
+	Total    	int             `json:"total"`
+	Categorys 	[]Category 		`json:"categories"`
+}
+
+func ConvertToCategoriesResponse(categories []*Category) CategoryResponse{
+	categoryList := make([]Category, 0, len(categories))
+    for _, cat := range categories {
+        if cat != nil {
+            categoryList = append(categoryList, *cat)
+        }
+    }
+
+	return CategoryResponse{
+		Total: len(categories),
+		Categorys: categoryList,
+	}
+} 
