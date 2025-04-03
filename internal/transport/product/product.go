@@ -21,6 +21,8 @@ type IProductUsecase interface {
 	GetAllProducts(ctx context.Context) ([]*models.Product, error)
 	GetProductByID(ctx context.Context, id uuid.UUID) (*models.Product, error)
 	GetProductCover(ctx context.Context, id uuid.UUID) ([]byte, error)
+	GetProductsByCategory(ctx context.Context, id uuid.UUID) ([]*models.Product, error)
+	GetAllCategories(ctx context.Context)([]*models.Category, error)
 }
 
 type ProductHandler struct {
@@ -90,6 +92,54 @@ func (h *ProductHandler) GetProductByID(w http.ResponseWriter, r *http.Request) 
 	response.SendSuccessResponse(w, http.StatusOK, product)
 }
 
+// GetProductsByCategory godoc
+// 
+// @Summary Получить товары по категории
+// @Description Возвращает список всех одобренных товаров, принадлежащих указанной категории. 
+// Товары сортируются по дате обновления (сначала новые).
+// @Tags Товары
+// @Produce json
+// @Param id path string true "UUID категории в формате строки"
+// @Success 200 {object} []models.Product "Успешный запрос. Возвращает массив товаров."
+// @Failure 400 {object} response.ErrorResponse "Неверный формат UUID категории"
+// @Failure 404 {object} response.ErrorResponse "Категория не найдена"
+// @Failure 500 {object} response.ErrorResponse "Внутренняя ошибка сервера"
+// @Router /api/v1/products/category/{id} [get]
+func (h *ProductHandler) GetProductsByCategory(w http.ResponseWriter, r *http.Request){
+	vars := mux.Vars(r)
+	idStr := vars["id"]
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		h.log.Warnf("Invalid ID: %v", err)
+		response.SendErrorResponse(w, http.StatusBadRequest, "Invalid ID")
+		return
+	}
+
+	products, err := h.u.GetProductsByCategory(r.Context(), id)
+	if err != nil {
+		h.log.Warnf("Failed to get products by category: %v", err)
+		response.SendErrorResponse(w, http.StatusInternalServerError, "Failed get products by category")
+		return
+	}
+
+	productResponse := models.ConvertToProductsResponse(products)
+
+	response.SendSuccessResponse(w, http.StatusOK, productResponse)
+}
+
+func (h *ProductHandler) GetAllCategories(w http.ResponseWriter, r *http.Request) {
+	categories, err := h.u.GetAllCategories(r.Context())
+	if err != nil {
+		h.log.Warnf("Failed to get all categories: %v", err)
+		response.SendErrorResponse(w, http.StatusInternalServerError, "Failed get all categories")
+		return
+	}
+
+	categoryResponse := models.ConvertToCategoriesResponse(categories)
+
+	response.SendSuccessResponse(w, http.StatusOK, categoryResponse)
+}
+
 // GetProductCover godoc
 //
 //	@Summary		Получить обложку продукта
@@ -134,6 +184,11 @@ func (h *ProductHandler) GetProductCover(w http.ResponseWriter, r *http.Request)
 		return
 	}
 }
+
+
+
+
+
 
 // FIXME: models.SuccessResponse не найден
 

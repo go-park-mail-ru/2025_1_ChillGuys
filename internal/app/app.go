@@ -73,8 +73,18 @@ func Run() error {
 		productsRouter.HandleFunc("/", productHandler.GetAllProducts).Methods("GET")
 		productsRouter.HandleFunc("/{id}", productHandler.GetProductByID).Methods("GET")
 		productsRouter.HandleFunc("/{id}/cover", productHandler.GetProductCover).Methods("GET")
-		productsRouter.HandleFunc("/upload", productHandler.CreateOne).Methods("POST")
-		router.HandleFunc("/files/{objectID}", productHandler.GetOne).Methods("GET")
+		productsRouter.HandleFunc("/category/{id}", productHandler.GetProductsByCategory).Methods("GET")
+	}
+
+	catalogRouter := router.PathPrefix("/categories").Subrouter()
+	{
+		catalogRouter.HandleFunc("/", productHandler.GetAllCategories).Methods("GET")
+	}
+
+	productCoverRouter := router.PathPrefix("/cover").Subrouter()
+	{
+		productCoverRouter.HandleFunc("/upload", productHandler.CreateOne).Methods("POST")
+		productsRouter.HandleFunc("/files/{objectID}", productHandler.GetOne).Methods("GET")
 	}
 
 	authRouter := router.PathPrefix("/auth").Subrouter()

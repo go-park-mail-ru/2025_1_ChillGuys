@@ -14,6 +14,8 @@ type IProductRepository interface {
 	GetAllProducts(ctx context.Context) ([]*models.Product, error)
 	GetProductByID(ctx context.Context, id uuid.UUID) (*models.Product, error)
 	GetProductCoverPath(ctx context.Context, id uuid.UUID) ([]byte, error)
+	GetProductsByCategory(ctx context.Context, id uuid.UUID)([]*models.Product, error)
+	GetAllCategories(ctx context.Context)([]*models.Category, error)
 }
 
 type ProductUsecase struct {
@@ -53,4 +55,22 @@ func (u *ProductUsecase) GetProductCover(ctx context.Context, id uuid.UUID) ([]b
 	}
 
 	return fileData, err
+}
+
+func (u *ProductUsecase) GetProductsByCategory(ctx context.Context, id uuid.UUID) ([]*models.Product, error){
+	products, err := u.repo.GetProductsByCategory(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	return products, nil
+}
+
+func (u *ProductUsecase) GetAllCategories(ctx context.Context)([]*models.Category, error) {
+	categories, err := u.repo.GetAllCategories(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return categories, nil
 }
