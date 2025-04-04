@@ -8,4 +8,7 @@ var (
 	ErrUserAlreadyExists  = errors.New("user already exists")
 	ErrInvalidUserID      = errors.New("invalid user id format")
 	ErrInvalidCredentials = errors.New("invalid credentials")
+	ErrInvalidQuantity    = errors.New("invalid quantity")
+	ErrNotFound 	   	  = errors.New("not found")
+	ErrInvalidProductID   = errors.New("invalid product id")
 )

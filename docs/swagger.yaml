@@ -1,5 +1,72 @@
 basePath: /api
 definitions:
+  basket.addProductRequest:
+    properties:
+      product_id:
+        type: string
+    type: object
+  basket.delProductRequest:
+    properties:
+      product_id:
+        type: string
+    type: object
+  basket.updateQuantityRequest:
+    properties:
+      product_id:
+        type: string
+      quantity:
+        type: integer
+    type: object
+  models.BasketItem:
+    properties:
+      basket_id:
+        type: string
+      id:
+        type: string
+      price_discount:
+        type: number
+      product_id:
+        type: string
+      product_image:
+        type: string
+      product_name:
+        type: string
+      product_price:
+        type: number
+      quantity:
+        type: integer
+      updated_at:
+        type: string
+    type: object
+  models.BasketResponse:
+    properties:
+      products:
+        items:
+          $ref: '#/definitions/models.BasketItem'
+        type: array
+      total:
+        type: integer
+      total_price:
+        type: number
+      total_price_discount:
+        type: number
+    type: object
+  models.Category:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+  models.CategoryResponse:
+    properties:
+      categories:
+        items:
+          $ref: '#/definitions/models.Category'
+        type: array
+      total:
+        type: integer
+    type: object
   models.Product:
     properties:
       description:
@@ -11,7 +78,7 @@ definitions:
       preview_image_url:
         type: string
       price:
-        type: integer
+        type: number
       quantity:
         type: integer
       rating:
@@ -71,6 +138,40 @@ info:
   title: ChillGuys API
   version: "1.0"
 paths:
+  /api/v1/products/category/{id}:
+    get:
+      description: Возвращает список всех одобренных товаров, принадлежащих указанной
+        категории.
+      parameters:
+      - description: UUID категории в формате строки
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешный запрос. Возвращает массив товаров.
+          schema:
+            items:
+              $ref: '#/definitions/models.Product'
+            type: array
+        "400":
+          description: Неверный формат UUID категории
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "404":
+          description: Категория не найдена
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: Получить товары по категории
+      tags:
+      - products
   /auth/login:
     post:
       consumes:
@@ -169,6 +270,183 @@ paths:
       summary: Register user
       tags:
       - auth
+  /basket:
+    get:
+      description: Возвращает все товары в корзине пользователя
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Содержимое корзины
+          schema:
+            $ref: '#/definitions/models.BasketResponse'
+        "401":
+          description: Пользователь не авторизован
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "404":
+          description: Корзина не найдена
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: Ошибка сервера
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Получить содержимое корзины
+      tags:
+      - basket
+  /basket/add:
+    post:
+      consumes:
+      - application/json
+      description: Добавляет товар в корзину пользователя или увеличивает количество,
+        если товар уже есть
+      parameters:
+      - description: Данные товара
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/basket.addProductRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Добавленный товар
+          schema:
+            $ref: '#/definitions/models.BasketItem'
+        "400":
+          description: Некорректные данные
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "401":
+          description: Пользователь не авторизован
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "404":
+          description: Товар не найден
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: Ошибка сервера
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Добавить товар в корзину
+      tags:
+      - basket
+  /basket/clear:
+    delete:
+      description: Полностью удаляет все товары из корзины пользователя
+      responses:
+        "204":
+          description: Корзина успешно очищена
+        "401":
+          description: Пользователь не авторизован
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: Ошибка сервера
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Очистить корзину
+      tags:
+      - basket
+  /basket/remove:
+    delete:
+      parameters:
+      - description: Данные товара
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/basket.delProductRequest'
+      responses:
+        "204":
+          description: Товар успешно удалён
+        "400":
+          description: Некорректный формат запроса
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "401":
+          description: Пользователь не авторизован
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "404":
+          description: Товар не найден в корзине
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Удалить товар из корзины
+      tags:
+      - basket
+  /basket/update:
+    put:
+      consumes:
+      - application/json
+      description: Изменяет количество указанного товара в корзине
+      parameters:
+      - description: Данные для обновления
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/basket.updateQuantityRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Обновленный товар
+          schema:
+            $ref: '#/definitions/models.BasketItem'
+        "400":
+          description: Некорректные данные
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "401":
+          description: Пользователь не авторизован
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "404":
+          description: Товар не найден
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: Ошибка сервера
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Обновить количество товара
+      tags:
+      - basket
+  /categories:
+    get:
+      description: Возвращает список всех доступных категорий товаров
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список категорий
+          schema:
+            $ref: '#/definitions/models.CategoryResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: Получить все категории
+      tags:
+      - categories
   /files/{objectID}:
     get:
       description: Возвращает URL для доступа к файлу в MinIO
