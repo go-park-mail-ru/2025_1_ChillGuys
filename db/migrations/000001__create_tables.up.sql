@@ -28,6 +28,18 @@ CREATE TYPE order_status AS ENUM (
     'canceled_due_to_payment_error' -- Отменен из-за ошибки платежа
     );
 
+-- Адреса
+CREATE TABLE IF NOT EXISTS address
+(
+    id           UUID PRIMARY KEY,
+    city         TEXT         NOT NULL,
+    street       TEXT         NOT NULL,
+    house        TEXT         NOT NULL,
+    apartment    TEXT,
+    zip_code     TEXT         NOT NULL,
+    updated_at   TIMESTAMPTZ DEFAULT now()
+);
+
 -- Создание таблицы пользователей
 CREATE TABLE IF NOT EXISTS "user"
 (
@@ -48,18 +60,6 @@ CREATE TABLE IF NOT EXISTS pickup_point
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now(),
     address_id UUID NOT NULL REFERENCES address (id) ON DELETE SET NULL
-);
-
--- Адреса
-CREATE TABLE IF NOT EXISTS address
-(
-    id           UUID PRIMARY KEY,
-    city         TEXT         NOT NULL,
-    street       TEXT         NOT NULL,
-    house        TEXT         NOT NULL,
-    apartment    TEXT,
-    zip_code     TEXT         NOT NULL,
-    updated_at   TIMESTAMPTZ DEFAULT now()
 );
 
 -- Связующая таблица для ПВЗ и пользователей

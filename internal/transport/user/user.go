@@ -171,19 +171,17 @@ func (h *AuthHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 	response.SendSuccessResponse(w, http.StatusOK, user)
 }
 
-// FIXME: Success добавить
-//
-//	@Summary		Upload avatar
-//	@Description	Загружает аватар пользователя
-//	@Tags			users
-//	@Accept			multipart/form-data
-//	@Produce		json
-//	@Param			file	formData	file					true	"Файл изображения"
-//	@Success		200		{object}	map[string]string		"URL загруженного аватара"
-//	@Failure		400		{object}	response.ErrorResponse	"Ошибка при обработке формы"
-//	@Failure		500		{object}	response.ErrorResponse	"Ошибка загрузки файла"
-//	@Security		TokenAuth
-//	@Router			/users/avatar [post]
+// @Summary		Upload avatar
+// @Description	Загружает аватар пользователя
+// @Tags			users
+// @Accept			multipart/form-data
+// @Produce		json
+// @Param			file	formData	file					true	"Файл изображения"
+// @Success		200		{object}	map[string]string		"URL загруженного аватара"
+// @Failure		400		{object}	response.ErrorResponse	"Ошибка при обработке формы"
+// @Failure		500		{object}	response.ErrorResponse	"Ошибка загрузки файла"
+// @Security		TokenAuth
+// @Router			/users/avatar [post]
 func (h *AuthHandler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseMultipartForm(10 << 20); err != nil {
 		h.log.Warnf("error parsing multipart form: %v", err)
@@ -218,7 +216,9 @@ func (h *AuthHandler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.SendSuccessResponse(w, http.StatusOK, avatarURL)
+	response.SendSuccessResponse(w, http.StatusOK, map[string]string{
+		"imageURL": avatarURL,
+	})
 }
 
 // ValidateLoginCreds проверяет корректность данных при авторизации
