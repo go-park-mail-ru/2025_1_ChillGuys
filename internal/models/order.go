@@ -54,8 +54,8 @@ type Order struct {
 	ID                 uuid.UUID
 	UserID             uuid.UUID
 	Status             OrderStatus
-	TotalPrice         int
-	TotalPriceDiscount int
+	TotalPrice         float64
+	TotalPriceDiscount float64
 	AddressID          uuid.UUID
 	Items              []CreateOrderItemDTO
 }
@@ -64,7 +64,7 @@ type OrderDB struct {
 	ID         uuid.UUID `db:"id"`
 	UserID     string    `db:"user_id"`
 	Status     string    `db:"status"`
-	TotalPrice int       `db:"total_price"`
+	TotalPrice float64   `db:"total_price"`
 	AddressID  uuid.UUID `db:"address_id"`
 }
 
@@ -72,7 +72,7 @@ type OrderItemDB struct {
 	ID        uuid.UUID `db:"id"`
 	OrderID   uuid.UUID `db:"order_id"`
 	ProductID uuid.UUID `db:"product_id"`
-	Quantity  int       `db:"quantity"`
+	Quantity  uint      `db:"quantity"`
 }
 
 type CreateOrderDTO struct {
@@ -84,5 +84,10 @@ type CreateOrderDTO struct {
 type CreateOrderItemDTO struct {
 	ID        uuid.UUID
 	ProductID uuid.UUID `json:"product_id"`
-	Quantity  int       `json:"quantity"`
+	Quantity  uint      `json:"quantity"`
+}
+
+type CreateOrderRepoReq struct {
+	Order             *Order
+	UpdatedQuantities map[uuid.UUID]uint
 }

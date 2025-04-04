@@ -15,27 +15,66 @@ const (
 	DefaultPathCoverName = "product-default"
 )
 
+// ProductStatus представляет статус товара
+type ProductStatus int
+
+// Константы статусов товара
+const (
+	ProductPending  ProductStatus = iota // Ожидает
+	ProductRejected                      // Отказано
+	ProductApproved                      // Одобрено
+)
+
+// String возвращает строковое представление статуса
+func (s ProductStatus) String() string {
+	return [...]string{
+		"pending",
+		"rejected",
+		"approved",
+	}[s]
+}
+
+// ParseProductStatus преобразует строку в ProductStatus
+func ParseProductStatus(status string) (ProductStatus, error) {
+	switch status {
+	case "pending":
+		return ProductPending, nil
+	case "rejected":
+		return ProductRejected, nil
+	case "approved":
+		return ProductApproved, nil
+	default:
+		return ProductPending, fmt.Errorf("unknown product status: %s", status)
+	}
+}
+
 type Product struct {
-	ID              uuid.UUID `json:"id" db:"id"`
-	SellerID        uuid.UUID `json:"seller_id" db:"seller_id"`
-	Name            string    `json:"name" db:"name"`
-	PreviewImageURL string    `json:"preview_image_url,omitempty" db:"preview_image_url"`
-	Description     string    `json:"description,omitempty" db:"description"`
-	Status          string    `json:"status" db:"status"`
-	Price           uint      `json:"price" db:"price"`
-	Quantity        uint      `json:"quantity" db:"quantity"`
-	UpdatedAt       time.Time `json:"updated_at" db:"updated_at"`
-	Rating          int       `json:"rating,omitempty" db:"rating"`
-	ReviewsCount    uint      `json:"reviews_count" db:"reviews_count"` // Добавлено поле
+	ID              uuid.UUID     `json:"id" db:"id"`
+	SellerID        uuid.UUID     `json:"seller_id" db:"seller_id"`
+	Name            string        `json:"name" db:"name"`
+	PreviewImageURL string        `json:"preview_image_url,omitempty" db:"preview_image_url"`
+	Description     string        `json:"description,omitempty" db:"description"`
+	Status          ProductStatus `json:"status" db:"status"`
+	Price           float64       `json:"price" db:"price"`
+	Quantity        uint          `json:"quantity" db:"quantity"`
+	UpdatedAt       time.Time     `json:"updated_at" db:"updated_at"`
+	Rating          uint          `json:"rating,omitempty" db:"rating"`
+	ReviewsCount    uint          `json:"reviews_count" db:"reviews_count"`
+}
+
+type ProductDiscount struct {
+	DiscountedPrice   float64   `db:"discounted_price"`
+	DiscountEndDate   time.Time `db:"end_date"`
+	DiscountStartDate time.Time `db:"start_date"`
 }
 
 type BriefProduct struct {
 	ID           uuid.UUID `json:"id"`
 	Name         string    `json:"name"`
 	ImageURL     string    `json:"image"`
-	Price        uint      `json:"price"`
+	Price        float64   `json:"price"`
 	ReviewsCount uint      `json:"reviews_count"`
-	Rating       int       `json:"rating"`
+	Rating       uint      `json:"rating"`
 }
 
 func GetProductCoverPath(id uuid.UUID) string {

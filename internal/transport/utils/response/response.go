@@ -53,15 +53,26 @@ func SendSuccessResponse(w http.ResponseWriter, statusCode int, body interface{}
 }
 
 func HandleError(w http.ResponseWriter, err error) {
-	if errors.Is(err, errs.ErrInvalidCredentials) {
+	switch {
+	case errors.Is(err, errs.ErrInvalidCredentials):
 		SendErrorResponse(w, http.StatusUnauthorized, "invalid email or password")
-	} else if errors.Is(err, errs.ErrUserNotFound) {
+	case errors.Is(err, errs.ErrUserNotFound):
 		SendErrorResponse(w, http.StatusUnauthorized, "user not found")
-	} else if errors.Is(err, errs.ErrUserAlreadyExists) {
+	case errors.Is(err, errs.ErrUserAlreadyExists):
 		SendErrorResponse(w, http.StatusConflict, "user already exists")
-	} else if errors.Is(err, errs.ErrInvalidUserID) {
+	case errors.Is(err, errs.ErrInvalidUserID):
 		SendErrorResponse(w, http.StatusBadRequest, "invalid user id format")
-	} else {
+	case errors.Is(err, errs.ErrInvalidToken):
+		SendErrorResponse(w, http.StatusUnauthorized, "invalid token")
+	case errors.Is(err, errs.ErrProductNotFound):
+		SendErrorResponse(w, http.StatusNotFound, "product not found")
+	case errors.Is(err, errs.ErrProductNotApproved):
+		SendErrorResponse(w, http.StatusForbidden, "product not approved")
+	case errors.Is(err, errs.ErrNotEnoughStock):
+		SendErrorResponse(w, http.StatusBadRequest, "not enough stock")
+	case errors.Is(err, errs.ErrProductDiscountNotFound):
+		SendErrorResponse(w, http.StatusNotFound, "product discount not found")
+	default:
 		SendErrorResponse(w, http.StatusInternalServerError, err.Error())
 	}
 }
