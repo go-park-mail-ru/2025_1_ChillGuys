@@ -40,6 +40,7 @@ func (u *OrderUsecase) CreateOrder(ctx context.Context, in models.CreateOrderDTO
 
 	var totalPrice float64 = 0
 	var totalDiscountedPrice float64 = 0
+
 	newQuantities := make(map[uuid.UUID]uint)
 
 	mu := &sync.Mutex{}
@@ -51,7 +52,7 @@ func (u *OrderUsecase) CreateOrder(ctx context.Context, in models.CreateOrderDTO
 		orderItems[i] = item
 
 		totalWg.Add(1)
-		go func(item models.CreateOrderItemDTO) {
+		go func(i int, item models.CreateOrderItemDTO) {
 			defer totalWg.Done()
 
 			var innerWg sync.WaitGroup
@@ -123,24 +124,26 @@ func (u *OrderUsecase) CreateOrder(ctx context.Context, in models.CreateOrderDTO
 				return
 			}
 
-			discount, ok := findLatestDiscount(discounts)
-			if !ok {
-				trySendError(errs.ErrProductDiscountNotFound, errCh, cancel)
-				return
-			}
+			discount, _ := findLatestDiscount(discounts)
 
 			mu.Lock()
+
+			var priceToSave float64
 			totalPrice += product.Price * float64(item.Quantity)
 			newQuantities[item.ProductID] = product.Quantity - item.Quantity
 
 			// Если есть скидка и она активна
 			if discount.DiscountedPrice != 0 && discount.DiscountEndDate.After(now) {
 				totalDiscountedPrice += discount.DiscountedPrice * float64(item.Quantity)
+				priceToSave = discount.DiscountedPrice
 			} else {
 				totalDiscountedPrice += product.Price * float64(item.Quantity)
+				priceToSave = product.Price
 			}
+			orderItems[i].Price = priceToSave
 			mu.Unlock()
-		}(item)
+
+		}(i, item)
 	}
 
 	// Горутина для закрытия канала после завершения всех операций

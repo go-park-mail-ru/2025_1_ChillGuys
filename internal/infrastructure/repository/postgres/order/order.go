@@ -12,7 +12,7 @@ import (
 
 const (
 	queryCreateOrder           = `INSERT INTO "order" (id, user_id, status, total_price, total_price_discount, address_id) VALUES ($1, $2, $3, $4, $5, $6)`
-	queryAddOrderItem          = `INSERT INTO "order_item" (id, order_id, product_id, quantity) VALUES ($1, $2, $3, $4)`
+	queryAddOrderItem          = `INSERT INTO "order_item" (id, order_id, product_id, price, quantity) VALUES ($1, $2, $3, $4, $5)`
 	queryGetProductPrice       = `SELECT price, status, quantity FROM product WHERE id = $1`
 	queryGetProductDiscount    = `SELECT discounted_price, start_date, end_date FROM discount WHERE product_id = $1`
 	queryUpdateProductQuantity = `UPDATE product SET quantity = $1 WHERE id = $2`
@@ -67,7 +67,7 @@ func (r *OrderRepository) CreateOrder(ctx context.Context, in models.CreateOrder
 	// Добавляем товары заказа
 	for _, item := range in.Order.Items {
 		if _, err = tx.ExecContext(ctx, queryAddOrderItem,
-			item.ID, in.Order.ID, item.ProductID, item.Quantity,
+			item.ID, in.Order.ID, item.ProductID, item.Price, item.Quantity,
 		); err != nil {
 			tx.Rollback()
 			return err

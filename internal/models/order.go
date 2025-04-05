@@ -72,6 +72,7 @@ type OrderItemDB struct {
 	ID        uuid.UUID `db:"id"`
 	OrderID   uuid.UUID `db:"order_id"`
 	ProductID uuid.UUID `db:"product_id"`
+	Price     float64   `db:"product_price"`
 	Quantity  uint      `db:"quantity"`
 }
 
@@ -84,6 +85,7 @@ type CreateOrderDTO struct {
 type CreateOrderItemDTO struct {
 	ID        uuid.UUID
 	ProductID uuid.UUID `json:"product_id"`
+	Price     float64   `json:"product_price"`
 	Quantity  uint      `json:"quantity"`
 }
 

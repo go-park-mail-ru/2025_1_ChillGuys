@@ -31,13 +31,13 @@ CREATE TYPE order_status AS ENUM (
 -- Адреса
 CREATE TABLE IF NOT EXISTS address
 (
-    id           UUID PRIMARY KEY,
-    city         TEXT         NOT NULL,
-    street       TEXT         NOT NULL,
-    house        TEXT         NOT NULL,
-    apartment    TEXT,
-    zip_code     TEXT         NOT NULL,
-    updated_at   TIMESTAMPTZ DEFAULT now()
+    id         UUID PRIMARY KEY,
+    city       TEXT NOT NULL,
+    street     TEXT NOT NULL,
+    house      TEXT NOT NULL,
+    apartment  TEXT,
+    zip_code   TEXT NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT now()
 );
 
 -- Создание таблицы пользователей
@@ -186,7 +186,8 @@ CREATE TABLE IF NOT EXISTS order_item
     id         UUID PRIMARY KEY,
     order_id   UUID REFERENCES "order" (id) ON DELETE CASCADE,
     product_id UUID REFERENCES product (id) ON DELETE CASCADE,
-    quantity   INT CHECK (quantity > 0) NOT NULL,
+    price      NUMERIC(12, 2) CHECK (price >= 0) NOT NULL,
+    quantity   INT CHECK (quantity > 0)          NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT now(),
     UNIQUE (order_id, product_id)
 );
