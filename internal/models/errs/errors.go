@@ -14,6 +14,10 @@ var (
 	ErrInvalidID          = errors.New("invalid id format")
 	ErrInvalidCredentials = errors.New("invalid credentials")
 	ErrBusinessLogic      = errors.New("business logic error")
+	ErrProductNotFound         = errors.New("product not found")
+	ErrProductNotApproved      = errors.New("product not approved")
+	ErrNotEnoughStock          = errors.New("not enough stock")
+	ErrProductDiscountNotFound = errors.New("product discount not found")
 )
 
 func NewBusinessLogicError(msg string) error {

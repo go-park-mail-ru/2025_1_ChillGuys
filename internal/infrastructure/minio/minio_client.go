@@ -79,7 +79,9 @@ func (m *minioClient) CreateOne(ctx context.Context, file FileDataType) (*Upload
 	reader := bytes.NewReader(file.Data)
 
 	// Загрузка данных в бакет Minio с использованием контекста для возможности отмены операции.
-	_, err := m.mc.PutObject(ctx, m.config.BucketName, objectID, reader, int64(len(file.Data)), minio.PutObjectOptions{})
+	_, err := m.mc.PutObject(ctx, m.config.BucketName, objectID, reader, int64(len(file.Data)), minio.PutObjectOptions{
+		ContentType: "image/jpeg",
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create object %s: %v", file.FileName, err)
 	}
@@ -114,8 +116,10 @@ func (m *minioClient) CreateMany(ctx context.Context, data map[string]FileDataTy
 	for objectID, file := range data {
 		wg.Add(1)
 		go func(objectID string, file FileDataType) {
-			defer wg.Done()                                                                                                                           // Уменьшение счетчика WaitGroup после завершения горутины.
-			_, err := m.mc.PutObject(ctx, m.config.BucketName, objectID, bytes.NewReader(file.Data), int64(len(file.Data)), minio.PutObjectOptions{}) // Создание объекта в бакете MinIO.
+			defer wg.Done() // Уменьшение счетчика WaitGroup после завершения горутины.
+			_, err := m.mc.PutObject(ctx, m.config.BucketName, objectID, bytes.NewReader(file.Data), int64(len(file.Data)), minio.PutObjectOptions{
+				ContentType: "image/jpeg",
+			}) // Создание объекта в бакете MinIO.
 			if err != nil {
 				cancel()
 				return

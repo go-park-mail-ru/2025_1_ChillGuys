@@ -12,6 +12,7 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware"
 	producttr "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/product"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/user"
+	order2 "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/order"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/product"
 	userus "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/user"
 	"github.com/gorilla/mux"
@@ -62,7 +63,10 @@ func NewApp(conf *config.Config) (*App, error) {
 	productUsecase := product.NewProductUsecase(logger, productRepo)
 	productHandler := producttr.NewProductHandler(productUsecase, logger, minioClient)
 
-	// Создание роутера и настройка middleware.
+	orderRepo := order.NewOrderRepository(db, logger)
+	orderUsecase := order2.NewOrderUsecase(orderRepo, logger)
+	orderHandler := order3.NewOrderHandler(orderUsecase, logger)
+
 	router := mux.NewRouter().PathPrefix("/api").Subrouter()
 	router.Use(func(next http.Handler) http.Handler {
 		return middleware.CORSMiddleware(next, conf.ServerConfig)
@@ -119,11 +123,14 @@ func NewApp(conf *config.Config) (*App, error) {
 		router: router,
 	}
 
-	return app, nil
-}
+	orderRouter := router.PathPrefix("/order").Subrouter()
+	{
+		orderRouter.Handle("/", middleware.JWTMiddleware(
+			tokenator,
+			http.HandlerFunc(orderHandler.CreateOrder),
+		)).Methods("POST")
+	}
 
-// Run запускает HTTP-сервер приложения.
-func (a *App) Run() error {
 	srv := &http.Server{
 		Handler: a.router,
 		Addr:    fmt.Sprintf(":%s", a.conf.ServerConfig.Port),
