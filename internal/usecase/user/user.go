@@ -2,7 +2,7 @@ package user
 
 import (
 	"context"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/domains"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/domains"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/minio"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"

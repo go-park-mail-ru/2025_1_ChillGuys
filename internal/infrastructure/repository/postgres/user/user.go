@@ -11,9 +11,9 @@ import (
 )
 
 const (
-	queryCreateUser        = `INSERT INTO bazaar."user" (id, email, name, surname, password_hash, image_url) VALUES($1, $2, $3, $4, $5, $6);`
-	queryCreateUserVersion = `INSERT INTO bazaar."user_version" (id, user_id, version, updated_at) VALUES($1, $2, $3, $4);`
-	queryGetUserVersion    = `SELECT version FROM bazaar."user_version" WHERE user_id = $1`
+	queryCreateUser        = `INSERT INTO "user" (id, email, name, surname, password_hash, image_url) VALUES($1, $2, $3, $4, $5, $6);`
+	queryCreateUserVersion = `INSERT INTO "user_version" (id, user_id, version, updated_at) VALUES($1, $2, $3, $4);`
+	queryGetUserVersion    = `SELECT version FROM "user_version" WHERE user_id = $1`
 	queryGetUserByEmail    = `
 	SELECT
 		u.id,
@@ -25,8 +25,8 @@ const (
 		uv.id AS user_version_id,
 		uv.version,
 		uv.updated_at
-	FROM bazaar."user" u
-			 LEFT JOIN bazaar.user_version uv ON u.id = uv.user_id
+	FROM "user" u
+			 LEFT JOIN user_version uv ON u.id = uv.user_id
 	WHERE u.email = $1;
 	`
 	queryGetUserByID = `
@@ -40,13 +40,13 @@ const (
 		uv.id AS user_version_id, 
 		uv.version, 
 		uv.updated_at
-	FROM bazaar."user" u
-	LEFT JOIN bazaar.user_version uv ON u.id = uv.user_id
+	FROM "user" u
+	LEFT JOIN user_version uv ON u.id = uv.user_id
 	WHERE u.id = $1;
 	`
-	queryIncrementUserVersion = `UPDATE bazaar."user_version" SET version = version + 1 WHERE user_id = $1`
-	queryCheckUserExists      = `SELECT EXISTS(SELECT 1 FROM "bazaar.user" WHERE email = $1)`
-	queryUpdateUserImageURL   = `UPDATE bazaar."user" SET image_url = $1 WHERE id = $2`
+	queryIncrementUserVersion = `UPDATE "user_version" SET version = version + 1 WHERE user_id = $1`
+	queryCheckUserExists      = `SELECT EXISTS(SELECT 1 FROM "user" WHERE email = $1)`
+	queryUpdateUserImageURL   = `UPDATE "user" SET image_url = $1 WHERE id = $2`
 )
 
 type UserRepository struct {

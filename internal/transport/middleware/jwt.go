@@ -2,7 +2,7 @@ package middleware
 
 import (
 	"context"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/domains"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/domains"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/response"
 	"github.com/sirupsen/logrus"

@@ -1,10 +1,9 @@
 package order
 
 import (
-	"fmt"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/domains"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/cookie"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/request"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/response"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/order"
 	"github.com/google/uuid"
@@ -28,29 +27,29 @@ func NewOrderHandler(
 }
 
 func (o *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
-	userIDStr, isExist := r.Context().Value(cookie.UserIDKey).(string)
+	userIDStr, isExist := r.Context().Value(domains.UserIDKey).(string)
 	if !isExist {
-		response.HandleError(w, errs.ErrUserNotFound)
+		response.SendJSONError(r.Context(), w, http.StatusUnauthorized, "user not found in context")
 		return
 	}
 
 	userID, err := uuid.Parse(userIDStr)
 	if err != nil {
-		response.HandleError(w, errs.ErrInvalidUserID)
+		response.SendJSONError(r.Context(), w, http.StatusBadRequest, "invalid user id format")
 		return
 	}
 
-	var request models.CreateOrderDTO
-	if errStatusCode, err := response.ParseData(r.Body, &request); err != nil {
-		response.SendErrorResponse(w, errStatusCode, fmt.Sprintf("Failed to parse request body: %v", err))
+	var CreateOrderReq models.CreateOrderDTO
+	if err := request.ParseData(r, &CreateOrderReq); err != nil {
+		response.SendJSONError(r.Context(), w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	request.UserID = userID
-	if err := o.u.CreateOrder(r.Context(), request); err != nil {
-		response.HandleError(w, err)
+	CreateOrderReq.UserID = userID
+	if err := o.u.CreateOrder(r.Context(), CreateOrderReq); err != nil {
+		response.HandleDomainError(r.Context(), w, err, "failed to create order")
 		return
 	}
 
-	response.SendSuccessResponse(w, http.StatusOK, nil)
+	response.SendJSONResponse(r.Context(), w, http.StatusOK, nil)
 }

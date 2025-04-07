@@ -87,7 +87,7 @@ func (r *OrderRepository) ProductPrice(ctx context.Context, ProductID uuid.UUID)
 		&product.Quantity,
 	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, errs.ErrProductNotFound
+			return nil, errs.ErrNotFound
 		}
 		return nil, err
 	}
@@ -126,7 +126,7 @@ func (r *OrderRepository) ProductDiscounts(ctx context.Context, productID uuid.U
 	}
 
 	if len(discounts) == 0 {
-		return nil, errs.ErrProductDiscountNotFound
+		return nil, errs.ErrNotFound
 	}
 
 	return discounts, nil
@@ -143,7 +143,7 @@ func (r *OrderRepository) UpdateProductQuantity(ctx context.Context, productID u
 		return err
 	}
 	if rowsAffected == 0 {
-		return errs.ErrProductNotFound
+		return errs.ErrNotFound
 	}
 
 	return nil

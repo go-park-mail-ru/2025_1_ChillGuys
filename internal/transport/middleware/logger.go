@@ -3,7 +3,7 @@ package middleware
 import (
 	"context"
 	"fmt"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/domains"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/domains"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/logctx"
 	"math/rand"
 	"net/http"

@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/domains"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/minio"
 	user2 "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/mocks"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/cookie"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/user"
 	"testing"
 	"time"
@@ -262,7 +262,7 @@ func TestAuthUsecase_Logout(t *testing.T) {
 	testUserID := uuid.New().String()
 
 	t.Run("Success", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), cookie.UserIDKey, testUserID)
+		ctx := context.WithValue(context.Background(), domains.UserIDKey, testUserID)
 
 		mockRepo.EXPECT().
 			IncrementUserVersion(gomock.Any(), testUserID).
@@ -282,7 +282,7 @@ func TestAuthUsecase_Logout(t *testing.T) {
 	})
 
 	t.Run("IncrementVersionError", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), cookie.UserIDKey, testUserID)
+		ctx := context.WithValue(context.Background(), domains.UserIDKey, testUserID)
 
 		mockRepo.EXPECT().
 			IncrementUserVersion(gomock.Any(), testUserID).
@@ -324,7 +324,7 @@ func TestAuthUsecase_GetMe(t *testing.T) {
 	}
 
 	t.Run("Success", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), cookie.UserIDKey, testUserID.String())
+		ctx := context.WithValue(context.Background(), domains.UserIDKey, testUserID.String())
 
 		mockRepo.EXPECT().
 			GetUserByID(gomock.Any(), testUserID).
@@ -348,7 +348,7 @@ func TestAuthUsecase_GetMe(t *testing.T) {
 	})
 
 	t.Run("InvalidUserID", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), cookie.UserIDKey, "invalid-uuid")
+		ctx := context.WithValue(context.Background(), domains.UserIDKey, "invalid-uuid")
 
 		user, err := uc.GetMe(ctx)
 
@@ -358,7 +358,7 @@ func TestAuthUsecase_GetMe(t *testing.T) {
 	})
 
 	t.Run("GetUserByIDError", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), cookie.UserIDKey, testUserID.String())
+		ctx := context.WithValue(context.Background(), domains.UserIDKey, testUserID.String())
 
 		mockRepo.EXPECT().
 			GetUserByID(gomock.Any(), testUserID).
@@ -372,7 +372,7 @@ func TestAuthUsecase_GetMe(t *testing.T) {
 	})
 
 	t.Run("UserNotFoundInDB", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), cookie.UserIDKey, testUserID.String())
+		ctx := context.WithValue(context.Background(), domains.UserIDKey, testUserID.String())
 
 		mockRepo.EXPECT().
 			GetUserByID(gomock.Any(), testUserID).

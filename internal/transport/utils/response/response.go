@@ -86,14 +86,18 @@ func HandleDomainError(ctx context.Context, w http.ResponseWriter, err error, de
 		SendJSONError(ctx, w, http.StatusUnprocessableEntity, fmt.Sprintf("%s: %v", description, err))
 		log.Debug("business logic error: ", description, errs.NewBusinessLogicError(description))
 
-	case errors.Is(err, errs.ErrProductNotFound):
-		SendErrorResponse(w, http.StatusNotFound, "product not found")
+	case errors.Is(err, errs.ErrNotFound):
+		SendJSONError(ctx, w, http.StatusNotFound, fmt.Sprintf("%s: %v", description, err))
+		log.Debug("product not found: ", description, err.Error())
+
 	case errors.Is(err, errs.ErrProductNotApproved):
-		SendErrorResponse(w, http.StatusForbidden, "product not approved")
+		SendJSONError(ctx, w, http.StatusForbidden, fmt.Sprintf("%s: %v", description, err))
+		log.Debug("product not approved: ", description, err.Error())
+
 	case errors.Is(err, errs.ErrNotEnoughStock):
-		SendErrorResponse(w, http.StatusBadRequest, "not enough stock")
-	case errors.Is(err, errs.ErrProductDiscountNotFound):
-		SendErrorResponse(w, http.StatusNotFound, "product discount not found")
+		SendJSONError(ctx, w, http.StatusBadRequest, fmt.Sprintf("%s: %v", description, err))
+		log.Debug("not enough stock: ", description, err.Error())
+
 	default:
 		SendJSONError(ctx, w, http.StatusInternalServerError, err.Error())
 		log.Error("unexpected error: ", description, err.Error())

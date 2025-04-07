@@ -6,13 +6,15 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/minio"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres"
+	orderrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/order"
 	productrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/product"
 	userrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/user"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/order"
 	producttr "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/product"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/user"
-	order2 "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/order"
+	orderus "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/order"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/product"
 	userus "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/user"
 	"github.com/gorilla/mux"
@@ -63,9 +65,9 @@ func NewApp(conf *config.Config) (*App, error) {
 	productUsecase := product.NewProductUsecase(logger, productRepo)
 	productHandler := producttr.NewProductHandler(productUsecase, logger, minioClient)
 
-	orderRepo := order.NewOrderRepository(db, logger)
-	orderUsecase := order2.NewOrderUsecase(orderRepo, logger)
-	orderHandler := order3.NewOrderHandler(orderUsecase, logger)
+	orderRepo := orderrepo.NewOrderRepository(db, logger)
+	orderUsecase := orderus.NewOrderUsecase(orderRepo, logger)
+	orderHandler := order.NewOrderHandler(orderUsecase, logger)
 
 	router := mux.NewRouter().PathPrefix("/api").Subrouter()
 	router.Use(func(next http.Handler) http.Handler {
@@ -116,13 +118,6 @@ func NewApp(conf *config.Config) (*App, error) {
 			Methods(http.MethodPost)
 	}
 
-	app := &App{
-		conf:   conf,
-		logger: logger,
-		db:     db,
-		router: router,
-	}
-
 	orderRouter := router.PathPrefix("/order").Subrouter()
 	{
 		orderRouter.Handle("/", middleware.JWTMiddleware(
@@ -131,14 +126,26 @@ func NewApp(conf *config.Config) (*App, error) {
 		)).Methods("POST")
 	}
 
-	srv := &http.Server{
-		Handler: a.router,
-		Addr:    fmt.Sprintf(":%s", a.conf.ServerConfig.Port),
+	app := &App{
+		conf:   conf,
+		logger: logger,
+		db:     db,
+		router: router,
 	}
 
-	a.logger.Infof("starting server on port %s", srv.Addr)
-	if err := srv.ListenAndServe(); err != nil {
-		return fmt.Errorf("server error: %w", err)
+	return app, nil
+}
+
+// Run запускает HTTP-сервер.
+func (a *App) Run() error {
+	server := &http.Server{
+		Handler:      a.router,
+		Addr:         fmt.Sprintf(":%s", a.conf.ServerConfig.Port),
+		WriteTimeout: a.conf.ServerConfig.WriteTimeout,
+		ReadTimeout:  a.conf.ServerConfig.ReadTimeout,
+		IdleTimeout:  a.conf.ServerConfig.IdleTimeout,
 	}
-	return nil
+
+	a.logger.Infof("starting server on port %s", a.conf.ServerConfig.Port)
+	return server.ListenAndServe()
 }

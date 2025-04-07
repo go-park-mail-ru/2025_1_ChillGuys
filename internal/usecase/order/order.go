@@ -97,7 +97,7 @@ func (u *OrderUsecase) CreateOrder(ctx context.Context, in models.CreateOrderDTO
 					"error":      discountErr,
 					"action":     "get_product_discount",
 				}).Error("Failed to fetch product discount")
-				if discountErr != nil && !errors.Is(discountErr, errs.ErrProductDiscountNotFound) {
+				if discountErr != nil && !errors.Is(discountErr, errs.ErrNotFound) {
 					trySendError(discountErr, errCh, cancel)
 					return
 				}
