@@ -1,12 +1,15 @@
+-- Создание алиаса для схемы bazaar
+CREATE SCHEMA IF NOT EXISTS bazaar;
+
 -- Создание ENUM для статуса товара
-CREATE TYPE product_status AS ENUM (
+CREATE TYPE bazaar.product_status AS ENUM (
     'pending', -- Ожидает
     'rejected', -- Отказано
     'approved' -- Одобрено
     );
 
 -- Создание ENUM для статуса заказа
-CREATE TYPE order_status AS ENUM (
+CREATE TYPE bazaar.order_status AS ENUM (
     'pending', -- Ожидает
     'placed', -- Оформлен
     'awaiting_confirmation', -- Ожидает подтверждения
@@ -29,7 +32,7 @@ CREATE TYPE order_status AS ENUM (
     );
 
 -- Адреса
-CREATE TABLE IF NOT EXISTS address
+CREATE TABLE IF NOT EXISTS bazaar.address
 (
     id         UUID PRIMARY KEY,
     city       TEXT NOT NULL,
@@ -41,7 +44,7 @@ CREATE TABLE IF NOT EXISTS address
 );
 
 -- Создание таблицы пользователей
-CREATE TABLE IF NOT EXISTS "user"
+CREATE TABLE IF NOT EXISTS bazaar."user"
 (
     id            UUID PRIMARY KEY,
     email         TEXT UNIQUE NOT NULL,
@@ -50,70 +53,70 @@ CREATE TABLE IF NOT EXISTS "user"
     name          TEXT        NOT NULL,
     surname       TEXT,
     image_url     TEXT,
-    address_id    UUID        REFERENCES address (id) ON DELETE SET NULL
+    address_id    UUID        REFERENCES bazaar.address (id) ON DELETE SET NULL
 );
 
 -- Таблица для ПВЗ
-CREATE TABLE IF NOT EXISTS pickup_point
+CREATE TABLE IF NOT EXISTS bazaar.pickup_point
 (
     id         UUID PRIMARY KEY,
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now(),
-    address_id UUID NOT NULL REFERENCES address (id) ON DELETE SET NULL
+    address_id UUID NOT NULL REFERENCES bazaar.address (id) ON DELETE SET NULL
 );
 
 -- Связующая таблица для ПВЗ и пользователей
-CREATE TABLE IF NOT EXISTS user_pickup_point
+CREATE TABLE IF NOT EXISTS bazaar.user_pickup_point
 (
     id              UUID PRIMARY KEY,
-    user_id         UUID REFERENCES "user" (id) ON DELETE CASCADE,
-    pickup_point_id UUID REFERENCES pickup_point (id) ON DELETE CASCADE,
+    user_id         UUID REFERENCES bazaar."user" (id) ON DELETE CASCADE,
+    pickup_point_id UUID REFERENCES bazaar.pickup_point (id) ON DELETE CASCADE,
     created_at      TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE TABLE user_balance
+CREATE TABLE bazaar.user_balance
 (
     id         UUID PRIMARY KEY,
-    user_id    UUID           NOT NULL REFERENCES "user" (id) ON DELETE CASCADE,
+    user_id    UUID           NOT NULL REFERENCES bazaar."user" (id) ON DELETE CASCADE,
     balance    NUMERIC(12, 2) NOT NULL DEFAULT 0 CHECK (balance >= 0),
     updated_at TIMESTAMPTZ    NOT NULL DEFAULT NOW(),
     UNIQUE (user_id)
 );
 
 -- Создание таблицы ролей
-CREATE TABLE IF NOT EXISTS role
+CREATE TABLE IF NOT EXISTS bazaar.role
 (
     id   UUID PRIMARY KEY,
     name TEXT UNIQUE NOT NULL
 );
 
 -- Создание таблицы user_role
-CREATE TABLE IF NOT EXISTS user_role
+CREATE TABLE IF NOT EXISTS bazaar.user_role
 (
     id      UUID PRIMARY KEY,
-    user_id UUID REFERENCES "user" (id) ON DELETE CASCADE,
-    role_id UUID REFERENCES role (id) ON DELETE CASCADE,
+    user_id UUID REFERENCES bazaar."user" (id) ON DELETE CASCADE,
+    role_id UUID REFERENCES bazaar.role (id) ON DELETE CASCADE,
     UNIQUE (user_id, role_id)
 );
 
 -- Версии пользователя
-CREATE TABLE IF NOT EXISTS user_version
+CREATE TABLE IF NOT EXISTS bazaar.user_version
 (
     id         UUID PRIMARY KEY,
-    user_id    UUID REFERENCES "user" (id) ON DELETE CASCADE,
+    user_id    UUID REFERENCES bazaar."user" (id) ON DELETE CASCADE,
     version    INT         DEFAULT 1 CHECK (version > 0),
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
 -- Товары
-CREATE TABLE IF NOT EXISTS product
+CREATE TABLE IF NOT EXISTS bazaar.product
 (
     id                UUID PRIMARY KEY,
-    seller_id         UUID REFERENCES "user" (id) ON DELETE CASCADE,
+    seller_id         UUID REFERENCES bazaar."user" (id) ON DELETE CASCADE,
     name              TEXT                              NOT NULL,
     preview_image_url TEXT                               DEFAULT 'media/product-default',
     description       TEXT,
-    status            product_status                    NOT NULL,
+    status            bazaar.product_status             NOT NULL,
     price             NUMERIC(12, 2) CHECK (price >= 0) NOT NULL,
     quantity          INT CHECK (quantity >= 0)         NOT NULL,
     updated_at        TIMESTAMPTZ                        DEFAULT now(),
@@ -122,70 +125,70 @@ CREATE TABLE IF NOT EXISTS product
 );
 
 -- Избранные товары
-CREATE TABLE IF NOT EXISTS favorite
+CREATE TABLE IF NOT EXISTS bazaar.favorite
 (
     id         UUID PRIMARY KEY,
-    user_id    UUID REFERENCES "user" (id) ON DELETE CASCADE,
-    product_id UUID REFERENCES product (id) ON DELETE CASCADE,
+    user_id    UUID REFERENCES bazaar."user" (id) ON DELETE CASCADE,
+    product_id UUID REFERENCES bazaar.product (id) ON DELETE CASCADE,
     created_at TIMESTAMPTZ DEFAULT now(),
     UNIQUE (user_id, product_id)
 );
 
 -- Картинки товаров
-CREATE TABLE IF NOT EXISTS product_image
+CREATE TABLE IF NOT EXISTS bazaar.product_image
 (
     id         UUID PRIMARY KEY,
-    product_id UUID REFERENCES product (id) ON DELETE CASCADE,
+    product_id UUID REFERENCES bazaar.product (id) ON DELETE CASCADE,
     image_url  TEXT NOT NULL,
     num        INT CHECK (num >= 0)
 );
 
 -- Скидки
-CREATE TABLE IF NOT EXISTS discount
+CREATE TABLE IF NOT EXISTS bazaar.discount
 (
     id               UUID PRIMARY KEY,
     start_date       TIMESTAMPTZ NOT NULL,
     end_date         TIMESTAMPTZ NOT NULL,
-    product_id       UUID REFERENCES product (id) ON DELETE CASCADE,
+    product_id       UUID REFERENCES bazaar.product (id) ON DELETE CASCADE,
     discounted_price NUMERIC(12, 2) CHECK (discounted_price >= 0),
     updated_at       TIMESTAMPTZ DEFAULT now()
 );
 
 -- Категории
-CREATE TABLE IF NOT EXISTS category
+CREATE TABLE IF NOT EXISTS bazaar.category
 (
     id   UUID PRIMARY KEY,
     name TEXT UNIQUE NOT NULL
 );
 
 -- Привязка товаров к категориям
-CREATE TABLE IF NOT EXISTS product_category
+CREATE TABLE IF NOT EXISTS bazaar.product_category
 (
     id          UUID PRIMARY KEY,
-    product_id  UUID REFERENCES product (id) ON DELETE CASCADE,
-    category_id UUID REFERENCES category (id) ON DELETE CASCADE,
+    product_id  UUID REFERENCES bazaar.product (id) ON DELETE CASCADE,
+    category_id UUID REFERENCES bazaar.category (id) ON DELETE CASCADE,
     UNIQUE (product_id, category_id)
 );
 
 -- Заказы
-CREATE TABLE IF NOT EXISTS "order"
+CREATE TABLE IF NOT EXISTS bazaar."order"
 (
     id                   UUID PRIMARY KEY,
-    user_id              UUID REFERENCES "user" (id) ON DELETE CASCADE,
-    status               order_status                                     NOT NULL,
+    user_id              UUID REFERENCES bazaar."user" (id) ON DELETE CASCADE,
+    status               bazaar.order_status                              NOT NULL,
     total_price          NUMERIC(12, 2) CHECK (total_price >= 0)          NOT NULL,
     total_price_discount NUMERIC(12, 2) CHECK (total_price_discount >= 0) NOT NULL,
-    address_id           UUID                                             REFERENCES address (id) ON DELETE SET NULL,
+    address_id           UUID                                             REFERENCES bazaar.address (id) ON DELETE SET NULL,
     created_at           TIMESTAMPTZ DEFAULT now(),
     updated_at           TIMESTAMPTZ DEFAULT now()
 );
 
 -- Элементы заказа
-CREATE TABLE IF NOT EXISTS order_item
+CREATE TABLE IF NOT EXISTS bazaar.order_item
 (
     id         UUID PRIMARY KEY,
-    order_id   UUID REFERENCES "order" (id) ON DELETE CASCADE,
-    product_id UUID REFERENCES product (id) ON DELETE CASCADE,
+    order_id   UUID REFERENCES bazaar."order" (id) ON DELETE CASCADE,
+    product_id UUID REFERENCES bazaar.product (id) ON DELETE CASCADE,
     price      NUMERIC(12, 2) CHECK (price >= 0) NOT NULL,
     quantity   INT CHECK (quantity > 0)          NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT now(),
@@ -193,31 +196,31 @@ CREATE TABLE IF NOT EXISTS order_item
 );
 
 -- Корзина
-CREATE TABLE IF NOT EXISTS basket
+CREATE TABLE IF NOT EXISTS bazaar.basket
 (
     id                   UUID PRIMARY KEY,
-    user_id              UUID REFERENCES "user" (id) ON DELETE CASCADE UNIQUE,
+    user_id              UUID REFERENCES bazaar."user" (id) ON DELETE CASCADE UNIQUE,
     total_price          NUMERIC(12, 2) CHECK (total_price >= 0)          NOT NULL,
     total_price_discount NUMERIC(12, 2) CHECK (total_price_discount >= 0) NOT NULL
 );
 
 -- Элементы корзины
-CREATE TABLE IF NOT EXISTS basket_item
+CREATE TABLE IF NOT EXISTS bazaar.basket_item
 (
     id         UUID PRIMARY KEY,
-    basket_id  UUID REFERENCES basket (id) ON DELETE CASCADE,
-    product_id UUID REFERENCES product (id) ON DELETE CASCADE,
+    basket_id  UUID REFERENCES bazaar.basket (id) ON DELETE CASCADE,
+    product_id UUID REFERENCES bazaar.product (id) ON DELETE CASCADE,
     quantity   INT CHECK (quantity > 0) NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT now(),
     UNIQUE (basket_id, product_id)
 );
 
 -- Отзывы
-CREATE TABLE IF NOT EXISTS review
+CREATE TABLE IF NOT EXISTS bazaar.review
 (
     id         UUID PRIMARY KEY,
-    user_id    UUID REFERENCES "user" (id) ON DELETE CASCADE,
-    product_id UUID REFERENCES product (id) ON DELETE CASCADE,
+    user_id    UUID REFERENCES bazaar."user" (id) ON DELETE CASCADE,
+    product_id UUID REFERENCES bazaar.product (id) ON DELETE CASCADE,
     rating     INT CHECK (rating BETWEEN 1 AND 5) NOT NULL,
     comment    TEXT,
     created_at TIMESTAMPTZ DEFAULT now(),
@@ -225,12 +228,12 @@ CREATE TABLE IF NOT EXISTS review
 );
 
 -- Промокоды
-CREATE TABLE IF NOT EXISTS promo_code
+CREATE TABLE IF NOT EXISTS bazaar.promo_code
 (
     id                UUID PRIMARY KEY,
-    user_id           UUID REFERENCES "user" (id) ON DELETE CASCADE,
-    category_id       UUID REFERENCES category (id) ON DELETE CASCADE,
-    seller_id         UUID REFERENCES "user" (id) ON DELETE CASCADE,
+    user_id           UUID REFERENCES bazaar."user" (id) ON DELETE CASCADE,
+    category_id       UUID REFERENCES bazaar.category (id) ON DELETE CASCADE,
+    seller_id         UUID REFERENCES bazaar."user" (id) ON DELETE CASCADE,
     code              TEXT UNIQUE NOT NULL,
     relative_discount INT CHECK (relative_discount BETWEEN 0 AND 1),
     absolute_discount NUMERIC(12, 2) CHECK (absolute_discount >= 0),

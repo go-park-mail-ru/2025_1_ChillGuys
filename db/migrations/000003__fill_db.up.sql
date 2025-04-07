@@ -1,29 +1,37 @@
 -- Вставка адресов
-INSERT INTO address (id, city, street, house, zip_code)
+INSERT INTO bazaar.address (id, city, street, house, zip_code)
 VALUES ('550e8400-e29b-41d4-a716-446655440201', 'Москва', 'Ленина', '1', '101000'),
        ('550e8400-e29b-41d4-a716-446655440202', 'Санкт-Петербург', 'Невский', '10', '190000'),
        ('550e8400-e29b-41d4-a716-446655440203', 'Москва', 'Ленина', '1', '101000');
 
 
 -- Вставка ПВЗ
-INSERT INTO pickup_point (id, address_id)
+INSERT INTO bazaar.pickup_point (id, address_id)
 VALUES ('550e8400-e29b-41d4-a716-446655440040', '550e8400-e29b-41d4-a716-446655440201'),
        ('550e8400-e29b-41d4-a716-446655440041', '550e8400-e29b-41d4-a716-446655440202'),
        ('550e8400-e29b-41d4-a716-446655440042', '550e8400-e29b-41d4-a716-446655440203');
 
 -- Вставка пользователей
-INSERT INTO "user" (id, email, phone_number, password_hash, name)
-VALUES
-    ('e29b41d4-a716-4466-5544-000000000001', 'user1@example.com', '+1234567890', 'hash1', 'Иван'), ('e29b41d4-a716-4466-5544-000000000002', 'user2@example.com', '+1234567891', 'hash2', 'Петр'), ('e29b41d4-a716-4466-5544-000000000003', 'seller1@example.com', '+1234567892', 'hash3', 'Алексей'), ('e29b41d4-a716-4466-5544-000000000004', 'seller2@example.com', '+1234567893', 'hash4', 'Мария'), ('e29b41d4-a716-4466-5544-000000000005', 'seller3@example.com', '+1234567894', 'hash5', 'Ольга'), ('e29b41d4-a716-4466-5544-000000000006', 'seller4@example.com', '+1234567895', 'hash6', 'Дмитрий'), ('e29b41d4-a716-4466-5544-000000000007', 'seller5@example.com', '+1234567896', 'hash7', 'Анна'), ('e29b41d4-a716-4466-5544-000000000008', 'seller6@example.com', '+1234567897', 'hash8', 'Сергей'), ('e29b41d4-a716-4466-5544-000000000009', 'seller7@example.com', '+1234567898', 'hash9', 'Елена'), ('e29b41d4-a716-4466-5544-000000000010', 'seller8@example.com', '+1234567899', 'hash10', 'Андрей');
+INSERT INTO bazaar."user" (id, email, phone_number, password_hash, name)
+VALUES ('e29b41d4-a716-4466-5544-000000000001', 'user1@example.com', '+1234567890', 'hash1', 'Иван'),
+       ('e29b41d4-a716-4466-5544-000000000002', 'user2@example.com', '+1234567891', 'hash2', 'Петр'),
+       ('e29b41d4-a716-4466-5544-000000000003', 'seller1@example.com', '+1234567892', 'hash3', 'Алексей'),
+       ('e29b41d4-a716-4466-5544-000000000004', 'seller2@example.com', '+1234567893', 'hash4', 'Мария'),
+       ('e29b41d4-a716-4466-5544-000000000005', 'seller3@example.com', '+1234567894', 'hash5', 'Ольга'),
+       ('e29b41d4-a716-4466-5544-000000000006', 'seller4@example.com', '+1234567895', 'hash6', 'Дмитрий'),
+       ('e29b41d4-a716-4466-5544-000000000007', 'seller5@example.com', '+1234567896', 'hash7', 'Анна'),
+       ('e29b41d4-a716-4466-5544-000000000008', 'seller6@example.com', '+1234567897', 'hash8', 'Сергей'),
+       ('e29b41d4-a716-4466-5544-000000000009', 'seller7@example.com', '+1234567898', 'hash9', 'Елена'),
+       ('e29b41d4-a716-4466-5544-000000000010', 'seller8@example.com', '+1234567899', 'hash10', 'Андрей');
 
 -- Вставка ролей
-INSERT INTO role (id, name)
+INSERT INTO bazaar.role (id, name)
 VALUES ('550e8400-e29b-41d4-a716-446655440001', 'admin'),
        ('550e8400-e29b-41d4-a716-446655440002', 'seller'),
        ('550e8400-e29b-41d4-a716-446655440003', 'customer');
 
 -- Вставка связи пользователей с ролями
-INSERT INTO user_role (id, user_id, role_id)
+INSERT INTO bazaar.user_role (id, user_id, role_id)
 VALUES ('550e8400-e29b-41d4-a716-446655440011', 'e29b41d4-a716-4466-5544-000000000001',
         '550e8400-e29b-41d4-a716-446655440003'),
        ('550e8400-e29b-41d4-a716-446655440012', 'e29b41d4-a716-4466-5544-000000000002',
@@ -46,7 +54,7 @@ VALUES ('550e8400-e29b-41d4-a716-446655440011', 'e29b41d4-a716-4466-5544-0000000
         '550e8400-e29b-41d4-a716-446655440002');
 
 -- Вставка категорий
-INSERT INTO category (id, name)
+INSERT INTO bazaar.category (id, name)
 VALUES ('550e8400-e29b-41d4-a716-446655440010', 'Электроника'),
        ('550e8400-e29b-41d4-a716-446655440011', 'Бытовая техника'),
        ('550e8400-e29b-41d4-a716-446655440012', 'Компьютеры и ноутбуки'),
@@ -55,7 +63,7 @@ VALUES ('550e8400-e29b-41d4-a716-446655440010', 'Электроника'),
        ('550e8400-e29b-41d4-a716-446655440015', 'Игровые консоли');
 
 -- Вставка всех 15 товаров
-INSERT INTO product (id, seller_id, name, description, status, price, quantity, rating, reviews_count)
+INSERT INTO bazaar.product (id, seller_id, name, description, status, price, quantity, rating, reviews_count)
 VALUES ('550e8400-e29b-41d4-a716-446655440001', 'e29b41d4-a716-4466-5544-000000000003', 'Смартфон Xiaomi Redmi Note 10',
         'Смартфон с AMOLED-дисплеем и камерой 48 Мп', 'approved', 19999.00, 50, 4, 120),
        ('550e8400-e29b-41d4-a716-446655440002', 'e29b41d4-a716-4466-5544-000000000004', 'Ноутбук ASUS VivoBook 15',
@@ -91,7 +99,7 @@ VALUES ('550e8400-e29b-41d4-a716-446655440001', 'e29b41d4-a716-4466-5544-0000000
         'Электронная книга PocketBook 740', 'Электронная книга с экраном E Ink Carta', 'approved', 19999.00, 25, 4, 90);
 
 -- Вставка связи товаров с категориями
-INSERT INTO product_category (id, product_id, category_id)
+INSERT INTO bazaar.product_category (id, product_id, category_id)
 VALUES ('550e8400-e29b-41d4-a716-446655440101', '550e8400-e29b-41d4-a716-446655440001',
         '550e8400-e29b-41d4-a716-446655440013'),
        ('550e8400-e29b-41d4-a716-446655440102', '550e8400-e29b-41d4-a716-446655440002',
@@ -124,17 +132,17 @@ VALUES ('550e8400-e29b-41d4-a716-446655440101', '550e8400-e29b-41d4-a716-4466554
         '550e8400-e29b-41d4-a716-446655440010');
 
 -- Вставка балансов пользователей
-INSERT INTO user_balance (id, user_id, balance)
+INSERT INTO bazaar.user_balance (id, user_id, balance)
 VALUES ('550e8400-e29b-41d4-a716-446655440301', 'e29b41d4-a716-4466-5544-000000000001', 100000.00),
        ('550e8400-e29b-41d4-a716-446655440302', 'e29b41d4-a716-4466-5544-000000000002', 50000.00);
 
 -- Вставка корзин
-INSERT INTO basket (id, user_id, total_price, total_price_discount)
+INSERT INTO bazaar.basket (id, user_id, total_price, total_price_discount)
 VALUES ('550e8400-e29b-41d4-a716-446655440401', 'e29b41d4-a716-4466-5544-000000000001', 0.00, 0.00),
        ('550e8400-e29b-41d4-a716-446655440402', 'e29b41d4-a716-4466-5544-000000000002', 0.00, 0.00);
 
 -- Вставка элементов корзины
-INSERT INTO basket_item (id, basket_id, product_id, quantity)
+INSERT INTO bazaar.basket_item (id, basket_id, product_id, quantity)
 VALUES ('550e8400-e29b-41d4-a716-446655440501', '550e8400-e29b-41d4-a716-446655440401',
         '550e8400-e29b-41d4-a716-446655440001', 1),
        ('550e8400-e29b-41d4-a716-446655440502', '550e8400-e29b-41d4-a716-446655440401',
@@ -143,24 +151,23 @@ VALUES ('550e8400-e29b-41d4-a716-446655440501', '550e8400-e29b-41d4-a716-4466554
         '550e8400-e29b-41d4-a716-446655440005', 1);
 
 -- Вставка заказов
-INSERT INTO "order" (id, user_id, status, total_price, total_price_discount, address_id)
+INSERT INTO bazaar."order" (id, user_id, status, total_price, total_price_discount, address_id)
 VALUES ('550e8400-e29b-41d4-a716-446655440601', 'e29b41d4-a716-4466-5544-000000000001', 'placed', 49998.00, 49998.00,
         '550e8400-e29b-41d4-a716-446655440201'),
        ('550e8400-e29b-41d4-a716-446655440602', 'e29b41d4-a716-4466-5544-000000000002', 'delivered', 59999.00, 59999.00,
         '550e8400-e29b-41d4-a716-446655440202');
 
 -- Вставка элементов заказа
-INSERT INTO order_item (id, order_id, product_id, price, quantity)
-VALUES
-    ('550e8400-e29b-41d4-a716-446655440701', '550e8400-e29b-41d4-a716-446655440601',
-     '550e8400-e29b-41d4-a716-446655440001', 1499.99, 1),
-    ('550e8400-e29b-41d4-a716-446655440702', '550e8400-e29b-41d4-a716-446655440601',
-     '550e8400-e29b-41d4-a716-446655440003', 2599.00, 1),
-    ('550e8400-e29b-41d4-a716-446655440703', '550e8400-e29b-41d4-a716-446655440602',
-     '550e8400-e29b-41d4-a716-446655440005', 799.50, 1);
+INSERT INTO bazaar.order_item (id, order_id, product_id, price, quantity)
+VALUES ('550e8400-e29b-41d4-a716-446655440701', '550e8400-e29b-41d4-a716-446655440601',
+        '550e8400-e29b-41d4-a716-446655440001', 1499.99, 1),
+       ('550e8400-e29b-41d4-a716-446655440702', '550e8400-e29b-41d4-a716-446655440601',
+        '550e8400-e29b-41d4-a716-446655440003', 2599.00, 1),
+       ('550e8400-e29b-41d4-a716-446655440703', '550e8400-e29b-41d4-a716-446655440602',
+        '550e8400-e29b-41d4-a716-446655440005', 799.50, 1);
 
 -- Вставка избранных товаров
-INSERT INTO favorite (id, user_id, product_id)
+INSERT INTO bazaar.favorite (id, user_id, product_id)
 VALUES ('550e8400-e29b-41d4-a716-446655440801', 'e29b41d4-a716-4466-5544-000000000001',
         '550e8400-e29b-41d4-a716-446655440002'),
        ('550e8400-e29b-41d4-a716-446655440802', 'e29b41d4-a716-4466-5544-000000000001',
@@ -171,7 +178,7 @@ VALUES ('550e8400-e29b-41d4-a716-446655440801', 'e29b41d4-a716-4466-5544-0000000
         '550e8400-e29b-41d4-a716-446655440006');
 
 -- Вставка отзывов
-INSERT INTO review (id, user_id, product_id, rating, comment)
+INSERT INTO bazaar.review (id, user_id, product_id, rating, comment)
 VALUES ('550e8400-e29b-41d4-a716-446655440901', 'e29b41d4-a716-4466-5544-000000000001',
         '550e8400-e29b-41d4-a716-446655440001', 5, 'Отличный смартфон за свои деньги!'),
        ('550e8400-e29b-41d4-a716-446655440902', 'e29b41d4-a716-4466-5544-000000000001',
@@ -182,7 +189,7 @@ VALUES ('550e8400-e29b-41d4-a716-446655440901', 'e29b41d4-a716-4466-5544-0000000
         '550e8400-e29b-41d4-a716-446655440008', 4, 'Хороший звук, удобное управление');
 
 -- Вставка скидок
-INSERT INTO discount (id, start_date, end_date, product_id, discounted_price)
+INSERT INTO bazaar.discount (id, start_date, end_date, product_id, discounted_price)
 VALUES ('550e8400-e29b-41d4-a716-446655441001', NOW(), NOW() + INTERVAL '7 DAY', '550e8400-e29b-41d4-a716-446655440001',
         17999.00),
        ('550e8400-e29b-41d4-a716-446655441002', NOW(), NOW() + INTERVAL '14 DAY',
@@ -191,18 +198,18 @@ VALUES ('550e8400-e29b-41d4-a716-446655441001', NOW(), NOW() + INTERVAL '7 DAY',
         '550e8400-e29b-41d4-a716-446655440005', 54999.00);
 
 -- Вставка промокодов
-INSERT INTO promo_code (id, code, relative_discount, absolute_discount, start_date, end_date)
+INSERT INTO bazaar.promo_code (id, code, relative_discount, absolute_discount, start_date, end_date)
 VALUES ('550e8400-e29b-41d4-a716-446655441101', 'SUMMER10', 0.1, NULL, NOW(), NOW() + INTERVAL '30 DAY'),
        ('550e8400-e29b-41d4-a716-446655441102', 'TECH500', NULL, 500.00, NOW(), NOW() + INTERVAL '15 DAY'),
        ('550e8400-e29b-41d4-a716-446655441103', 'XIAOMI20', 0.2, NULL, NOW(), NOW() + INTERVAL '7 DAY');
 
 -- Вставка версий пользователей
-INSERT INTO user_version (id, user_id)
+INSERT INTO bazaar.user_version (id, user_id)
 VALUES ('550e8400-e29b-41d4-a716-446655441201', 'e29b41d4-a716-4466-5544-000000000001'),
        ('550e8400-e29b-41d4-a716-446655441202', 'e29b41d4-a716-4466-5544-000000000002');
 
 -- Вставка изображений товаров
-INSERT INTO product_image (id, product_id, image_url, num)
+INSERT INTO bazaar.product_image (id, product_id, image_url, num)
 VALUES ('550e8400-e29b-41d4-a716-446655441301', '550e8400-e29b-41d4-a716-446655440001', 'xiaomi_redmi_note_10_1.jpg',
         0),
        ('550e8400-e29b-41d4-a716-446655441302', '550e8400-e29b-41d4-a716-446655440001', 'xiaomi_redmi_note_10_2.jpg',

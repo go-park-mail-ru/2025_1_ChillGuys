@@ -10,6 +10,7 @@ import (
 
 	minio "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/minio"
 	models "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
+	dto "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -52,7 +53,7 @@ func (mr *MockIAuthUsecaseMockRecorder) GetMe(arg0 interface{}) *gomock.Call {
 }
 
 // Login mocks base method.
-func (m *MockIAuthUsecase) Login(arg0 context.Context, arg1 models.UserLoginRequestDTO) (string, error) {
+func (m *MockIAuthUsecase) Login(arg0 context.Context, arg1 dto.UserLoginRequestDTO) (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Login", arg0, arg1)
 	ret0, _ := ret[0].(string)
@@ -81,7 +82,7 @@ func (mr *MockIAuthUsecaseMockRecorder) Logout(arg0 interface{}) *gomock.Call {
 }
 
 // Register mocks base method.
-func (m *MockIAuthUsecase) Register(arg0 context.Context, arg1 models.UserRegisterRequestDTO) (string, error) {
+func (m *MockIAuthUsecase) Register(arg0 context.Context, arg1 dto.UserRegisterRequestDTO) (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Register", arg0, arg1)
 	ret0, _ := ret[0].(string)

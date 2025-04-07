@@ -28,7 +28,7 @@ func JWTMiddleware(tokenator *jwt.Tokenator, next http.Handler) http.Handler {
 			"path":        r.URL.Path,
 		})
 
-		cookieValue, err := r.Cookie(domains.Token.String())
+		cookieValue, err := r.Cookie(string(domains.Token))
 		if err != nil {
 			requestLogger.Warn("Missing or invalid token cookie")
 			w.WriteHeader(http.StatusUnauthorized)

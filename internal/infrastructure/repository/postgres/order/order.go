@@ -11,11 +11,11 @@ import (
 )
 
 const (
-	queryCreateOrder           = `INSERT INTO "order" (id, user_id, status, total_price, total_price_discount, address_id) VALUES ($1, $2, $3, $4, $5, $6)`
-	queryAddOrderItem          = `INSERT INTO "order_item" (id, order_id, product_id, price, quantity) VALUES ($1, $2, $3, $4, $5)`
-	queryGetProductPrice       = `SELECT price, status, quantity FROM product WHERE id = $1`
-	queryGetProductDiscount    = `SELECT discounted_price, start_date, end_date FROM discount WHERE product_id = $1`
-	queryUpdateProductQuantity = `UPDATE product SET quantity = $1 WHERE id = $2`
+	queryCreateOrder           = `INSERT INTO bazaar."order" (id, user_id, status, total_price, total_price_discount, address_id) VALUES ($1, $2, $3, $4, $5, $6)`
+	queryAddOrderItem          = `INSERT INTO bazaar."order_item" (id, order_id, product_id, price, quantity) VALUES ($1, $2, $3, $4, $5)`
+	queryGetProductPrice       = `SELECT price, status, quantity FROM bazaar.product WHERE id = $1`
+	queryGetProductDiscount    = `SELECT discounted_price, start_date, end_date FROM bazaar.discount WHERE product_id = $1`
+	queryUpdateProductQuantity = `UPDATE bazaar.product SET quantity = $1 WHERE id = $2`
 )
 
 type IOrderRepository interface {

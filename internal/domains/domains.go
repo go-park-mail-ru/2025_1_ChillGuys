@@ -1,18 +1,10 @@
 package domains
 
-type ContextKey struct {
-	name string
-}
+type Key string
 
-// Константы для ключей контекста
 var (
-	ReqIDKey  = ContextKey{name: "ReqId"}
-	Token     = ContextKey{name: "Token"}
-	UserIDKey = ContextKey{name: "UserID"}
-	LoggerKey = ContextKey{name: "Logger"}
+	ReqIDKey  Key = "ReqId"
+	Token     Key = "Token"
+	UserIDKey Key = "UserID"
+	LoggerKey Key = "Logger"
 )
-
-// Метод для приведения к строковому представлению
-func (k ContextKey) String() string {
-	return k.name
-}

@@ -16,23 +16,23 @@ const (
 	queryGetAllProducts = `
 		SELECT id, seller_id, name, preview_image_url, description, 
 				status, price, quantity, updated_at, rating, reviews_count 
-			FROM product WHERE status = 'approved'
+			FROM bazaar.product WHERE status = 'approved'
 	`
 	queryGetProductByID = `
 		SELECT id, seller_id, name, preview_image_url, description, 
 				status, price, quantity, updated_at, rating, reviews_count 
-			FROM product WHERE id = $1
+			FROM bazaar.product WHERE id = $1
 	`
 	queryGetProductsByCategory = `
         SELECT p.id, p.seller_id, p.name, p.preview_image_url, p.description, 
                 p.status, p.price, p.quantity, p.updated_at, p.rating, p.reviews_count 
-			FROM product p
-			JOIN product_category pc ON p.id = pc.product_id
+			FROM bazaar.product p
+			JOIN bazaar.product_category pc ON p.id = pc.product_id
 			WHERE pc.category_id = $1 AND p.status = 'approved'
     `
 
 	queryGetAllCategories = `
-		SELECT id, name FROM category
+		SELECT id, name FROM bazaar.category
 	`
 )
 

@@ -2,33 +2,43 @@ package cookie
 
 import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
+	"log"
 	"net/http"
 	"time"
 )
 
-// CookieProvider управляет настройками для работы с cookies
 type CookieProvider struct {
 	cfg *config.Config
 }
 
-// NewCookieProvider создает новый CookieProvider с конфигурацией
 func NewCookieProvider(cfg *config.Config) *CookieProvider {
+	if cfg == nil || cfg.JWTConfig == nil {
+		log.Println("Warning: nil config or JWTConfig provided to CookieProvider")
+	}
 	return &CookieProvider{cfg: cfg}
 }
 
-// Set устанавливает cookie с заданным именем и значением токена
 func (cp *CookieProvider) Set(w http.ResponseWriter, token, name string) {
+	if token == "" {
+		log.Println("Warning: empty token for cookie", name)
+		return
+	}
+
+	tokenLifeSpan := 24 * time.Hour
+	if cp.cfg != nil && cp.cfg.JWTConfig != nil {
+		tokenLifeSpan = cp.cfg.JWTConfig.TokenLifeSpan
+	}
+
 	http.SetCookie(w, &http.Cookie{
 		Name:     name,
 		Value:    token,
 		Path:     "/",
 		SameSite: http.SameSiteStrictMode,
 		HttpOnly: true,
-		Expires:  time.Now().UTC().Add(cp.cfg.JWTConfig.TokenLifeSpan),
+		Expires:  time.Now().UTC().Add(tokenLifeSpan),
 	})
 }
 
-// Unset инвалидирует cookie с заданным именем
 func (cp *CookieProvider) Unset(w http.ResponseWriter, name string) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     name,

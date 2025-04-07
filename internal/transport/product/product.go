@@ -94,17 +94,17 @@ func (h *ProductHandler) GetProductByID(w http.ResponseWriter, r *http.Request) 
 
 // GetProductsByCategory godoc
 //
-// @Summary Получить товары по категории
-// @Description Возвращает список всех одобренных товаров, принадлежащих указанной категории.
+//	@Summary		Получить товары по категории
+//	@Description	Возвращает список всех одобренных товаров, принадлежащих указанной категории.
 // Товары сортируются по дате обновления (сначала новые).
-// @Tags Товары
-// @Produce json
-// @Param id path string true "UUID категории в формате строки"
-// @Success 200 {object} []models.Product "Успешный запрос. Возвращает массив товаров."
-// @Failure 400 {object} response.ErrorResponse "Неверный формат UUID категории"
-// @Failure 404 {object} response.ErrorResponse "Категория не найдена"
-// @Failure 500 {object} response.ErrorResponse "Внутренняя ошибка сервера"
-// @Router /api/v1/products/category/{id} [get]
+//	@Tags			Товары
+//	@Produce		json
+//	@Param			id	path		string					true	"UUID категории в формате строки"
+//	@Success		200	{object}	[]models.Product		"Успешный запрос. Возвращает массив товаров."
+//	@Failure		400	{object}	response.ErrorResponse	"Неверный формат UUID категории"
+//	@Failure		404	{object}	response.ErrorResponse	"Категория не найдена"
+//	@Failure		500	{object}	response.ErrorResponse	"Внутренняя ошибка сервера"
+//	@Router			/api/v1/products/category/{id} [get]
 func (h *ProductHandler) GetProductsByCategory(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	idStr := vars["id"]

@@ -59,7 +59,7 @@ func NewApp(conf *config.Config) (*App, error) {
 	userRepo := userrepo.NewUserRepository(db, logger)
 	tokenator := jwt.NewTokenator(userRepo, conf.JWTConfig)
 	userUsecase := userus.NewAuthUsecase(userRepo, tokenator, logger, minioClient)
-	userHandler := user.NewAuthHandler(userUsecase, logger, minioClient)
+	userHandler := user.NewAuthHandler(userUsecase, logger, minioClient, conf)
 
 	productRepo := productrepo.NewProductRepository(db, logger)
 	productUsecase := product.NewProductUsecase(logger, productRepo)
