@@ -16,23 +16,23 @@ const (
 	queryGetAllProducts = `
 		SELECT id, seller_id, name, preview_image_url, description, 
 				status, price, quantity, updated_at, rating, reviews_count 
-			FROM product WHERE status = 'approved'
+			FROM bazaar.product WHERE status = 'approved'
 	`
 	queryGetProductByID = `
 		SELECT id, seller_id, name, preview_image_url, description, 
 				status, price, quantity, updated_at, rating, reviews_count 
-			FROM product WHERE id = $1
+			FROM bazaar.product WHERE id = $1
 	`
 	queryGetProductsByCategory = `
         SELECT p.id, p.seller_id, p.name, p.preview_image_url, p.description, 
                 p.status, p.price, p.quantity, p.updated_at, p.rating, p.reviews_count 
-			FROM product p
-			JOIN product_category pc ON p.id = pc.product_id
+			FROM bazaar.product p
+			JOIN bazaar.product_category pc ON p.id = pc.product_id
 			WHERE pc.category_id = $1 AND p.status = 'approved'
     `
 
-	queryGetAllCategories =`
-		SELECT id, name FROM category
+	queryGetAllCategories = `
+		SELECT id, name FROM bazaar.category
 	`
 )
 
@@ -122,7 +122,7 @@ func (p *ProductRepository) GetProductCoverPath(ctx context.Context, id uuid.UUI
 	return os.ReadFile(storagePath)
 }
 
-func (p *ProductRepository) GetProductsByCategory(ctx context.Context, id uuid.UUID)([]*models.Product, error){
+func (p *ProductRepository) GetProductsByCategory(ctx context.Context, id uuid.UUID) ([]*models.Product, error) {
 	productsList := []*models.Product{}
 
 	rows, err := p.DB.QueryContext(ctx, queryGetProductsByCategory, id)
@@ -159,7 +159,7 @@ func (p *ProductRepository) GetProductsByCategory(ctx context.Context, id uuid.U
 	return productsList, nil
 }
 
-func (p *ProductRepository) GetAllCategories(ctx context.Context)([]*models.Category, error){
+func (p *ProductRepository) GetAllCategories(ctx context.Context) ([]*models.Category, error) {
 	categoriesList := []*models.Category{}
 
 	rows, err := p.DB.QueryContext(ctx, queryGetAllCategories)

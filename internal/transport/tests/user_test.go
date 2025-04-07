@@ -7,6 +7,7 @@ import (
 	"errors"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/minio"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/user"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/mocks"
 	"net/http"
@@ -43,14 +44,14 @@ func TestAuthHandler_Login(t *testing.T) {
 
 	tests := []struct {
 		name           string
-		request        models.UserLoginRequestDTO
+		request        dto.UserLoginRequestDTO
 		mockBehavior   func()
 		expectedStatus int
 		expectedBody   null.String
 	}{
 		{
 			name: "Valid Login",
-			request: models.UserLoginRequestDTO{
+			request: dto.UserLoginRequestDTO{
 				Email:    "test@example.com",
 				Password: "Password123",
 			},
@@ -64,7 +65,7 @@ func TestAuthHandler_Login(t *testing.T) {
 		},
 		{
 			name: "Invalid Email Format",
-			request: models.UserLoginRequestDTO{
+			request: dto.UserLoginRequestDTO{
 				Email:    "invalid-email",
 				Password: "Password123",
 			},
@@ -74,7 +75,7 @@ func TestAuthHandler_Login(t *testing.T) {
 		},
 		{
 			name: "Invalid Password",
-			request: models.UserLoginRequestDTO{
+			request: dto.UserLoginRequestDTO{
 				Email:    "test@example.com",
 				Password: "short",
 			},
@@ -84,7 +85,7 @@ func TestAuthHandler_Login(t *testing.T) {
 		},
 		{
 			name: "User Not Found",
-			request: models.UserLoginRequestDTO{
+			request: dto.UserLoginRequestDTO{
 				Email:    "notfound@example.com",
 				Password: "Password123",
 			},
@@ -149,14 +150,14 @@ func TestAuthHandler_Register(t *testing.T) {
 
 	tests := []struct {
 		name           string
-		request        models.UserRegisterRequestDTO
+		request        dto.UserRegisterRequestDTO
 		mockBehavior   func()
 		expectedStatus int
 		expectedBody   null.String
 	}{
 		{
 			name: "Valid Registration",
-			request: models.UserRegisterRequestDTO{
+			request: dto.UserRegisterRequestDTO{
 				Email:    "newuser@example.com",
 				Password: "Password123",
 				Name:     "John",
@@ -172,7 +173,7 @@ func TestAuthHandler_Register(t *testing.T) {
 		},
 		{
 			name: "Invalid Email",
-			request: models.UserRegisterRequestDTO{
+			request: dto.UserRegisterRequestDTO{
 				Email:    "invalid-email",
 				Password: "Password123",
 				Name:     "John",
@@ -184,7 +185,7 @@ func TestAuthHandler_Register(t *testing.T) {
 		},
 		{
 			name: "User Already Exists",
-			request: models.UserRegisterRequestDTO{
+			request: dto.UserRegisterRequestDTO{
 				Email:    "existing@example.com",
 				Password: "Password123",
 				Name:     "John",
@@ -200,7 +201,7 @@ func TestAuthHandler_Register(t *testing.T) {
 		},
 		{
 			name: "Empty Name",
-			request: models.UserRegisterRequestDTO{
+			request: dto.UserRegisterRequestDTO{
 				Email:    "newuser@example.com",
 				Password: "Password123",
 				Name:     "",
@@ -212,7 +213,7 @@ func TestAuthHandler_Register(t *testing.T) {
 		},
 		{
 			name: "Short Password",
-			request: models.UserRegisterRequestDTO{
+			request: dto.UserRegisterRequestDTO{
 				Email:    "newuser@example.com",
 				Password: "Pass",
 				Name:     "John",

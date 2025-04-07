@@ -6,122 +6,132 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/minio"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres"
-	product2 "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/product"
-	user2 "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/user"
+	productrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/product"
+	userrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/user"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware"
-	product3 "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/product"
+	producttr "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/product"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/user"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/product"
-	usecase2 "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/user"
+	userus "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/user"
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
 	httpSwagger "github.com/swaggo/http-swagger"
 	"net/http"
-	"time"
 )
 
-func Run() error {
+// App объединяет в себе все компоненты приложения.
+type App struct {
+	conf   *config.Config
+	logger *logrus.Logger
+	db     *sql.DB
+	router *mux.Router
+	// Дополнительно можно добавить другие компоненты, если потребуется.
+}
+
+// NewApp инициализирует приложение, создавая все необходимые компоненты.
+func NewApp(conf *config.Config) (*App, error) {
 	logger := logrus.New()
 
-	// Получение конфигурации
-	conf, err := config.NewConfig()
-	if err != nil {
-		return fmt.Errorf("config error: %w", err)
-	}
-
-	// Подключение базы данных
+	// Подключение к базе данных.
 	str, err := postgres.GetConnectionString(conf.DBConfig)
 	if err != nil {
-		return fmt.Errorf("connection string error: %w", err)
+		return nil, fmt.Errorf("connection string error: %w", err)
 	}
-
 	db, err := sql.Open("postgres", str)
 	if err != nil {
-		return fmt.Errorf("database connection error: %w", err)
+		return nil, fmt.Errorf("database connection error: %w", err)
 	}
-	defer db.Close()
-	db.SetMaxOpenConns(25)
-	db.SetMaxIdleConns(25)
-	db.SetConnMaxLifetime(5 * time.Minute)
 
-	// Инициализация соединения с Minio
+	// Применяем параметры пула соединений из конфигурации.
+	config.ConfigureDB(db, conf.DBConfig)
+
+	// Инициализация клиента Minio.
 	minioClient, err := minio.NewMinioClient(conf.MinioConfig)
 	if err != nil {
-		return fmt.Errorf("minio initialization error: %w", err)
+		return nil, fmt.Errorf("minio initialization error: %w", err)
 	}
 
-	userRepo := user2.NewUserRepository(db, logger)
+	// Инициализация репозиториев и use-case-ов.
+	userRepo := userrepo.NewUserRepository(db, logger)
 	tokenator := jwt.NewTokenator(userRepo, conf.JWTConfig)
-	userUsecase := usecase2.NewAuthUsecase(userRepo, tokenator, logger, minioClient)
+	userUsecase := userus.NewAuthUsecase(userRepo, tokenator, logger, minioClient)
 	userHandler := user.NewAuthHandler(userUsecase, logger, minioClient)
 
-	productRepo := product2.NewProductRepository(db, logger)
+	productRepo := productrepo.NewProductRepository(db, logger)
 	productUsecase := product.NewProductUsecase(logger, productRepo)
-	productHandler := product3.NewProductHandler(productUsecase, logger, minioClient)
+	productHandler := producttr.NewProductHandler(productUsecase, logger, minioClient)
 
+	// Создание роутера и настройка middleware.
 	router := mux.NewRouter().PathPrefix("/api").Subrouter()
 	router.Use(func(next http.Handler) http.Handler {
 		return middleware.CORSMiddleware(next, conf.ServerConfig)
 	})
 	router.Use(middleware.NewLoggerMiddleware(logger).LogRequest)
 
+	// Подключение Swagger.
 	router.PathPrefix("/swagger/").Handler(httpSwagger.WrapHandler)
 
+	// Маршруты для продуктов.
 	productsRouter := router.PathPrefix("/products").Subrouter()
 	{
-		productsRouter.HandleFunc("/", productHandler.GetAllProducts).Methods("GET")
-		productsRouter.HandleFunc("/{id}", productHandler.GetProductByID).Methods("GET")
-		productsRouter.HandleFunc("/{id}/cover", productHandler.GetProductCover).Methods("GET")
-		productsRouter.HandleFunc("/category/{id}", productHandler.GetProductsByCategory).Methods("GET")
+		productsRouter.HandleFunc("/", productHandler.GetAllProducts).Methods(http.MethodGet)
+		productsRouter.HandleFunc("/{id}", productHandler.GetProductByID).Methods(http.MethodGet)
+		productsRouter.HandleFunc("/{id}/cover", productHandler.GetProductCover).Methods(http.MethodGet)
+		productsRouter.HandleFunc("/category/{id}", productHandler.GetProductsByCategory).Methods(http.MethodGet)
 	}
 
+	// Маршруты для категорий.
 	catalogRouter := router.PathPrefix("/categories").Subrouter()
 	{
-		catalogRouter.HandleFunc("/", productHandler.GetAllCategories).Methods("GET")
+		catalogRouter.HandleFunc("/", productHandler.GetAllCategories).Methods(http.MethodGet)
 	}
 
+	// Маршруты для загрузки обложек продукта.
 	productCoverRouter := router.PathPrefix("/cover").Subrouter()
 	{
-		productCoverRouter.HandleFunc("/upload", productHandler.CreateOne).Methods("POST")
-		productsRouter.HandleFunc("/files/{objectID}", productHandler.GetOne).Methods("GET")
+		productCoverRouter.HandleFunc("/upload", productHandler.CreateOne).Methods(http.MethodPost)
+		productsRouter.HandleFunc("/files/{objectID}", productHandler.GetOne).Methods(http.MethodGet)
 	}
 
+	// Маршруты для аутентификации.
 	authRouter := router.PathPrefix("/auth").Subrouter()
 	{
-		authRouter.HandleFunc("/login", userHandler.Login).Methods("POST")
-		authRouter.HandleFunc("/register", userHandler.Register).Methods("POST")
-		authRouter.Handle("/logout", middleware.JWTMiddleware(
-			tokenator,
-			http.HandlerFunc(userHandler.Logout)),
-		).Methods("POST")
+		authRouter.HandleFunc("/login", userHandler.Login).Methods(http.MethodPost)
+		authRouter.HandleFunc("/register", userHandler.Register).Methods(http.MethodPost)
+		authRouter.Handle("/logout", middleware.JWTMiddleware(tokenator, http.HandlerFunc(userHandler.Logout))).
+			Methods(http.MethodPost)
 	}
 
+	// Маршруты для работы с пользователями.
 	userRouter := router.PathPrefix("/users").Subrouter()
 	{
-		userRouter.Handle("/me", middleware.JWTMiddleware(
-			tokenator,
-			http.HandlerFunc(userHandler.GetMe)),
-		).Methods("GET")
-
-		userRouter.Handle("/upload-avatar", middleware.JWTMiddleware(
-			tokenator,
-			http.HandlerFunc(userHandler.UploadAvatar),
-		)).Methods("POST")
+		userRouter.Handle("/me", middleware.JWTMiddleware(tokenator, http.HandlerFunc(userHandler.GetMe))).
+			Methods(http.MethodGet)
+		userRouter.Handle("/upload-avatar", middleware.JWTMiddleware(tokenator, http.HandlerFunc(userHandler.UploadAvatar))).
+			Methods(http.MethodPost)
 	}
 
+	app := &App{
+		conf:   conf,
+		logger: logger,
+		db:     db,
+		router: router,
+	}
+
+	return app, nil
+}
+
+// Run запускает HTTP-сервер приложения.
+func (a *App) Run() error {
 	srv := &http.Server{
-		Handler:      router,
-		Addr:         fmt.Sprintf(":%s", conf.ServerConfig.Port),
-		WriteTimeout: 10 * time.Second,
-		ReadTimeout:  10 * time.Second,
-		IdleTimeout:  30 * time.Second,
+		Handler: a.router,
+		Addr:    fmt.Sprintf(":%s", a.conf.ServerConfig.Port),
 	}
 
-	logger.Infof("starting server on port %s", srv.Addr)
+	a.logger.Infof("starting server on port %s", srv.Addr)
 	if err := srv.ListenAndServe(); err != nil {
 		return fmt.Errorf("server error: %w", err)
 	}
-
 	return nil
 }

@@ -3,15 +3,14 @@ package middleware
 import (
 	"context"
 	"fmt"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/domains"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/logctx"
 	"math/rand"
 	"net/http"
+	"time"
 
 	"github.com/sirupsen/logrus"
 )
-
-type ContextKey string
-
-const ReqIDKey ContextKey = "ReqId"
 
 type LoggerMiddleware struct {
 	logger *logrus.Logger
@@ -25,14 +24,10 @@ func NewLoggerMiddleware(logger *logrus.Logger) *LoggerMiddleware {
 
 func (m *LoggerMiddleware) LogRequest(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Генерируем уникальный ID запроса
 		reqId := fmt.Sprintf("%016x", rand.Int())[:10]
 
-		// Добавляем ID в контекст
-		ctx := context.WithValue(r.Context(), ReqIDKey, reqId)
-		r = r.WithContext(ctx)
+		ctx := context.WithValue(r.Context(), domains.ReqIDKey, reqId)
 
-		// Создаем логгер с полями для этого запроса
 		requestLogger := m.logger.WithFields(logrus.Fields{
 			"request_id":  reqId,
 			"method":      r.Method,
@@ -40,15 +35,20 @@ func (m *LoggerMiddleware) LogRequest(next http.Handler) http.Handler {
 			"path":        r.URL.Path,
 		})
 
-		// Cохраняем логгер в контекст для использования в обработчиках
-		ctx = context.WithValue(ctx, ContextKey("logger"), requestLogger)
+		ctx = logctx.WithLogger(ctx, requestLogger)
 		r = r.WithContext(ctx)
 
 		requestLogger.Info("request started")
 
-		// Передаем запрос дальше
-		next.ServeHTTP(w, r)
+		startTime := time.Now()
 
+		defer func() {
+			duration := time.Since(startTime)
+
+			requestLogger.WithField("duration", duration).Info("request completed")
+		}()
+
+		next.ServeHTTP(w, r)
 		requestLogger.Info("request completed")
 	})
 }

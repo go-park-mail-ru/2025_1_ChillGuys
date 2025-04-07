@@ -6,6 +6,7 @@ import (
 	"errors"
 	user2 "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/user"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	"testing"
 	"time"
 
@@ -29,7 +30,7 @@ func TestCreateUser(t *testing.T) {
 
 	userID := uuid.New()
 	userVersionID := uuid.New()
-	user := models.UserDB{
+	user := dto.UserDB{
 		ID:           userID,
 		Email:        "test@example.com",
 		Name:         "Test",
@@ -200,7 +201,7 @@ func TestIncrementUserVersion(t *testing.T) {
 			WillReturnResult(sqlmock.NewResult(0, 0))
 
 		err := repo.IncrementUserVersion(context.Background(), userID)
-		assert.True(t, errors.Is(err, errs.ErrUserNotFound))
+		assert.True(t, errors.Is(err, errs.ErrNotFound))
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 

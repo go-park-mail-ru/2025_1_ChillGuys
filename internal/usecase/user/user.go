@@ -2,9 +2,10 @@ package user
 
 import (
 	"context"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/domains"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/minio"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/cookie"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	"time"
 
 	"github.com/google/uuid"
@@ -22,9 +23,9 @@ type ITokenator interface {
 
 //go:generate mockgen -source=user.go -destination=../../infrastructure/repository/postgres/mocks/user_repository_mock.go -package=mocks IProductRepository
 type IUserRepository interface {
-	CreateUser(context.Context, models.UserDB) error
-	GetUserByEmail(context.Context, string) (*models.UserDB, error)
-	GetUserByID(context.Context, uuid.UUID) (*models.UserDB, error)
+	CreateUser(context.Context, dto.UserDB) error
+	GetUserByEmail(context.Context, string) (*dto.UserDB, error)
+	GetUserByID(context.Context, uuid.UUID) (*dto.UserDB, error)
 	IncrementUserVersion(context.Context, string) error
 	GetUserCurrentVersion(context.Context, string) (int, error)
 	CheckUserVersion(context.Context, string, int) bool
@@ -48,7 +49,7 @@ func NewAuthUsecase(repo IUserRepository, token ITokenator, log *logrus.Logger, 
 	}
 }
 
-func (u *AuthUsecase) Register(ctx context.Context, user models.UserRegisterRequestDTO) (string, error) {
+func (u *AuthUsecase) Register(ctx context.Context, user dto.UserRegisterRequestDTO) (string, error) {
 	passwordHash, err := GeneratePasswordHash(user.Password)
 	if err != nil {
 		return "", err
@@ -59,11 +60,11 @@ func (u *AuthUsecase) Register(ctx context.Context, user models.UserRegisterRequ
 		return "", err
 	}
 	if existed {
-		return "", errs.ErrUserAlreadyExists
+		return "", errs.ErrAlreadyExists
 	}
 
 	userID := uuid.New()
-	userDB := models.UserDB{
+	userDB := dto.UserDB{
 		ID:           userID,
 		Email:        user.Email,
 		Name:         user.Name,
@@ -89,12 +90,11 @@ func (u *AuthUsecase) Register(ctx context.Context, user models.UserRegisterRequ
 	return token, nil
 }
 
-func (u *AuthUsecase) Login(ctx context.Context, user models.UserLoginRequestDTO) (string, error) {
+func (u *AuthUsecase) Login(ctx context.Context, user dto.UserLoginRequestDTO) (string, error) {
 	userDB, err := u.repo.GetUserByEmail(ctx, user.Email)
 	if err != nil {
 		return "", err
 	}
-
 	if err := bcrypt.CompareHashAndPassword(userDB.PasswordHash, []byte(user.Password)); err != nil {
 		return "", errs.ErrInvalidCredentials
 	}
@@ -108,9 +108,9 @@ func (u *AuthUsecase) Login(ctx context.Context, user models.UserLoginRequestDTO
 }
 
 func (u *AuthUsecase) Logout(ctx context.Context) error {
-	userID, isExist := ctx.Value(cookie.UserIDKey).(string)
+	userID, isExist := ctx.Value(domains.UserIDKey).(string)
 	if !isExist {
-		return errs.ErrUserNotFound
+		return errs.ErrNotFound
 	}
 
 	if err := u.repo.IncrementUserVersion(ctx, userID); err != nil {
@@ -121,14 +121,14 @@ func (u *AuthUsecase) Logout(ctx context.Context) error {
 }
 
 func (u *AuthUsecase) GetMe(ctx context.Context) (*models.User, error) {
-	userIDStr, isExist := ctx.Value(cookie.UserIDKey).(string)
+	userIDStr, isExist := ctx.Value(domains.UserIDKey).(string)
 	if !isExist {
-		return nil, errs.ErrUserNotFound
+		return nil, errs.ErrNotFound
 	}
 
 	userID, err := uuid.Parse(userIDStr)
 	if err != nil {
-		return nil, errs.ErrInvalidUserID
+		return nil, errs.ErrInvalidID
 	}
 
 	userRepo, err := u.repo.GetUserByID(ctx, userID)
@@ -138,21 +138,21 @@ func (u *AuthUsecase) GetMe(ctx context.Context) (*models.User, error) {
 
 	user := userRepo.ConvertToUser()
 	if user == nil {
-		return nil, errs.ErrUserNotFound
+		return nil, errs.ErrNotFound
 	}
 
 	return user, nil
 }
 
 func (u *AuthUsecase) UploadAvatar(ctx context.Context, fileData minio.FileDataType) (string, error) {
-	userIDStr, isExist := ctx.Value(cookie.UserIDKey).(string)
+	userIDStr, isExist := ctx.Value(domains.UserIDKey).(string)
 	if !isExist {
-		return "", errs.ErrUserNotFound
+		return "", errs.ErrNotFound
 	}
 
 	userID, err := uuid.Parse(userIDStr)
 	if err != nil {
-		return "", errs.ErrInvalidUserID
+		return "", errs.ErrInvalidID
 	}
 
 	avatar, err := u.minioService.CreateOne(ctx, fileData)

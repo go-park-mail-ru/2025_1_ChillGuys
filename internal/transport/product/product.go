@@ -22,7 +22,7 @@ type IProductUsecase interface {
 	GetProductByID(ctx context.Context, id uuid.UUID) (*models.Product, error)
 	GetProductCover(ctx context.Context, id uuid.UUID) ([]byte, error)
 	GetProductsByCategory(ctx context.Context, id uuid.UUID) ([]*models.Product, error)
-	GetAllCategories(ctx context.Context)([]*models.Category, error)
+	GetAllCategories(ctx context.Context) ([]*models.Category, error)
 }
 
 type ProductHandler struct {
@@ -52,13 +52,13 @@ func (h *ProductHandler) GetAllProducts(w http.ResponseWriter, r *http.Request) 
 	products, err := h.u.GetAllProducts(r.Context())
 	if err != nil {
 		h.log.Warnf("Failed to get all products: %v", err)
-		response.SendErrorResponse(w, http.StatusInternalServerError, "Failed get all products")
+		response.SendJSONError(r.Context(), w, http.StatusInternalServerError, "Failed get all products")
 		return
 	}
 
 	productResponse := models.ConvertToProductsResponse(products)
 
-	response.SendSuccessResponse(w, http.StatusOK, productResponse)
+	response.SendJSONResponse(r.Context(), w, http.StatusOK, productResponse)
 }
 
 // GetProductByID godoc
@@ -78,24 +78,24 @@ func (h *ProductHandler) GetProductByID(w http.ResponseWriter, r *http.Request) 
 	id, err := uuid.Parse(idStr)
 	if err != nil {
 		h.log.Warnf("Invalid ID: %v", err)
-		response.SendErrorResponse(w, http.StatusBadRequest, "Invalid ID")
+		response.SendJSONError(r.Context(), w, http.StatusBadRequest, "Invalid ID")
 		return
 	}
 
 	product, err := h.u.GetProductByID(r.Context(), id)
 	if err != nil {
 		h.log.Warnf("Product not found (ID: %d): %v", id, err)
-		response.SendErrorResponse(w, http.StatusNotFound, "Product not found")
+		response.SendJSONError(r.Context(), w, http.StatusNotFound, "Product not found")
 		return
 	}
 
-	response.SendSuccessResponse(w, http.StatusOK, product)
+	response.SendJSONResponse(r.Context(), w, http.StatusOK, product)
 }
 
 // GetProductsByCategory godoc
-// 
+//
 // @Summary Получить товары по категории
-// @Description Возвращает список всех одобренных товаров, принадлежащих указанной категории. 
+// @Description Возвращает список всех одобренных товаров, принадлежащих указанной категории.
 // Товары сортируются по дате обновления (сначала новые).
 // @Tags Товары
 // @Produce json
@@ -105,39 +105,39 @@ func (h *ProductHandler) GetProductByID(w http.ResponseWriter, r *http.Request) 
 // @Failure 404 {object} response.ErrorResponse "Категория не найдена"
 // @Failure 500 {object} response.ErrorResponse "Внутренняя ошибка сервера"
 // @Router /api/v1/products/category/{id} [get]
-func (h *ProductHandler) GetProductsByCategory(w http.ResponseWriter, r *http.Request){
+func (h *ProductHandler) GetProductsByCategory(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	idStr := vars["id"]
 	id, err := uuid.Parse(idStr)
 	if err != nil {
 		h.log.Warnf("Invalid ID: %v", err)
-		response.SendErrorResponse(w, http.StatusBadRequest, "Invalid ID")
+		response.SendJSONError(r.Context(), w, http.StatusBadRequest, "Invalid ID")
 		return
 	}
 
 	products, err := h.u.GetProductsByCategory(r.Context(), id)
 	if err != nil {
 		h.log.Warnf("Failed to get products by category: %v", err)
-		response.SendErrorResponse(w, http.StatusInternalServerError, "Failed get products by category")
+		response.SendJSONError(r.Context(), w, http.StatusInternalServerError, "Failed get products by category")
 		return
 	}
 
 	productResponse := models.ConvertToProductsResponse(products)
 
-	response.SendSuccessResponse(w, http.StatusOK, productResponse)
+	response.SendJSONResponse(r.Context(), w, http.StatusOK, productResponse)
 }
 
 func (h *ProductHandler) GetAllCategories(w http.ResponseWriter, r *http.Request) {
 	categories, err := h.u.GetAllCategories(r.Context())
 	if err != nil {
 		h.log.Warnf("Failed to get all categories: %v", err)
-		response.SendErrorResponse(w, http.StatusInternalServerError, "Failed get all categories")
+		response.SendJSONError(r.Context(), w, http.StatusInternalServerError, "Failed get all categories")
 		return
 	}
 
 	categoryResponse := models.ConvertToCategoriesResponse(categories)
 
-	response.SendSuccessResponse(w, http.StatusOK, categoryResponse)
+	response.SendJSONResponse(r.Context(), w, http.StatusOK, categoryResponse)
 }
 
 // GetProductCover godoc
@@ -158,7 +158,7 @@ func (h *ProductHandler) GetProductCover(w http.ResponseWriter, r *http.Request)
 	id, err := uuid.Parse(idStr)
 	if err != nil {
 		h.log.Warnf("Invalid ID: %v", err)
-		response.SendErrorResponse(w, http.StatusBadRequest, "Invalid ID")
+		response.SendJSONError(r.Context(), w, http.StatusBadRequest, "Invalid ID")
 		return
 	}
 
@@ -166,12 +166,12 @@ func (h *ProductHandler) GetProductCover(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			h.log.Errorf("Cover file not found (ID: %d): %v", id, err)
-			response.SendErrorResponse(w, http.StatusNotFound, "Cover file not found")
+			response.SendJSONError(r.Context(), w, http.StatusNotFound, "Cover file not found")
 			return
 		}
 
 		h.log.Errorf("Failed to get cover file (ID: %d): %v", id, err)
-		response.SendErrorResponse(w, http.StatusInternalServerError, "Failed to get cover file")
+		response.SendJSONError(r.Context(), w, http.StatusInternalServerError, "Failed to get cover file")
 		return
 	}
 
@@ -184,11 +184,6 @@ func (h *ProductHandler) GetProductCover(w http.ResponseWriter, r *http.Request)
 		return
 	}
 }
-
-
-
-
-
 
 // FIXME: models.SuccessResponse не найден
 
@@ -208,7 +203,7 @@ func (h *ProductHandler) CreateOne(w http.ResponseWriter, r *http.Request) {
 	// Проверяем, что запрос содержит multipart/form-data
 	if err := r.ParseMultipartForm(10 << 20); err != nil { // Максимум 10MB файл
 		h.log.Warnf("Error parsing multipart form: %v", err)
-		response.SendErrorResponse(w, http.StatusBadRequest, "Failed to parse form data")
+		response.SendJSONError(r.Context(), w, http.StatusBadRequest, "Failed to parse form data")
 		return
 	}
 
@@ -216,7 +211,7 @@ func (h *ProductHandler) CreateOne(w http.ResponseWriter, r *http.Request) {
 	file, header, err := r.FormFile("file")
 	if err != nil {
 		h.log.Warnf("Error getting file from form: %v", err)
-		response.SendErrorResponse(w, http.StatusBadRequest, "No file uploaded")
+		response.SendJSONError(r.Context(), w, http.StatusBadRequest, "No file uploaded")
 		return
 	}
 	defer file.Close()
@@ -225,7 +220,7 @@ func (h *ProductHandler) CreateOne(w http.ResponseWriter, r *http.Request) {
 	fileBytes, err := io.ReadAll(file)
 	if err != nil {
 		h.log.Errorf("Error reading file: %v", err)
-		response.SendErrorResponse(w, http.StatusInternalServerError, "Failed to read file")
+		response.SendJSONError(r.Context(), w, http.StatusInternalServerError, "Failed to read file")
 		return
 	}
 
@@ -239,12 +234,12 @@ func (h *ProductHandler) CreateOne(w http.ResponseWriter, r *http.Request) {
 	productResponse, err := h.minioService.CreateOne(r.Context(), fileData)
 	if err != nil {
 		h.log.Errorf("Upload error: %v", err)
-		response.SendErrorResponse(w, http.StatusInternalServerError, "Upload failed")
+		response.SendJSONError(r.Context(), w, http.StatusInternalServerError, "Upload failed")
 		return
 	}
 
 	// Возвращаем успешный ответ с URL файла
-	response.SendSuccessResponse(w, http.StatusOK, productResponse)
+	response.SendJSONResponse(r.Context(), w, http.StatusOK, productResponse)
 }
 
 // FIXME: models.SuccessResponse не найден
@@ -269,7 +264,7 @@ func (h *ProductHandler) GetOne(w http.ResponseWriter, r *http.Request) {
 	// Проверяем валидность UUID
 	if _, err := uuid.Parse(objectID); err != nil {
 		h.log.Warnf("Invalid object ID format: %s", objectID)
-		response.SendErrorResponse(w, http.StatusBadRequest, "Invalid object ID format")
+		response.SendJSONError(r.Context(), w, http.StatusBadRequest, "Invalid object ID format")
 		return
 	}
 
@@ -278,17 +273,17 @@ func (h *ProductHandler) GetOne(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			h.log.Warnf("File not found (ID: %s): %v", objectID, err)
-			response.SendErrorResponse(w, http.StatusNotFound, "File not found")
+			response.SendJSONError(r.Context(), w, http.StatusNotFound, "File not found")
 			return
 		}
 
 		h.log.Errorf("Failed to get file (ID: %s): %v", objectID, err)
-		response.SendErrorResponse(w, http.StatusInternalServerError, "Failed to get file")
+		response.SendJSONError(r.Context(), w, http.StatusInternalServerError, "Failed to get file")
 		return
 	}
 
 	// Формируем успешный ответ
-	response.SendSuccessResponse(w, http.StatusOK, map[string]string{
+	response.SendJSONResponse(r.Context(), w, http.StatusOK, map[string]string{
 		"url":       url,
 		"object_id": objectID,
 	})

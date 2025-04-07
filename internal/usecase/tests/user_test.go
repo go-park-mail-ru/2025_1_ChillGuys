@@ -7,6 +7,7 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/minio"
 	user2 "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/mocks"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/cookie"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/user"
 	"testing"
@@ -42,7 +43,7 @@ func TestAuthUsecase_Register(t *testing.T) {
 	assert.Error(t, err)
 	uc := user.NewAuthUsecase(mockRepo, mockToken, logger, minio)
 
-	testUser := models.UserRegisterRequestDTO{
+	testUser := dto.UserRegisterRequestDTO{
 		Email:    "test@example.com",
 		Password: "password123",
 		Name:     "Test",
@@ -57,7 +58,7 @@ func TestAuthUsecase_Register(t *testing.T) {
 
 		mockRepo.EXPECT().
 			CreateUser(gomock.Any(), gomock.All(
-				gomock.AssignableToTypeOf(models.UserDB{}),
+				gomock.AssignableToTypeOf(dto.UserDB{}),
 				gomock.Not(gomock.Nil()),
 			)).
 			Return(nil).
@@ -148,13 +149,13 @@ func TestAuthUsecase_Login(t *testing.T) {
 
 	testUserID := uuid.New()
 
-	testUser := models.UserLoginRequestDTO{
+	testUser := dto.UserLoginRequestDTO{
 		Email:    "test@example.com",
 		Password: "password123",
 	}
 
 	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(testUser.Password), bcrypt.MinCost)
-	testUserDB := &models.UserDB{
+	testUserDB := &dto.UserDB{
 		ID:           uuid.New(),
 		Email:        testUser.Email,
 		PasswordHash: hashedPassword,
@@ -168,7 +169,7 @@ func TestAuthUsecase_Login(t *testing.T) {
 			UpdatedAt: time.Now(),
 		}
 
-		userDB := &models.UserDB{
+		userDB := &dto.UserDB{
 			ID:           testUserID,
 			Email:        testUser.Email,
 			PasswordHash: hashedPassword,
@@ -277,7 +278,7 @@ func TestAuthUsecase_Logout(t *testing.T) {
 		err := uc.Logout(context.Background())
 
 		assert.Error(t, err)
-		assert.Equal(t, errs.ErrUserNotFound, err)
+		assert.Equal(t, errs.ErrNotFound, err)
 	})
 
 	t.Run("IncrementVersionError", func(t *testing.T) {
@@ -315,7 +316,7 @@ func TestAuthUsecase_GetMe(t *testing.T) {
 	uc := user.NewAuthUsecase(mockRepo, mockToken, logger, minio)
 
 	testUserID := uuid.New()
-	testUserDB := &models.UserDB{
+	testUserDB := &dto.UserDB{
 		ID:      testUserID,
 		Email:   "test@example.com",
 		Name:    "Test",
@@ -342,7 +343,7 @@ func TestAuthUsecase_GetMe(t *testing.T) {
 		user, err := uc.GetMe(context.Background())
 
 		assert.Error(t, err)
-		assert.Equal(t, errs.ErrUserNotFound, err)
+		assert.Equal(t, errs.ErrNotFound, err)
 		assert.Nil(t, user)
 	})
 
@@ -352,7 +353,7 @@ func TestAuthUsecase_GetMe(t *testing.T) {
 		user, err := uc.GetMe(ctx)
 
 		assert.Error(t, err)
-		assert.Equal(t, errs.ErrInvalidUserID, err)
+		assert.Equal(t, errs.ErrInvalidID, err)
 		assert.Nil(t, user)
 	})
 
@@ -381,7 +382,7 @@ func TestAuthUsecase_GetMe(t *testing.T) {
 		user, err := uc.GetMe(ctx)
 
 		assert.Error(t, err)
-		assert.Equal(t, errs.ErrUserNotFound, err)
+		assert.Equal(t, errs.ErrNotFound, err)
 		assert.Nil(t, user)
 	})
 }
