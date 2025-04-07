@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
@@ -131,7 +132,7 @@ func (r *BasketRepository) GetOrCreateBasket(ctx context.Context, userID uuid.UU
 	return basketID, nil
 }
 
-func (r *BasketRepository) GetProductsInBasket(ctx context.Context, userID uuid.UUID) (*models.BasketResponse, error) {
+func (r *BasketRepository) GetProductsInBasket(ctx context.Context, userID uuid.UUID) (*dto.BasketResponse, error) {
 	basketID, err := r.GetOrCreateBasket(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -173,7 +174,7 @@ func (r *BasketRepository) GetProductsInBasket(ctx context.Context, userID uuid.
 		return nil, err
 	}
 
-	response := models.ConvertToBasketResponse(productsList)
+	response := dto.ConvertToBasketResponse(productsList)
 
 	return &response, nil
 }

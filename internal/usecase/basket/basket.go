@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/cookie"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
@@ -12,7 +13,7 @@ import (
 
 type IBasketRepository interface{
 	GetOrCreateBasket(ctx context.Context, userID uuid.UUID) (uuid.UUID, error)
-	GetProductsInBasket(ctx context.Context, userID uuid.UUID) (*models.BasketResponse, error)
+	GetProductsInBasket(ctx context.Context, userID uuid.UUID) (*dto.BasketResponse, error)
 	AddProductInBasket(ctx context.Context, userID uuid.UUID, productID uuid.UUID) (*models.BasketItem, error)
 	DeleteProductFromBasket(ctx context.Context, userID uuid.UUID, productID uuid.UUID) error
 	UpdateProductQuantity(ctx context.Context, userID uuid.UUID, productID uuid.UUID, quantity int) (*models.BasketItem, error)
@@ -31,7 +32,7 @@ func NewBasketUsecase(log *logrus.Logger, repo IBasketRepository) *BasketUsecase
 	}
 }
 
-func (u *BasketUsecase)GetProducts(ctx context.Context)(*models.BasketResponse, error){
+func (u *BasketUsecase)Get(ctx context.Context)(*dto.BasketResponse, error){
 	userID, err := u.getUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
@@ -102,7 +103,7 @@ func (u *BasketUsecase)UpdateProductQuantity(ctx context.Context, productID uuid
 	return item, nil
 }
 
-func (u *BasketUsecase)ClearBasket(ctx context.Context,)(error){
+func (u *BasketUsecase)Clear(ctx context.Context,)(error){
 	userID, err := u.getUserIDFromContext(ctx)
 	if err != nil {
 		return err

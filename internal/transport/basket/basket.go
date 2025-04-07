@@ -2,48 +2,36 @@ package basket
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"net/http"
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/response"
 	"github.com/google/uuid"
+	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
 )
 
 type IBasketUsecase interface{
-	GetProducts(ctx context.Context)(*models.BasketResponse, error)
+	Get(ctx context.Context)(*dto.BasketResponse, error)
 	AddProduct(ctx context.Context, productID uuid.UUID)(*models.BasketItem, error)
 	DeleteProduct(ctx context.Context, productID uuid.UUID)(error)
 	UpdateProductQuantity(ctx context.Context, productID uuid.UUID, quantity int)(*models.BasketItem, error)
-	ClearBasket(ctx context.Context)(error)
+	Clear(ctx context.Context)(error)
 }
 
-type BasketHandler struct {
+type BasketService struct {
 	u            IBasketUsecase
 	log          *logrus.Logger
 }
 
-func NewBasketHandler(u IBasketUsecase, log *logrus.Logger) *BasketHandler {
-	return &BasketHandler{
+func NewBasketService(u IBasketUsecase, log *logrus.Logger) *BasketService {
+	return &BasketService{
 		u:            u,
 		log:          log,
 	}
-}
-
-type addProductRequest struct {
-	ProductID uuid.UUID `json:"product_id"`
-}
-
-type delProductRequest struct {
-	ProductId uuid.UUID `json:"product_id"`
-}
-
-type updateQuantityRequest struct {
-	ProductID uuid.UUID `json:"product_id"`
-	Quantity  int       `json:"quantity"`
 }
 
 // GetBasket godoc
@@ -58,8 +46,8 @@ type updateQuantityRequest struct {
 //	@Failure		404	{object}	response.ErrorResponse	"Корзина не найдена"
 //	@Failure		500	{object}	response.ErrorResponse	"Ошибка сервера"
 //	@Router			/basket [get]
-func (h *BasketHandler) GetBasket(w http.ResponseWriter, r *http.Request) {
-	items, err := h.u.GetProducts(r.Context())
+func (h *BasketService) GetBasket(w http.ResponseWriter, r *http.Request) {
+	items, err := h.u.Get(r.Context())
 	if err != nil {
 		switch {
 		case errors.Is(err, errs.ErrUserNotFound):
@@ -90,14 +78,17 @@ func (h *BasketHandler) GetBasket(w http.ResponseWriter, r *http.Request) {
 //	@Failure		404		{object}	response.ErrorResponse	"Товар не найден"
 //	@Failure		500		{object}	response.ErrorResponse	"Ошибка сервера"
 //	@Router			/basket/add [post]
-func (h *BasketHandler) AddProduct(w http.ResponseWriter, r *http.Request) {
-	var req addProductRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.SendErrorResponse(w, http.StatusBadRequest, "Invalid request body")
+func (h *BasketService) AddProduct(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	idStr := vars["id"]
+	productID, err := uuid.Parse(idStr)
+	if err != nil {
+		h.log.Warnf("Invalid ID: %v", err)
+		response.SendErrorResponse(w, http.StatusBadRequest, "Invalid ID")
 		return
 	}
 
-	item, err := h.u.AddProduct(r.Context(), req.ProductID)
+	item, err := h.u.AddProduct(r.Context(), productID)
 	if err != nil {
 		switch {
 		case errors.Is(err, errs.ErrUserNotFound):
@@ -127,14 +118,17 @@ func (h *BasketHandler) AddProduct(w http.ResponseWriter, r *http.Request) {
 //	@Failure	404		{object}	response.ErrorResponse	"Товар не найден в корзине"
 //	@Failure	500		{object}	response.ErrorResponse	"Внутренняя ошибка сервера"
 //	@Router		/basket/remove [delete]
-func (h *BasketHandler) DeleteProduct(w http.ResponseWriter, r *http.Request) {
-	var req delProductRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.SendErrorResponse(w, http.StatusBadRequest, "Invalid request body")
+func (h *BasketService) DeleteProduct(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	idStr := vars["id"]
+	productID, err := uuid.Parse(idStr)
+	if err != nil {
+		h.log.Warnf("Invalid ID: %v", err)
+		response.SendErrorResponse(w, http.StatusBadRequest, "Invalid ID")
 		return
 	}
 
-	if err := h.u.DeleteProduct(r.Context(), req.ProductId); err != nil {
+	if err := h.u.DeleteProduct(r.Context(), productID); err != nil {
 		switch {
 		case errors.Is(err, errs.ErrUserNotFound):
 			response.SendErrorResponse(w, http.StatusUnauthorized, "User not authenticated")
@@ -165,19 +159,19 @@ func (h *BasketHandler) DeleteProduct(w http.ResponseWriter, r *http.Request) {
 //	@Failure		404		{object}	response.ErrorResponse	"Товар не найден"
 //	@Failure		500		{object}	response.ErrorResponse	"Ошибка сервера"
 //	@Router			/basket/update [put]
-func (h *BasketHandler) UpdateQuantity(w http.ResponseWriter, r *http.Request) {
-	var req updateQuantityRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.SendErrorResponse(w, http.StatusBadRequest, "Некорректный формат данных")
+func (h *BasketService) UpdateQuantity(w http.ResponseWriter, r *http.Request) {
+	var req dto.UpdateQuantityRequest
+
+	vars := mux.Vars(r)
+	idStr := vars["id"]
+	productID, err := uuid.Parse(idStr)
+	if err != nil {
+		h.log.Warnf("Invalid ID: %v", err)
+		response.SendErrorResponse(w, http.StatusBadRequest, "Invalid ID")
 		return
 	}
 
-	if req.Quantity <= 0 {
-		response.SendErrorResponse(w, http.StatusBadRequest, "Количество должно быть положительным")
-		return
-	}
-
-	item, err := h.u.UpdateProductQuantity(r.Context(), req.ProductID, req.Quantity)
+	item, err := h.u.UpdateProductQuantity(r.Context(), productID, req.Quantity)
 	if err != nil {
 		switch {
 		case errors.Is(err, errs.ErrUserNotFound):
@@ -206,8 +200,8 @@ func (h *BasketHandler) UpdateQuantity(w http.ResponseWriter, r *http.Request) {
 //	@Failure		401	{object}	response.ErrorResponse	"Пользователь не авторизован"
 //	@Failure		500	{object}	response.ErrorResponse	"Ошибка сервера"
 //	@Router			/basket/clear [delete]
-func (h *BasketHandler) ClearBasket(w http.ResponseWriter, r *http.Request) {
-	if err := h.u.ClearBasket(r.Context()); err != nil {
+func (h *BasketService) ClearBasket(w http.ResponseWriter, r *http.Request) {
+	if err := h.u.Clear(r.Context()); err != nil {
 		switch {
 		case errors.Is(err, errs.ErrUserNotFound):
 			response.SendErrorResponse(w, http.StatusUnauthorized, "Требуется авторизация")

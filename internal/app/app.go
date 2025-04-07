@@ -9,9 +9,9 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/minio"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres"
-	basket "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/basket"
-	basket2 "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/basket"
-	basket3 "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/basket"
+	basketrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/basket"
+	basketuc "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/basket"
+	baskett "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/basket"
 	product2 "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/product"
 	user2 "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/user"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
@@ -64,11 +64,12 @@ func Run() error {
 	productUsecase := product.NewProductUsecase(logger, productRepo)
 	productHandler := product3.NewProductHandler(productUsecase, logger, minioClient)
 
-	basketRepo := basket.NewBasketRepository(db, logger)
-	basketUsecase := basket2.NewBasketUsecase(logger, basketRepo)
-	basketHandler := basket3.NewBasketHandler(basketUsecase, logger)
+	basketRepo := basketrepo.NewBasketRepository(db, logger)
+	basketUsecase := basketuc.NewBasketUsecase(logger, basketRepo)
+	basketHandler := baskett.NewBasketService(basketUsecase, logger)
 
 	router := mux.NewRouter().PathPrefix("/api").Subrouter()
+	router = router.PathPrefix("/v1").Subrouter()
 	router.Use(func(next http.Handler) http.Handler {
 		return middleware.CORSMiddleware(next, conf.ServerConfig)
 	})
@@ -91,30 +92,30 @@ func Run() error {
 
 	basketRouter := router.PathPrefix("/basket").Subrouter()
 	{
-		basketRouter.Handle("/", middleware.JWTMiddleware(
+		basketRouter.Handle("", middleware.JWTMiddleware(
 			tokenator,
 			http.HandlerFunc(basketHandler.GetBasket)),
-		).Methods("GET")
+		).Methods(http.MethodGet)
 
-		basketRouter.Handle("/add", middleware.JWTMiddleware(
+		basketRouter.Handle("/{id}", middleware.JWTMiddleware(
 			tokenator,
 			http.HandlerFunc(basketHandler.AddProduct)),
-		).Methods("POST")
+		).Methods(http.MethodPost)
 
-		basketRouter.Handle("/remove", middleware.JWTMiddleware(
+		basketRouter.Handle("/{id}", middleware.JWTMiddleware(
 			tokenator,
 			http.HandlerFunc(basketHandler.DeleteProduct)),
-		).Methods("DELETE")
+		).Methods(http.MethodDelete)
 
-		basketRouter.Handle("/update", middleware.JWTMiddleware(
+		basketRouter.Handle("/{id}", middleware.JWTMiddleware(
 			tokenator,
 			http.HandlerFunc(basketHandler.UpdateQuantity)),
-		).Methods("PUT")
+		).Methods(http.MethodPut)
 
-		basketRouter.Handle("/clear", middleware.JWTMiddleware(
+		basketRouter.Handle("", middleware.JWTMiddleware(
 			tokenator,
 			http.HandlerFunc(basketHandler.ClearBasket)),
-		).Methods("DELETE")
+		).Methods(http.MethodDelete)
 	}
 
 	productCoverRouter := router.PathPrefix("/cover").Subrouter()

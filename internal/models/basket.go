@@ -24,31 +24,3 @@ type Basket struct {
 	TotalPrice          float64    `json:"total_price"`
 	TotalPriceDiscount  float64    `json:"total_price_discount"`
 }
-
-type BasketResponse struct {
-    Total              int          `json:"total"`
-    TotalPrice         float64      `json:"total_price"`
-    TotalPriceDiscount float64      `json:"total_price_discount"`
-	Products           []BasketItem `json:"products"`
-}
-
-func ConvertToBasketResponse(items []*BasketItem) BasketResponse{
-	var totalPrice, totalPriceDiscount float64 
-	productsList := make([]BasketItem, 0, len(items))
-	for _, product := range items{
-		productsList = append(productsList, *product)
-		totalPrice = totalPrice + product.Price * float64(product.Quantity)
-        price := product.Price
-        if product.PriceDiscount > 0 {
-            price = product.PriceDiscount
-        }
-        totalPriceDiscount += price * float64(product.Quantity)
-	}
-
-	return BasketResponse{
-		Total: len(productsList),
-		TotalPrice: totalPrice,
-		TotalPriceDiscount : totalPriceDiscount,
-		Products: productsList,
-	}
-}
