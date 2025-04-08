@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
@@ -50,7 +51,8 @@ func NewApp(conf *config.Config) (*App, error) {
 	config.ConfigureDB(db, conf.DBConfig)
 
 	// Инициализация клиента Minio.
-	minioClient, err := minio.NewMinioClient(conf.MinioConfig)
+	ctx := context.Background()
+	minioClient, err := minio.NewMinioClient(ctx, conf.MinioConfig)
 	if err != nil {
 		return nil, fmt.Errorf("minio initialization error: %w", err)
 	}
@@ -123,7 +125,7 @@ func NewApp(conf *config.Config) (*App, error) {
 		orderRouter.Handle("/", middleware.JWTMiddleware(
 			tokenator,
 			http.HandlerFunc(orderHandler.CreateOrder),
-		)).Methods("POST")
+		)).Methods(http.MethodPost)
 	}
 
 	app := &App{

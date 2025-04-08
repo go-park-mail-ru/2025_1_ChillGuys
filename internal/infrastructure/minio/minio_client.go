@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	"github.com/google/uuid"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
@@ -14,7 +15,7 @@ import (
 
 //go:generate mockgen -source=minio_client.go -destination=../minio/mocks/minio_client_mock.go -package=mocks Client
 type Client interface {
-	CreateOne(context.Context, FileDataType) (*UploadResponse, error)
+	CreateOne(context.Context, FileDataType) (*dto.UploadResponse, error)
 	CreateMany(context.Context, map[string]FileDataType) ([]string, error)
 	GetOne(context.Context, string) (string, error)
 	GetMany(context.Context, []string) ([]string, error)
@@ -27,8 +28,8 @@ type minioClient struct {
 	config *config.MinioConfig
 }
 
-func NewMinioClient(config *config.MinioConfig) (Client, error) {
-	client, err := initMinio(config)
+func NewMinioClient(ctx context.Context, config *config.MinioConfig) (Client, error) {
+	client, err := initMinio(ctx, config)
 	if err != nil {
 		return nil, err
 	}
@@ -40,11 +41,9 @@ func NewMinioClient(config *config.MinioConfig) (Client, error) {
 
 // InitMinio подключается к Minio и создает бакет, если не существует
 // Бакет - это контейнер для хранения объектов в Minio. Он представляет собой пространство имен, в котором можно хранить и организовывать файлы и папки.
-func initMinio(config *config.MinioConfig) (*minio.Client, error) {
-	// Создание контекста с возможностью отмены операции
-	ctx := context.Background()
-
-	// Подключение к Minio с использованием имени пользователя и пароля
+// initMinio connects to Minio and creates a bucket if it doesn't exist
+// Bucket is a container for storing objects in Minio. It represents a namespace where you can store and organize files and folders.
+func initMinio(ctx context.Context, config *config.MinioConfig) (*minio.Client, error) {
 	client, err := minio.New(config.Endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(config.RootUser, config.RootPassword, ""),
 		Secure: config.UseSSL,
@@ -53,7 +52,6 @@ func initMinio(config *config.MinioConfig) (*minio.Client, error) {
 		return nil, err
 	}
 
-	// Проверка наличия бакета и его создание, если не существует
 	exists, err := client.BucketExists(ctx, config.BucketName)
 	if err != nil {
 		return nil, err
@@ -68,10 +66,10 @@ func initMinio(config *config.MinioConfig) (*minio.Client, error) {
 }
 
 // CreateOne создает один объект в бакете Minio.
-// Метод принимает структуру fileData, которая содержит имя файла и его данные.
+// Метод принимает структуру FileDataType, которая содержит имя файла и его данные.
 // В случае успешной загрузки данных в бакет, метод возвращает nil, иначе возвращает ошибку.
 // Все операции выполняются в контексте задачи.
-func (m *minioClient) CreateOne(ctx context.Context, file FileDataType) (*UploadResponse, error) {
+func (m *minioClient) CreateOne(ctx context.Context, file FileDataType) (*dto.UploadResponse, error) {
 	// Генерация уникального идентификатора для нового объекта.
 	objectID := uuid.New().String()
 
@@ -92,7 +90,7 @@ func (m *minioClient) CreateOne(ctx context.Context, file FileDataType) (*Upload
 		return nil, fmt.Errorf("failed to generate URL for object %s: %v", file.FileName, err)
 	}
 
-	return &UploadResponse{
+	return &dto.UploadResponse{
 		URL:      url.String(),
 		ObjectID: objectID,
 	}, nil
@@ -267,9 +265,4 @@ type FileDataType struct {
 type OperationError struct {
 	ObjectID string
 	Error    error
-}
-
-type UploadResponse struct {
-	URL      string `json:"url"`
-	ObjectID string `json:"object_id"`
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/order"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"sync"
@@ -13,7 +14,7 @@ import (
 )
 
 type IOrderUsecase interface {
-	CreateOrder(context.Context, models.CreateOrderDTO) error
+	CreateOrder(context.Context, dto.CreateOrderDTO) error
 }
 
 type OrderUsecase struct {
@@ -31,11 +32,11 @@ func NewOrderUsecase(
 	}
 }
 
-func (u *OrderUsecase) CreateOrder(ctx context.Context, in models.CreateOrderDTO) error {
+func (u *OrderUsecase) CreateOrder(ctx context.Context, in dto.CreateOrderDTO) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	orderItems := make([]models.CreateOrderItemDTO, len(in.Items))
+	orderItems := make([]dto.CreateOrderItemDTO, len(in.Items))
 	now := time.Now()
 
 	var totalPrice float64 = 0
@@ -52,7 +53,7 @@ func (u *OrderUsecase) CreateOrder(ctx context.Context, in models.CreateOrderDTO
 		orderItems[i] = item
 
 		totalWg.Add(1)
-		go func(i int, item models.CreateOrderItemDTO) {
+		go func(i int, item dto.CreateOrderItemDTO) {
 			defer totalWg.Done()
 
 			var innerWg sync.WaitGroup
@@ -157,7 +158,7 @@ func (u *OrderUsecase) CreateOrder(ctx context.Context, in models.CreateOrderDTO
 		return err
 	}
 
-	order := &models.Order{
+	order := &dto.Order{
 		ID:                 uuid.New(),
 		UserID:             in.UserID,
 		Status:             models.Pending,
@@ -169,7 +170,7 @@ func (u *OrderUsecase) CreateOrder(ctx context.Context, in models.CreateOrderDTO
 
 	u.log.Infoln(totalPrice, totalDiscountedPrice)
 
-	return u.repo.CreateOrder(ctx, models.CreateOrderRepoReq{
+	return u.repo.CreateOrder(ctx, dto.CreateOrderRepoReq{
 		Order:             order,
 		UpdatedQuantities: newQuantities,
 	})

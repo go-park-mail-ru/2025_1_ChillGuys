@@ -2,7 +2,7 @@ package order
 
 import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/domains"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/request"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/response"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/order"
@@ -52,7 +52,7 @@ func (o *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var CreateOrderReq models.CreateOrderDTO
+	var CreateOrderReq dto.CreateOrderDTO
 	if err := request.ParseData(r, &CreateOrderReq); err != nil {
 		response.SendJSONError(r.Context(), w, http.StatusBadRequest, err.Error())
 		return

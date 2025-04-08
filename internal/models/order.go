@@ -1,6 +1,8 @@
 package models
 
-import "github.com/google/uuid"
+import (
+	"github.com/google/uuid"
+)
 
 type OrderStatus int
 
@@ -50,16 +52,6 @@ func (s OrderStatus) String() string {
 	}[s]
 }
 
-type Order struct {
-	ID                 uuid.UUID
-	UserID             uuid.UUID
-	Status             OrderStatus
-	TotalPrice         float64
-	TotalPriceDiscount float64
-	AddressID          uuid.UUID
-	Items              []CreateOrderItemDTO
-}
-
 type OrderDB struct {
 	ID         uuid.UUID `db:"id"`
 	UserID     string    `db:"user_id"`
@@ -74,22 +66,4 @@ type OrderItemDB struct {
 	ProductID uuid.UUID `db:"product_id"`
 	Price     float64   `db:"product_price"`
 	Quantity  uint      `db:"quantity"`
-}
-
-type CreateOrderDTO struct {
-	UserID    uuid.UUID
-	Items     []CreateOrderItemDTO `json:"items"`
-	AddressID uuid.UUID            `json:"address_id"`
-}
-
-type CreateOrderItemDTO struct {
-	ID        uuid.UUID
-	ProductID uuid.UUID `json:"product_id"`
-	Price     float64   `json:"product_price"`
-	Quantity  uint      `json:"quantity"`
-}
-
-type CreateOrderRepoReq struct {
-	Order             *Order
-	UpdatedQuantities map[uuid.UUID]uint
 }

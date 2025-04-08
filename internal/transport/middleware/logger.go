@@ -24,12 +24,12 @@ func NewLoggerMiddleware(logger *logrus.Logger) *LoggerMiddleware {
 
 func (m *LoggerMiddleware) LogRequest(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reqId := fmt.Sprintf("%016x", rand.Int())[:10]
+		reqID := fmt.Sprintf("%016x", rand.Int())[:10]
 
-		ctx := context.WithValue(r.Context(), domains.ReqIDKey, reqId)
+		ctx := context.WithValue(r.Context(), domains.ReqIDKey, reqID)
 
 		requestLogger := m.logger.WithFields(logrus.Fields{
-			"request_id":  reqId,
+			"request_id":  reqID,
 			"method":      r.Method,
 			"remote_addr": r.RemoteAddr,
 			"path":        r.URL.Path,

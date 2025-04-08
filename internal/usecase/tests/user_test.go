@@ -38,7 +38,8 @@ func TestAuthUsecase_Register(t *testing.T) {
 		RootPassword: "minioadminpassword",
 		UseSSL:       false,
 	}
-	minio, err := minio.NewMinioClient(minioConfig)
+	ctx := context.Background()
+	minio, err := minio.NewMinioClient(ctx, minioConfig)
 
 	assert.Error(t, err)
 	uc := user.NewAuthUsecase(mockRepo, mockToken, logger, minio)
@@ -142,7 +143,9 @@ func TestAuthUsecase_Login(t *testing.T) {
 		RootPassword: "minioadminpassword", // Пароль пользователя
 		UseSSL:       false,                // Не используем SSL
 	}
-	minio, err := minio.NewMinioClient(minioConfig)
+
+	ctx := context.Background()
+	minio, err := minio.NewMinioClient(ctx, minioConfig)
 
 	assert.Error(t, err)
 	uc := user.NewAuthUsecase(mockRepo, mockToken, logger, minio)
@@ -254,7 +257,9 @@ func TestAuthUsecase_Logout(t *testing.T) {
 		RootPassword: "minioadminpassword", // Пароль пользователя
 		UseSSL:       false,                // Не используем SSL
 	}
-	minio, err := minio.NewMinioClient(minioConfig)
+
+	ctx := context.Background()
+	minio, err := minio.NewMinioClient(ctx, minioConfig)
 
 	assert.Error(t, err)
 	uc := user.NewAuthUsecase(mockRepo, mockToken, logger, minio)
@@ -310,7 +315,9 @@ func TestAuthUsecase_GetMe(t *testing.T) {
 		RootPassword: "minioadminpassword", // Пароль пользователя
 		UseSSL:       false,                // Не используем SSL
 	}
-	minio, err := minio.NewMinioClient(minioConfig)
+
+	ctx := context.Background()
+	minio, err := minio.NewMinioClient(ctx, minioConfig)
 
 	assert.Error(t, err)
 	uc := user.NewAuthUsecase(mockRepo, mockToken, logger, minio)
