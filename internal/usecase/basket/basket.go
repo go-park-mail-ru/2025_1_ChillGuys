@@ -11,6 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+//go:generate mockgen -source=basket.go -destination=../../infrastructure/repository/postgres/mocks/basket_repository_mock.go -package=mocks IBasketRepository
 type IBasketRepository interface{
 	GetOrCreateBasket(ctx context.Context, userID uuid.UUID) (uuid.UUID, error)
 	GetProductsInBasket(ctx context.Context, userID uuid.UUID) (*dto.BasketResponse, error)

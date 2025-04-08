@@ -110,7 +110,7 @@ func Run() error {
 		basketRouter.Handle("/{id}", middleware.JWTMiddleware(
 			tokenator,
 			http.HandlerFunc(basketHandler.UpdateQuantity)),
-		).Methods(http.MethodPut)
+		).Methods(http.MethodPatch)
 
 		basketRouter.Handle("", middleware.JWTMiddleware(
 			tokenator,

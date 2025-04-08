@@ -14,6 +14,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+//go:generate mockgen -source=basket.go -destination=../../usecase/mocks/basket_usecase_mock.go -package=mocks IBasketUsecase
 type IBasketUsecase interface{
 	Get(ctx context.Context)(*dto.BasketResponse, error)
 	AddProduct(ctx context.Context, productID uuid.UUID)(*models.BasketItem, error)
@@ -69,15 +70,14 @@ func (h *BasketService) GetBasket(w http.ResponseWriter, r *http.Request) {
 //	@Description	Добавляет товар в корзину пользователя или увеличивает количество, если товар уже есть
 //	@Tags			basket
 //	@Security		ApiKeyAuth
-//	@Accept			json
 //	@Produce		json
-//	@Param			request	body		addProductRequest		true	"Данные товара"
-//	@Success		201		{object}	models.BasketItem		"Добавленный товар"
-//	@Failure		400		{object}	response.ErrorResponse	"Некорректные данные"
-//	@Failure		401		{object}	response.ErrorResponse	"Пользователь не авторизован"
-//	@Failure		404		{object}	response.ErrorResponse	"Товар не найден"
-//	@Failure		500		{object}	response.ErrorResponse	"Ошибка сервера"
-//	@Router			/basket/add [post]
+//	@Param			id	path		string					true	"ID товара"
+//	@Success		201	{object}	models.BasketItem		"Добавленный товар"
+//	@Failure		400	{object}	response.ErrorResponse	"Некорректный ID"
+//	@Failure		401	{object}	response.ErrorResponse	"Пользователь не авторизован"
+//	@Failure		404	{object}	response.ErrorResponse	"Товар не найден"
+//	@Failure		500	{object}	response.ErrorResponse	"Ошибка сервера"
+//	@Router			/basket/add/{id} [post]
 func (h *BasketService) AddProduct(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	idStr := vars["id"]
@@ -108,16 +108,17 @@ func (h *BasketService) AddProduct(w http.ResponseWriter, r *http.Request) {
 
 // DeleteProduct godoc
 //
-//	@Summary	Удалить товар из корзины
-//	@Tags		basket
-//	@Security	ApiKeyAuth
-//	@Param		request	body	delProductRequest	true	"Данные товара"
-//	@Success	204		"Товар успешно удалён"
-//	@Failure	400		{object}	response.ErrorResponse	"Некорректный формат запроса"
-//	@Failure	401		{object}	response.ErrorResponse	"Пользователь не авторизован"
-//	@Failure	404		{object}	response.ErrorResponse	"Товар не найден в корзине"
-//	@Failure	500		{object}	response.ErrorResponse	"Внутренняя ошибка сервера"
-//	@Router		/basket/remove [delete]
+//	@Summary		Удалить товар из корзины
+//	@Description	Удаляет товар из корзины пользователя
+//	@Tags			basket
+//	@Security		ApiKeyAuth
+//	@Param			id	path		string					true	"ID товара"
+//	@Success		204	"Товар успешно удалён"
+//	@Failure		400	{object}	response.ErrorResponse	"Некорректный ID"
+//	@Failure		401	{object}	response.ErrorResponse	"Пользователь не авторизован"
+//	@Failure		404	{object}	response.ErrorResponse	"Товар не найден в корзине"
+//	@Failure		500	{object}	response.ErrorResponse	"Внутренняя ошибка сервера"
+//	@Router			/basket/remove/{id} [delete]
 func (h *BasketService) DeleteProduct(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	idStr := vars["id"]
@@ -152,13 +153,14 @@ func (h *BasketService) DeleteProduct(w http.ResponseWriter, r *http.Request) {
 //	@Security		ApiKeyAuth
 //	@Accept			json
 //	@Produce		json
-//	@Param			request	body		updateQuantityRequest	true	"Данные для обновления"
+//	@Param			id		path		string					true	"ID товара"
+//	@Param			quantity	query		int						true	"Новое количество"
 //	@Success		200		{object}	models.BasketItem		"Обновленный товар"
 //	@Failure		400		{object}	response.ErrorResponse	"Некорректные данные"
 //	@Failure		401		{object}	response.ErrorResponse	"Пользователь не авторизован"
 //	@Failure		404		{object}	response.ErrorResponse	"Товар не найден"
 //	@Failure		500		{object}	response.ErrorResponse	"Ошибка сервера"
-//	@Router			/basket/update [put]
+//	@Router			/basket/update/{id} [patch]
 func (h *BasketService) UpdateQuantity(w http.ResponseWriter, r *http.Request) {
 	var req dto.UpdateQuantityRequest
 
