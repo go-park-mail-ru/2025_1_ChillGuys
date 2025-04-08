@@ -32,3 +32,16 @@ type CreateOrderRepoReq struct {
 	Order             *Order
 	UpdatedQuantities map[uuid.UUID]uint
 }
+
+type GetOrderByUserIDResDTO struct {
+	ID                 uuid.UUID          `json:"id"`
+	Status             models.OrderStatus `json:"status"`
+	TotalPrice         float64            `json:"total_price"`
+	TotalPriceDiscount float64            `json:"total_price_discount"`
+	AddressID          uuid.UUID          `json:"address_id"`
+}
+
+type GetOrderProductResDTO struct {
+	ProductID uuid.UUID `json:"product_id"`
+	Quantity  uint      `json:"quantity"`
+}

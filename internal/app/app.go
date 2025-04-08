@@ -120,12 +120,16 @@ func NewApp(conf *config.Config) (*App, error) {
 			Methods(http.MethodPost)
 	}
 
-	orderRouter := router.PathPrefix("/order").Subrouter()
+	orderRouter := router.PathPrefix("/orders").Subrouter()
 	{
 		orderRouter.Handle("/", middleware.JWTMiddleware(
 			tokenator,
 			http.HandlerFunc(orderHandler.CreateOrder),
 		)).Methods(http.MethodPost)
+		orderRouter.Handle("/", middleware.JWTMiddleware(
+			tokenator,
+			http.HandlerFunc(orderHandler.GetOrders),
+		)).Methods(http.MethodGet)
 	}
 
 	app := &App{

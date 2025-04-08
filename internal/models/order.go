@@ -1,7 +1,9 @@
 package models
 
 import (
+	"fmt"
 	"github.com/google/uuid"
+	"github.com/guregu/null"
 )
 
 type OrderStatus int
@@ -52,6 +54,38 @@ func (s OrderStatus) String() string {
 	}[s]
 }
 
+func ParseOrderStatus(s string) (OrderStatus, error) {
+	statuses := [...]string{
+		"pending",
+		"placed",
+		"awaiting_confirmation",
+		"being_prepared",
+		"shipped",
+		"in_transit",
+		"delivered_to_pickup_point",
+		"delivered",
+		"canceled",
+		"awaiting_payment",
+		"paid",
+		"payment_failed",
+		"return_requested",
+		"return_processed",
+		"return_initiated",
+		"return_completed",
+		"canceled_by_user",
+		"canceled_by_seller",
+		"canceled_due_to_payment_error",
+	}
+
+	for i, val := range statuses {
+		if s == val {
+			return OrderStatus(i), nil
+		}
+	}
+
+	return 0, fmt.Errorf("unknown order status: %s", s)
+}
+
 type OrderDB struct {
 	ID         uuid.UUID `db:"id"`
 	UserID     string    `db:"user_id"`
@@ -66,4 +100,20 @@ type OrderItemDB struct {
 	ProductID uuid.UUID `db:"product_id"`
 	Price     float64   `db:"product_price"`
 	Quantity  uint      `db:"quantity"`
+}
+
+type OrderPreview struct {
+	ID                 uuid.UUID             `json:"id"`
+	Status             OrderStatus           `json:"status"`
+	TotalPrice         float64               `json:"total_price"`
+	TotalDiscountPrice float64               `json:"total_discount_price"`
+	Products           []OrderPreviewProduct `json:"products"`
+	Address            Address               `json:"address"`
+	//CreatedAt          *time.Time            `json:"created_at,omitempty"`     // если добавишь
+	//WaitingDate        *time.Time            `json:"waiting_date,omitempty"`   // если добавишь
+}
+
+type OrderPreviewProduct struct {
+	ProductImageURL null.String `json:"product_image_url"`
+	ProductQuantity uint        `json:"product_quantity"`
 }

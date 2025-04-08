@@ -54,9 +54,9 @@ func HandleDomainError(ctx context.Context, w http.ResponseWriter, err error, de
 		SendJSONError(ctx, w, http.StatusUnauthorized, fmt.Sprintf("%s: %v", description, err))
 		log.Debug("invalid credentials error: ", description, err.Error())
 
-	case errors.Is(err, errs.ErrNotFound):
-		SendJSONError(ctx, w, http.StatusUnauthorized, fmt.Sprintf("%s: %v", description, err))
-		log.Debug("user not found: ", description, err.Error())
+	//case errors.Is(err, errs.ErrNotFound):
+	//	SendJSONError(ctx, w, http.StatusUnauthorized, fmt.Sprintf("%s: %v", description, err))
+	//	log.Debug("user not found: ", description, err.Error())
 
 	case errors.Is(err, errs.ErrAlreadyExists):
 		SendJSONError(ctx, w, http.StatusConflict, fmt.Sprintf("%s: %v", description, err))
@@ -76,7 +76,7 @@ func HandleDomainError(ctx context.Context, w http.ResponseWriter, err error, de
 
 	case errors.Is(err, errs.ErrNotFound):
 		SendJSONError(ctx, w, http.StatusNotFound, fmt.Sprintf("%s: %v", description, err))
-		log.Debug("resource not found: ", description, errs.NewNotFoundError(description))
+		log.Debug("not found: ", description, errs.NewNotFoundError(description))
 
 	case errors.Is(err, errs.ErrInvalidID):
 		SendJSONError(ctx, w, http.StatusBadRequest, fmt.Sprintf("%s: %v", description, err))

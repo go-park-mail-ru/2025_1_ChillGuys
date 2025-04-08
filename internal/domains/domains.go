@@ -8,3 +8,7 @@ var (
 	UserIDKey Key = "UserID"
 	LoggerKey Key = "Logger"
 )
+
+func (k Key) String() string {
+	return string(k)
+}

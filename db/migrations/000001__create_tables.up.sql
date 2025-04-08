@@ -178,7 +178,9 @@ CREATE TABLE IF NOT EXISTS bazaar."order"
     status               bazaar.order_status                              NOT NULL,
     total_price          NUMERIC(12, 2) CHECK (total_price >= 0)          NOT NULL,
     total_price_discount NUMERIC(12, 2) CHECK (total_price_discount >= 0) NOT NULL,
-    address_id           UUID                                             REFERENCES bazaar.address (id) ON DELETE SET NULL,
+    address_id           UUID REFERENCES bazaar.address (id) ON DELETE SET NULL,
+    expected_delivery_at TIMESTAMPTZ,
+    actual_delivery_at   TIMESTAMPTZ,
     created_at           TIMESTAMPTZ DEFAULT now(),
     updated_at           TIMESTAMPTZ DEFAULT now()
 );

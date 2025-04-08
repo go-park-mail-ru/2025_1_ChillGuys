@@ -14,9 +14,13 @@ import (
 const (
 	queryCreateOrder           = `INSERT INTO bazaar."order" (id, user_id, status, total_price, total_price_discount, address_id) VALUES ($1, $2, $3, $4, $5, $6)`
 	queryAddOrderItem          = `INSERT INTO bazaar."order_item" (id, order_id, product_id, price, quantity) VALUES ($1, $2, $3, $4, $5)`
-	queryGetProductPrice       = `SELECT price, status, quantity FROM bazaar.product WHERE id = $1`
+	queryGetProductPrice       = `SELECT price, status, quantity FROM bazaar.product WHERE id = $1 LIMIT 1`
 	queryGetProductDiscount    = `SELECT discounted_price, start_date, end_date FROM bazaar.discount WHERE product_id = $1`
 	queryUpdateProductQuantity = `UPDATE bazaar.product SET quantity = $1 WHERE id = $2`
+	queryGetOrdersByUserID     = `SELECT id, status, total_price, total_price_discount, address_id FROM bazaar."order" WHERE user_id = $1`
+	queryGetOrderProducts      = `SELECT product_id, quantity FROM bazaar.order_item WHERE order_id = $1`
+	queryGetProductImg         = `SELECT preview_image_url FROM bazaar.product WHERE id = $1 LIMIT 1`
+	queryGetOrderAddress       = `SELECT city, street, house, apartment, zip_code FROM bazaar.address WHERE id = $1 LIMIT 1`
 )
 
 type IOrderRepository interface {
@@ -24,6 +28,10 @@ type IOrderRepository interface {
 	ProductPrice(context.Context, uuid.UUID) (*models.Product, error)
 	ProductDiscounts(context.Context, uuid.UUID) ([]models.ProductDiscount, error)
 	UpdateProductQuantity(context.Context, uuid.UUID, uint) error
+	GetOrdersByUserID(context.Context, uuid.UUID) (*[]dto.GetOrderByUserIDResDTO, error)
+	GetOrderProducts(context.Context, uuid.UUID) (*[]dto.GetOrderProductResDTO, error)
+	GetProductImage(context.Context, uuid.UUID) (string, error)
+	GetOrderAddress(context.Context, uuid.UUID) (*models.Address, error)
 }
 
 type OrderRepository struct {
@@ -148,4 +156,108 @@ func (r *OrderRepository) UpdateProductQuantity(ctx context.Context, productID u
 	}
 
 	return nil
+}
+
+func (r *OrderRepository) GetOrdersByUserID(ctx context.Context, userID uuid.UUID) (*[]dto.GetOrderByUserIDResDTO, error) {
+	rows, err := r.db.QueryContext(ctx, queryGetOrdersByUserID, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var orders []dto.GetOrderByUserIDResDTO
+	for rows.Next() {
+		var order dto.GetOrderByUserIDResDTO
+		var status string
+		if err = rows.Scan(
+			&order.ID,
+			&status,
+			&order.TotalPrice,
+			&order.TotalPriceDiscount,
+			&order.AddressID,
+		); err != nil {
+			return nil, err
+		}
+		orderStatus, err := models.ParseOrderStatus(status)
+		if err != nil {
+			return nil, err
+		}
+
+		order.Status = orderStatus
+		orders = append(orders, order)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	if len(orders) == 0 {
+		return nil, errs.ErrNotFound
+	}
+
+	return &orders, nil
+}
+
+func (r *OrderRepository) GetOrderProducts(ctx context.Context, productID uuid.UUID) (*[]dto.GetOrderProductResDTO, error) {
+	rows, err := r.db.QueryContext(ctx, queryGetOrderProducts, productID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []dto.GetOrderProductResDTO
+	for rows.Next() {
+		var response dto.GetOrderProductResDTO
+		if err = rows.Scan(
+			&response.ProductID,
+			&response.Quantity,
+		); err != nil {
+			return nil, err
+		}
+		result = append(result, response)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	if len(result) == 0 {
+		return nil, errs.ErrNotFound
+	}
+
+	return &result, nil
+}
+
+func (r *OrderRepository) GetProductImage(ctx context.Context, productID uuid.UUID) (string, error) {
+	var imageURL string
+
+	if err := r.db.QueryRowContext(ctx, queryGetProductImg, productID).Scan(
+		&imageURL,
+	); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", errs.ErrNotFound
+		}
+		return "", err
+	}
+
+	return imageURL, nil
+}
+
+func (r *OrderRepository) GetOrderAddress(ctx context.Context, addressID uuid.UUID) (*models.Address, error) {
+	var address models.Address
+
+	if err := r.db.QueryRowContext(ctx, queryGetOrderAddress, addressID).Scan(
+		&address.City,
+		&address.Street,
+		&address.House,
+		&address.Apartment,
+		&address.ZipCode,
+	); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errs.ErrNotFound
+		}
+		return nil, err
+	}
+
+	return &address, nil
 }
