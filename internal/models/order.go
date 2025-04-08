@@ -1,6 +1,7 @@
 package models
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/guregu/null"
@@ -85,6 +86,10 @@ func ParseOrderStatus(s string) (OrderStatus, error) {
 	}
 
 	return 0, fmt.Errorf("unknown order status: %s", s)
+}
+
+func (s OrderStatus) MarshalJSON() ([]byte, error) {
+	return json.Marshal(s.String())
 }
 
 type OrderDB struct {
