@@ -33,7 +33,9 @@ func TestAuthHandler_Login(t *testing.T) {
 		RootPassword: "minioadminpassword",
 		UseSSL:       false,
 	}
-	minio, err := minio.NewMinioClient(minioConfig)
+
+	ctx := context.Background()
+	minio, err := minio.NewMinioClient(ctx, minioConfig)
 	assert.Error(t, err)
 
 	defer ctrl.Finish()
@@ -145,7 +147,9 @@ func TestAuthHandler_Register(t *testing.T) {
 		RootPassword: "minioadminpassword",
 		UseSSL:       false,
 	}
-	minio, err := minio.NewMinioClient(minioConfig)
+
+	ctx := context.Background()
+	minio, err := minio.NewMinioClient(ctx, minioConfig)
 	assert.Error(t, err)
 
 	handler := user.NewAuthHandler(mockAuthUsecase, logger, minio, &config.Config{})
@@ -267,7 +271,9 @@ func TestAuthHandler_Logout(t *testing.T) {
 		RootPassword: "minioadminpassword",
 		UseSSL:       false,
 	}
-	minio, err := minio.NewMinioClient(minioConfig)
+
+	ctx := context.Background()
+	minio, err := minio.NewMinioClient(ctx, minioConfig)
 	assert.Error(t, err)
 	handler := user.NewAuthHandler(mockAuthUsecase, logger, minio, &config.Config{})
 
@@ -340,7 +346,9 @@ func TestUserHandler_GetMe(t *testing.T) {
 		RootPassword: "minioadminpassword",
 		UseSSL:       false,
 	}
-	minio, err := minio.NewMinioClient(minioConfig)
+
+	ctx := context.Background()
+	minio, err := minio.NewMinioClient(ctx, minioConfig)
 	assert.Error(t, err)
 	handler := user.NewAuthHandler(mockAuthUsecase, logger, minio, &config.Config{})
 

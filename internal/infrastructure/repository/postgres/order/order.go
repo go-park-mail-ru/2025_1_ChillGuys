@@ -6,6 +6,7 @@ import (
 	"errors"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
@@ -19,7 +20,7 @@ const (
 )
 
 type IOrderRepository interface {
-	CreateOrder(context.Context, models.CreateOrderRepoReq) error
+	CreateOrder(context.Context, dto.CreateOrderRepoReq) error
 	ProductPrice(context.Context, uuid.UUID) (*models.Product, error)
 	ProductDiscounts(context.Context, uuid.UUID) ([]models.ProductDiscount, error)
 	UpdateProductQuantity(context.Context, uuid.UUID, uint) error
@@ -37,7 +38,7 @@ func NewOrderRepository(db *sql.DB, log *logrus.Logger) *OrderRepository {
 	}
 }
 
-func (r *OrderRepository) CreateOrder(ctx context.Context, in models.CreateOrderRepoReq) error {
+func (r *OrderRepository) CreateOrder(ctx context.Context, in dto.CreateOrderRepoReq) error {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
