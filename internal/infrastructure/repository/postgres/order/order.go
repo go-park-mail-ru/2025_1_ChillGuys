@@ -17,7 +17,7 @@ const (
 	queryGetProductPrice       = `SELECT price, status, quantity FROM bazaar.product WHERE id = $1 LIMIT 1`
 	queryGetProductDiscount    = `SELECT discounted_price, start_date, end_date FROM bazaar.discount WHERE product_id = $1`
 	queryUpdateProductQuantity = `UPDATE bazaar.product SET quantity = $1 WHERE id = $2`
-	queryGetOrdersByUserID     = `SELECT id, status, total_price, total_price_discount, address_id FROM bazaar."order" WHERE user_id = $1`
+	queryGetOrdersByUserID     = `SELECT id, status, total_price, total_price_discount, address_id, expected_delivery_at, actual_delivery_at, created_at FROM bazaar."order" WHERE user_id = $1`
 	queryGetOrderProducts      = `SELECT product_id, quantity FROM bazaar.order_item WHERE order_id = $1`
 	queryGetProductImg         = `SELECT preview_image_url FROM bazaar.product WHERE id = $1 LIMIT 1`
 	queryGetOrderAddress       = `SELECT city, street, house, apartment, zip_code FROM bazaar.address WHERE id = $1 LIMIT 1`
@@ -175,6 +175,9 @@ func (r *OrderRepository) GetOrdersByUserID(ctx context.Context, userID uuid.UUI
 			&order.TotalPrice,
 			&order.TotalPriceDiscount,
 			&order.AddressID,
+			&order.ExpectedDeliveryAt,
+			&order.ActualDeliveryAt,
+			&order.CreatedAt,
 		); err != nil {
 			return nil, err
 		}

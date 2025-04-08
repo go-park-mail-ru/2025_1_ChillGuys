@@ -274,14 +274,7 @@ func (u *OrderUsecase) GetUserOrders(ctx context.Context, userID uuid.UUID) (*[]
 			}
 
 			mu.Lock()
-			ordersPreview[i] = models.OrderPreview{
-				ID:                 orderItem.ID,
-				Status:             orderItem.Status,
-				TotalPrice:         orderItem.TotalPrice,
-				TotalDiscountPrice: orderItem.TotalPriceDiscount,
-				Products:           products,
-				Address:            *address,
-			}
+			ordersPreview[i] = orderItem.ConvertToGetOrderByUserIDResDTO(address, products)
 			mu.Unlock()
 		}()
 	}

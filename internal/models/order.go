@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/guregu/null"
+	"time"
 )
 
 type OrderStatus int
@@ -109,8 +110,9 @@ type OrderPreview struct {
 	TotalDiscountPrice float64               `json:"total_discount_price"`
 	Products           []OrderPreviewProduct `json:"products"`
 	Address            Address               `json:"address"`
-	//CreatedAt          *time.Time            `json:"created_at,omitempty"`     // если добавишь
-	//WaitingDate        *time.Time            `json:"waiting_date,omitempty"`   // если добавишь
+	ExpectedDeliveryAt *time.Time            `json:"expected_delivery_at"`
+	ActualDeliveryAt   *time.Time            `json:"actual_delivery_at"`
+	CreatedAt          *time.Time            `json:"created_at,omitempty"`
 }
 
 type OrderPreviewProduct struct {
