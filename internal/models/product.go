@@ -1,6 +1,8 @@
 package models
 
 import (
+	"database/sql/driver"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -46,6 +48,49 @@ func ParseProductStatus(status string) (ProductStatus, error) {
 	default:
 		return ProductPending, fmt.Errorf("unknown product status: %s", status)
 	}
+}
+
+// Scan реализует интерфейс sql.Scanner для чтения из БД
+func (s *ProductStatus) Scan(value interface{}) error {
+    if value == nil {
+        *s = ProductPending
+        return nil
+    }
+
+    var statusStr string
+    
+    // Обрабатываем разные типы, которые могут прийти из БД
+    switch v := value.(type) {
+    case string:
+        statusStr = v
+    case []byte:
+        statusStr = string(v)
+    default:
+        return fmt.Errorf("failed to scan ProductStatus: unsupported type %T", value)
+    }
+
+    status, err := ParseProductStatus(statusStr)
+    if err != nil {
+        return err
+    }
+    *s = status
+    return nil
+}
+
+// Value реализует интерфейс driver.Valuer для записи в БД
+func (s ProductStatus) Value() (driver.Value, error) {
+	return s.String(), nil
+}
+
+func (p Product) MarshalJSON() ([]byte, error) {
+    type Alias Product
+    return json.Marshal(&struct {
+        Status string `json:"status"`
+        *Alias
+    }{
+        Status: p.Status.String(),
+        Alias:  (*Alias)(&p),
+    })
 }
 
 type Product struct {

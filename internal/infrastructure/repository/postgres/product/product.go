@@ -14,9 +14,10 @@ import (
 
 const (
 	queryGetAllProducts = `
-		SELECT id, seller_id, name, preview_image_url, description, 
-				status, price, quantity, updated_at, rating, reviews_count 
-			FROM bazaar.product WHERE status = 'approved'
+		SELECT p.id, p.seller_id, p.name, p.preview_image_url, p.description, 
+				p.status, p.price, p.quantity, p.updated_at, p.rating, p.reviews_count 
+		FROM bazaar.product p 
+		WHERE p.status = 'approved'
 	`
 	queryGetProductByID = `
 		SELECT id, seller_id, name, preview_image_url, description, 

@@ -90,7 +90,7 @@ func NewApp(conf *config.Config) (*App, error) {
 	// Маршруты для продуктов.
 	productsRouter := router.PathPrefix("/products").Subrouter()
 	{
-		productsRouter.HandleFunc("/", productHandler.GetAllProducts).Methods(http.MethodGet)
+		productsRouter.HandleFunc("", productHandler.GetAllProducts).Methods(http.MethodGet)
 		productsRouter.HandleFunc("/{id}", productHandler.GetProductByID).Methods(http.MethodGet)
 		productsRouter.HandleFunc("/{id}/cover", productHandler.GetProductCover).Methods(http.MethodGet)
 		productsRouter.HandleFunc("/category/{id}", productHandler.GetProductsByCategory).Methods(http.MethodGet)
@@ -99,7 +99,7 @@ func NewApp(conf *config.Config) (*App, error) {
 	// Маршруты для категорий.
 	catalogRouter := router.PathPrefix("/categories").Subrouter()
 	{
-		catalogRouter.HandleFunc("/", productHandler.GetAllCategories).Methods(http.MethodGet)
+		catalogRouter.HandleFunc("", productHandler.GetAllCategories).Methods(http.MethodGet)
 	}
 
 	basketRouter := router.PathPrefix("/basket").Subrouter()
@@ -159,7 +159,7 @@ func NewApp(conf *config.Config) (*App, error) {
 		orderRouter.Handle("/", middleware.JWTMiddleware(
 			tokenator,
 			http.HandlerFunc(orderHandler.CreateOrder),
-		)).Methods("POST")
+		)).Methods(http.MethodPost)
 	}
 
 	app := &App{

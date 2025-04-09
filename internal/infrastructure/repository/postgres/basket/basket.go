@@ -23,12 +23,12 @@ const(
 	queryGetOrCreateBasket = `
 		WITH 
 		existing_basket AS (
-			SELECT id FROM basket 
+			SELECT id FROM bazaar.basket 
 			WHERE user_id = $1
 			LIMIT 1
 		),
 		new_basket AS (
-			INSERT INTO basket (id, user_id, total_price, total_price_discount)
+			INSERT INTO bazaar.basket (id, user_id, total_price, total_price_discount)
 			SELECT $2, $1, 0, 0
 			WHERE NOT EXISTS (SELECT 1 FROM existing_basket)
 			RETURNING id
@@ -41,11 +41,11 @@ const(
 
 	queryGetInfoBasket = `
 		SELECT id, user_id, total_price, total_price_discount 
-			FROM basket WHERE id = $1
+			FROM bazaar.basket WHERE id = $1
 	`
 
 	queryAddProductInBasket = `
-		INSERT INTO basket_item (id, basket_id, product_id, quantity)
+		INSERT INTO bazaar.basket_item (id, basket_id, product_id, quantity)
 			VALUES ($1, $2, $3, 1)
 			ON CONFLICT (basket_id, product_id) 
 			DO UPDATE SET 
@@ -65,14 +65,14 @@ const(
 			p.preview_image_url,
 			d.discounted_price
 		FROM 
-			basket_item bi
+			bazaar.basket_item bi
 		JOIN 
-			product p ON bi.product_id = p.id
+			bazaar.product p ON bi.product_id = p.id
 		LEFT JOIN LATERAL (
 			SELECT 
 				discounted_price
 			FROM 
-				discount
+				bazaar.discount
 			WHERE 
 				product_id = bi.product_id
 				AND now() BETWEEN start_date AND end_date
@@ -86,20 +86,20 @@ const(
     `
 
 	queryDelProductFromBasket = `
-		DELETE FROM basket_item
+		DELETE FROM bazaar.basket_item
 		WHERE basket_id = $1 AND product_id = $2
 		RETURNING id
 	`
 
 	queryUpdateProductQuantity = `
-		UPDATE basket_item
+		UPDATE bazaar.basket_item
 		SET quantity = $1
 		WHERE basket_id = $2 AND product_id = $3
 		RETURNING id, basket_id, product_id, quantity, updated_at
 	`
 
 	queryClearBasket = `
-		DELETE FROM basket_item
+		DELETE FROM bazaar.basket_item
 		WHERE basket_id = $1
 	`
 )

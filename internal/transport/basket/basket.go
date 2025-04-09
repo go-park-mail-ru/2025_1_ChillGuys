@@ -55,7 +55,7 @@ func (h *BasketService) Get(w http.ResponseWriter, r *http.Request) {
 
 	responseBasket := dto.ConvertToBasketResponse(items)
 
-	response.SendJSONResponse(r.Context(), w, http.StatusNoContent, responseBasket)
+	response.SendJSONResponse(r.Context(), w, http.StatusOK, responseBasket)
 }
 
 // AddProduct godoc
@@ -88,7 +88,7 @@ func (h *BasketService) Add(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.SendJSONResponse(r.Context(), w, http.StatusNoContent, item)
+	response.SendJSONResponse(r.Context(), w, http.StatusCreated, item)
 }
 
 // DeleteProduct godoc
