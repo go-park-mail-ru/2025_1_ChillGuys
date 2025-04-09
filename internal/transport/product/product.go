@@ -93,11 +93,11 @@ func (h *ProductHandler) GetProductByID(w http.ResponseWriter, r *http.Request) 
 }
 
 // GetProductsByCategory godoc
-//
+// 
 //	@Summary		Получить товары по категории
-//	@Description	Возвращает список всех одобренных товаров, принадлежащих указанной категории.
+//	@Description	Возвращает список всех одобренных товаров, принадлежащих указанной категории. 
 // Товары сортируются по дате обновления (сначала новые).
-//	@Tags			Товары
+//	@Tags			products
 //	@Produce		json
 //	@Param			id	path		string					true	"UUID категории в формате строки"
 //	@Success		200	{object}	[]models.Product		"Успешный запрос. Возвращает массив товаров."
@@ -127,6 +127,15 @@ func (h *ProductHandler) GetProductsByCategory(w http.ResponseWriter, r *http.Re
 	response.SendJSONResponse(r.Context(), w, http.StatusOK, productResponse)
 }
 
+// GetAllCategories godoc
+//
+//	@Summary		Получить все категории
+//	@Description	Возвращает список всех доступных категорий товаров
+//	@Tags			categories
+//	@Produce		json
+//	@Success		200	{object}	models.CategoryResponse	"Список категорий"
+//	@Failure		500	{object}	response.ErrorResponse	"Внутренняя ошибка сервера"
+//	@Router			/categories [get]
 func (h *ProductHandler) GetAllCategories(w http.ResponseWriter, r *http.Request) {
 	categories, err := h.u.GetAllCategories(r.Context())
 	if err != nil {

@@ -3,12 +3,17 @@ package app
 import (
 	"database/sql"
 	"fmt"
+	"net/http"
+
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/minio"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres"
 	orderrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/order"
 	productrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/product"
 	userrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/user"
+	basketrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/basket"
+	basketuc "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/basket"
+	baskett "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/basket"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/order"
@@ -20,7 +25,6 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
 	httpSwagger "github.com/swaggo/http-swagger"
-	"net/http"
 )
 
 // App объединяет в себе все компоненты приложения.
@@ -69,7 +73,12 @@ func NewApp(conf *config.Config) (*App, error) {
 	orderUsecase := orderus.NewOrderUsecase(orderRepo, logger)
 	orderHandler := order.NewOrderHandler(orderUsecase, logger)
 
+	basketRepo := basketrepo.NewBasketRepository(db, logger)
+	basketUsecase := basketuc.NewBasketUsecase(logger, basketRepo)
+	basketHandler := baskett.NewBasketService(basketUsecase, logger)
+
 	router := mux.NewRouter().PathPrefix("/api").Subrouter()
+	router = router.PathPrefix("/v1").Subrouter()
 	router.Use(func(next http.Handler) http.Handler {
 		return middleware.CORSMiddleware(next, conf.ServerConfig)
 	})
@@ -93,7 +102,34 @@ func NewApp(conf *config.Config) (*App, error) {
 		catalogRouter.HandleFunc("/", productHandler.GetAllCategories).Methods(http.MethodGet)
 	}
 
-	// Маршруты для загрузки обложек продукта.
+	basketRouter := router.PathPrefix("/basket").Subrouter()
+	{
+		basketRouter.Handle("", middleware.JWTMiddleware(
+			tokenator,
+			http.HandlerFunc(basketHandler.Get)),
+		).Methods(http.MethodGet)
+
+		basketRouter.Handle("/{id}", middleware.JWTMiddleware(
+			tokenator,
+			http.HandlerFunc(basketHandler.Add)),
+		).Methods(http.MethodPost)
+
+		basketRouter.Handle("/{id}", middleware.JWTMiddleware(
+			tokenator,
+			http.HandlerFunc(basketHandler.Delete)),
+		).Methods(http.MethodDelete)
+
+		basketRouter.Handle("/{id}", middleware.JWTMiddleware(
+			tokenator,
+			http.HandlerFunc(basketHandler.UpdateQuantity)),
+		).Methods(http.MethodPatch)
+
+		basketRouter.Handle("", middleware.JWTMiddleware(
+			tokenator,
+			http.HandlerFunc(basketHandler.Clear)),
+		).Methods(http.MethodDelete)
+	}
+
 	productCoverRouter := router.PathPrefix("/cover").Subrouter()
 	{
 		productCoverRouter.HandleFunc("/upload", productHandler.CreateOne).Methods(http.MethodPost)
