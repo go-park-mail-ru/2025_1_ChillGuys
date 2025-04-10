@@ -103,9 +103,8 @@ func (r *BasketRepository) getBasket(ctx context.Context, userID uuid.UUID) (uui
     logger := logctx.GetLogger(ctx).WithField("op", op).WithField("user_id", userID)
 	
 	var basketID uuid.UUID
-	newBasketID := uuid.New()
 
-	err := r.DB.QueryRowContext(ctx, queryGetBasketByUserID, userID, newBasketID).Scan(&basketID)
+	err := r.DB.QueryRowContext(ctx, queryGetBasketByUserID, userID).Scan(&basketID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
             logger.Warn("basket not found")
