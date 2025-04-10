@@ -1,3 +1,14 @@
+//	@title			ChillGuys API
+//	@version		1.0
+//	@description	API for ChillGuys marketplace
+//	@host			90.156.217.63:8081
+//	@BasePath		/api/v1
+
+//	@securityDefinitions.basic	BasicAuth
+//	@securityDefinitions.apikey	TokenAuth
+//	@in							cookie
+//	@name						token
+
 package main
 
 import (

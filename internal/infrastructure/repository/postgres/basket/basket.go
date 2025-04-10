@@ -4,11 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/logctx"
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
 )
 
 //проверяем есть ли у юзера корзина если нет то создаем (по юзер айди)
@@ -20,24 +21,7 @@ import (
 
 
 const(
-	queryGetOrCreateBasket = `
-		WITH 
-		existing_basket AS (
-			SELECT id FROM bazaar.basket 
-			WHERE user_id = $1
-			LIMIT 1
-		),
-		new_basket AS (
-			INSERT INTO bazaar.basket (id, user_id, total_price, total_price_discount)
-			SELECT $2, $1, 0, 0
-			WHERE NOT EXISTS (SELECT 1 FROM existing_basket)
-			RETURNING id
-		)
-		SELECT id FROM existing_basket
-		UNION ALL
-		SELECT id FROM new_basket
-		LIMIT 1
-	`
+	queryGetBasketByUserID = `SELECT id FROM bazaar.basket WHERE user_id = $1 LIMIT 1`
 
 	queryGetInfoBasket = `
 		SELECT id, user_id, total_price, total_price_discount 
@@ -106,35 +90,42 @@ const(
 
 type BasketRepository struct{
 	DB  *sql.DB
-	log *logrus.Logger
 }
 
-func NewBasketRepository(db *sql.DB, log *logrus.Logger) *BasketRepository {
+func NewBasketRepository(db *sql.DB) *BasketRepository {
 	return &BasketRepository{
 		DB:  db,
-		log: log,
 	}
 }
 
 func (r *BasketRepository) getBasket(ctx context.Context, userID uuid.UUID) (uuid.UUID, error) {
+	const op = "BasketRepository.getBasket"
+    logger := logctx.GetLogger(ctx).WithField("op", op).WithField("user_id", userID)
+	
 	var basketID uuid.UUID
 	newBasketID := uuid.New()
 
-	err := r.DB.QueryRowContext(ctx, queryGetOrCreateBasket, userID, newBasketID).Scan(&basketID)
+	err := r.DB.QueryRowContext(ctx, queryGetBasketByUserID, userID, newBasketID).Scan(&basketID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return uuid.Nil, errs.NewNotFoundError("not found basket item")
-		}
-		return uuid.Nil, err
+            logger.Warn("basket not found")
+            return uuid.Nil, fmt.Errorf("%s: %w", op, errs.NewNotFoundError(op))
+        }
+        logger.WithError(err).Error("get basket")
+        return uuid.Nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	return basketID, nil
 }
 
 func (r *BasketRepository) Get(ctx context.Context, userID uuid.UUID) ([]*models.BasketItem, error) {
+	const op = "BasketRepository.Get"
+    logger := logctx.GetLogger(ctx).WithField("op", op).WithField("user_id", userID)
+
 	basketID, err := r.getBasket(ctx, userID)
 	if err != nil {
-		return nil, err
+		logger.WithError(err).Error("get basket ID")
+        return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	productsList := []*models.BasketItem{}
@@ -142,9 +133,11 @@ func (r *BasketRepository) Get(ctx context.Context, userID uuid.UUID) ([]*models
 	rows, err := r.DB.QueryContext(ctx, queryGetProductsInBasket, basketID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, errs.NewNotFoundError("not found basket item")
-		}
-		return nil, err
+            logger.Warn("no products in basket")
+            return nil, fmt.Errorf("%s: %w", op, errs.NewNotFoundError(op))
+        }
+        logger.WithError(err).Error("query basket products")
+        return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	defer rows.Close()
 
@@ -163,23 +156,31 @@ func (r *BasketRepository) Get(ctx context.Context, userID uuid.UUID) ([]*models
 			&priceDiscount,
 		)
 		if err != nil {
-			return nil, err
+			logger.WithError(err).Error("scan basket item")
+            return nil, fmt.Errorf("%s: %w", op, err)
 		}
 		item.PriceDiscount = priceDiscount.Float64
 		productsList = append(productsList, item)
 	}
 
 	if err = rows.Err(); err != nil {
-		return nil, err
-	}
+        logger.WithError(err).Error("rows iteration error")
+        return nil, fmt.Errorf("%s: %w", op, err)
+    }
 
 	return productsList, nil
 }
 
 func (r *BasketRepository) Add(ctx context.Context, userID uuid.UUID, productID uuid.UUID) (*models.BasketItem, error){
+	const op = "BasketRepository.Add"
+    logger := logctx.GetLogger(ctx).WithField("op", op).
+        WithField("user_id", userID).
+        WithField("product_id", productID)
+
 	basketID, err := r.getBasket(ctx, userID)
     if err != nil {
-        return nil, err
+        logger.WithError(err).Error("get basket ID")
+        return nil, fmt.Errorf("%s: %w", op, err)
     }
 
 	item := &models.BasketItem{}
@@ -194,37 +195,54 @@ func (r *BasketRepository) Add(ctx context.Context, userID uuid.UUID, productID 
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, errs.NewNotFoundError("not found basket item")
-		}
-		return nil, err
+            logger.Warn("add product to basket - not found")
+            return nil, fmt.Errorf("%s: %w", op, errs.NewNotFoundError(op))
+        }
+        logger.WithError(err).Error("add product to basket")
+        return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	return item, nil
 }
 
 func (r *BasketRepository) Delete(ctx context.Context, userID uuid.UUID, productID uuid.UUID) error {
+	const op = "BasketRepository.Delete"
+    logger := logctx.GetLogger(ctx).WithField("op", op).
+        WithField("user_id", userID).
+        WithField("product_id", productID)
+
 	basketID, err := r.getBasket(ctx, userID)
 	if err != nil {
-		return err
-	}
+        logger.WithError(err).Error("get basket ID")
+        return fmt.Errorf("%s: %w", op, err)
+    }
 
 	var deletedID uuid.UUID
 	err = r.DB.QueryRowContext(ctx, queryDelProductFromBasket, basketID, productID).Scan(&deletedID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return errs.NewNotFoundError("not found basket item")
-		}
-		return err
+            logger.Warn("product not found in basket")
+            return fmt.Errorf("%s: %w", op, errs.NewNotFoundError(op))
+        }
+        logger.WithError(err).Error("delete product from basket")
+        return fmt.Errorf("%s: %w", op, err)
 	}
 
 	return nil
 }
 
 func (r *BasketRepository) UpdateQuantity(ctx context.Context, userID uuid.UUID, productID uuid.UUID, quantity int) (*models.BasketItem, error) {
+	const op = "BasketRepository.UpdateQuantity"
+    logger := logctx.GetLogger(ctx).WithField("op", op).
+        WithField("user_id", userID).
+        WithField("product_id", productID).
+        WithField("quantity", quantity)
+
 	basketID, err := r.getBasket(ctx, userID)
 	if err != nil {
-		return nil, err
-	}
+        logger.WithError(err).Error("failed to get basket ID")
+        return nil, fmt.Errorf("%s: %w", op, err)
+    }
 
 	item := &models.BasketItem{}
 	err = r.DB.QueryRowContext(ctx, queryUpdateProductQuantity, quantity, basketID, productID).Scan(
@@ -237,24 +255,31 @@ func (r *BasketRepository) UpdateQuantity(ctx context.Context, userID uuid.UUID,
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, errs.NewNotFoundError("not found basket item")
-		}
-		return nil, err
+            logger.Warn("product not found in basket")
+            return nil, fmt.Errorf("%s: %w", op, errs.NewNotFoundError(op))
+        }
+        logger.WithError(err).Error("update product quantity")
+        return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	return item, nil
 }
 
 func (r *BasketRepository) Clear(ctx context.Context, userID uuid.UUID) error {
+	const op = "BasketRepository.Clear"
+    logger := logctx.GetLogger(ctx).WithField("op", op).WithField("user_id", userID)
+
 	basketID, err := r.getBasket(ctx, userID)
 	if err != nil {
-		return err
-	}
+        logger.WithError(err).Error("get basket ID")
+        return fmt.Errorf("%s: %w", op, err)
+    }
 
 	_, err = r.DB.ExecContext(ctx, queryClearBasket, basketID)
 	if err != nil {
-		return err
-	}
+        logger.WithError(err).Error("clear basket")
+        return fmt.Errorf("%s: %w", op, err)
+    }
 
 	return nil
 }

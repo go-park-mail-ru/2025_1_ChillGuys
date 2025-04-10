@@ -36,7 +36,7 @@ func (m *MockClient) EXPECT() *MockClientMockRecorder {
 }
 
 // CreateMany mocks base method.
-func (m *MockClient) CreateMany(arg0 context.Context, arg1 map[string]minio.FileDataType) ([]string, error) {
+func (m *MockClient) CreateMany(arg0 context.Context, arg1 map[string]minio.FileData) ([]string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateMany", arg0, arg1)
 	ret0, _ := ret[0].([]string)
@@ -51,7 +51,7 @@ func (mr *MockClientMockRecorder) CreateMany(arg0, arg1 interface{}) *gomock.Cal
 }
 
 // CreateOne mocks base method.
-func (m *MockClient) CreateOne(arg0 context.Context, arg1 minio.FileDataType) (*minio.UploadResponse, error) {
+func (m *MockClient) CreateOne(arg0 context.Context, arg1 minio.FileData) (*minio.UploadResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateOne", arg0, arg1)
 	ret0, _ := ret[0].(*minio.UploadResponse)

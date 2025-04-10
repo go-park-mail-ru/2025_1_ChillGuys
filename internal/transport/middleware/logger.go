@@ -12,43 +12,33 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type LoggerMiddleware struct {
-	logger *logrus.Logger
-}
-
-func NewLoggerMiddleware(logger *logrus.Logger) *LoggerMiddleware {
-	return &LoggerMiddleware{
-		logger: logger,
-	}
-}
-
-func (m *LoggerMiddleware) LogRequest(next http.Handler) http.Handler {
+func LogRequest(logger *logrus.Logger, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reqId := fmt.Sprintf("%016x", rand.Int())[:10]
+		rand.Seed(time.Now().UnixNano())
+		reqID := fmt.Sprintf("%016x", rand.Int())[:10]
 
-		ctx := context.WithValue(r.Context(), domains.ReqIDKey, reqId)
+		ctx := context.WithValue(r.Context(), domains.ReqIDKey, reqID)
 
-		requestLogger := m.logger.WithFields(logrus.Fields{
-			"request_id":  reqId,
+		middlewareLogger := logger.WithFields(logrus.Fields{
+			"request_id":  reqID,
 			"method":      r.Method,
 			"remote_addr": r.RemoteAddr,
 			"path":        r.URL.Path,
 		})
 
-		ctx = logctx.WithLogger(ctx, requestLogger)
-		r = r.WithContext(ctx)
+		// Логгер для передачи в контекст (только request_id)
+		contextLogger := logrus.NewEntry(logger).WithField("request_id", reqID) // Важно: создаём новый Entry
+		ctx = logctx.WithLogger(ctx, contextLogger)
 
-		requestLogger.Info("request started")
+		middlewareLogger.Info("request started")
 
 		startTime := time.Now()
 
 		defer func() {
 			duration := time.Since(startTime)
-
-			requestLogger.WithField("duration", duration).Info("request completed")
+			middlewareLogger.WithField("duration", duration).Info("request completed")
 		}()
 
-		next.ServeHTTP(w, r)
-		requestLogger.Info("request completed")
+		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

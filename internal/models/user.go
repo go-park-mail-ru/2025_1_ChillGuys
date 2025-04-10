@@ -14,6 +14,7 @@ type User struct {
 	ImageURL    null.String `json:"imageURL" swaggertype:"primitive,string"`
 	PhoneNumber null.String `json:"phoneNumber,omitempty" swaggertype:"primitive,string"`
 }
+
 type UserVersionDB struct {
 	ID        uuid.UUID
 	UserID    uuid.UUID

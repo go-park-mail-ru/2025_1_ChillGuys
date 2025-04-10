@@ -15,6 +15,225 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/api/v1/basket": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Возвращает все товары в корзине пользователя",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "basket"
+                ],
+                "summary": "Получить содержимое корзины",
+                "responses": {
+                    "200": {
+                        "description": "Содержимое корзины",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_dto.BasketResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Корзина не найдена",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/basket/{id}": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Добавляет товар в корзину пользователя или увеличивает количество, если товар уже есть",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "basket"
+                ],
+                "summary": "Добавить товар в корзину",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID товара",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Добавленный товар",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_models.BasketItem"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный ID",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Товар не найден",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_dto.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Удаляет товар из корзины пользователя",
+                "tags": [
+                    "basket"
+                ],
+                "summary": "Удалить товар из корзины",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID товара",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Товар успешно удалён"
+                    },
+                    "400": {
+                        "description": "Некорректный ID",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Товар не найден в корзине",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_dto.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Изменяет количество указанного товара в корзине",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "basket"
+                ],
+                "summary": "Обновить количество товара",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID товара",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Новое количество",
+                        "name": "quantity",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_dto.UpdateQuantityRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Обновленный товар",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_models.BasketItem"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректные данные",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Товар не найден",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/products/category/{id}": {
             "get": {
                 "description": "Возвращает список всех одобренных товаров, принадлежащих указанной категории.",
@@ -40,84 +259,26 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.Product"
+                                "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_models.Product"
                             }
                         }
                     },
                     "400": {
                         "description": "Неверный формат UUID категории",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Категория не найдена",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Внутренняя ошибка сервера",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/auth/login": {
-            "post": {
-                "description": "Авторизация пользователя",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth"
-                ],
-                "summary": "Login user",
-                "parameters": [
-                    {
-                        "description": "User credentials",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.UserLoginRequestDTO"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "No Content",
-                        "schema": {
-                            "type": ""
-                        },
-                        "headers": {
-                            "Set-Cookie": {
-                                "type": "string",
-                                "description": "Устанавливает JWT-токен в куки"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Ошибка валидации",
-                        "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Неверные email или пароль",
-                        "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Внутренняя ошибка сервера",
-                        "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_dto.ErrorResponse"
                         }
                     }
                 }
@@ -145,13 +306,13 @@ const docTemplate = `{
                     "401": {
                         "description": "Пользователь не найден",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Ошибка сервера",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_dto.ErrorResponse"
                         }
                     }
                 }
@@ -177,7 +338,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.UserRegisterRequestDTO"
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_dto.UserRegisterRequestDTO"
                         }
                     }
                 ],
@@ -188,7 +349,7 @@ const docTemplate = `{
                             "type": ""
                         },
                         "headers": {
-                            "Set-Cookie": {
+                            "Set-Set": {
                                 "type": "string",
                                 "description": "Устанавливает JWT-токен в куки"
                             }
@@ -197,131 +358,25 @@ const docTemplate = `{
                     "400": {
                         "description": "Некорректный запрос",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_dto.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Пользователь уже существует",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Внутренняя ошибка сервера",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_dto.ErrorResponse"
                         }
                     }
                 }
             }
         },
         "/basket": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Возвращает все товары в корзине пользователя",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "basket"
-                ],
-                "summary": "Получить содержимое корзины",
-                "responses": {
-                    "200": {
-                        "description": "Содержимое корзины",
-                        "schema": {
-                            "$ref": "#/definitions/models.BasketResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Пользователь не авторизован",
-                        "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Корзина не найдена",
-                        "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Ошибка сервера",
-                        "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/basket/add": {
-            "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Добавляет товар в корзину пользователя или увеличивает количество, если товар уже есть",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "basket"
-                ],
-                "summary": "Добавить товар в корзину",
-                "parameters": [
-                    {
-                        "description": "Данные товара",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/basket.addProductRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Добавленный товар",
-                        "schema": {
-                            "$ref": "#/definitions/models.BasketItem"
-                        }
-                    },
-                    "400": {
-                        "description": "Некорректные данные",
-                        "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Пользователь не авторизован",
-                        "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Товар не найден",
-                        "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Ошибка сервера",
-                        "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/basket/clear": {
             "delete": {
                 "security": [
                     {
@@ -340,129 +395,13 @@ const docTemplate = `{
                     "401": {
                         "description": "Пользователь не авторизован",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Ошибка сервера",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/basket/remove": {
-            "delete": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "tags": [
-                    "basket"
-                ],
-                "summary": "Удалить товар из корзины",
-                "parameters": [
-                    {
-                        "description": "Данные товара",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/basket.delProductRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "Товар успешно удалён"
-                    },
-                    "400": {
-                        "description": "Некорректный формат запроса",
-                        "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Пользователь не авторизован",
-                        "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Товар не найден в корзине",
-                        "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Внутренняя ошибка сервера",
-                        "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/basket/update": {
-            "put": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Изменяет количество указанного товара в корзине",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "basket"
-                ],
-                "summary": "Обновить количество товара",
-                "parameters": [
-                    {
-                        "description": "Данные для обновления",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/basket.updateQuantityRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Обновленный товар",
-                        "schema": {
-                            "$ref": "#/definitions/models.BasketItem"
-                        }
-                    },
-                    "400": {
-                        "description": "Некорректные данные",
-                        "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Пользователь не авторизован",
-                        "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Товар не найден",
-                        "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Ошибка сервера",
-                        "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_dto.ErrorResponse"
                         }
                     }
                 }
@@ -482,13 +421,16 @@ const docTemplate = `{
                     "200": {
                         "description": "Список категорий",
                         "schema": {
-                            "$ref": "#/definitions/models.CategoryResponse"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_models.Category"
+                            }
                         }
                     },
                     "500": {
                         "description": "Внутренняя ошибка сервера",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_dto.ErrorResponse"
                         }
                     }
                 }
@@ -526,25 +468,25 @@ const docTemplate = `{
                     "400": {
                         "description": "Неверный ID объекта",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Файл не найден",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Ошибка сервера",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_dto.ErrorResponse"
                         }
                     }
                 }
             }
         },
-        "/products/": {
+        "/products": {
             "get": {
                 "description": "Возвращает список всех продуктов",
                 "produces": [
@@ -560,14 +502,14 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.Product"
+                                "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_models.Product"
                             }
                         }
                     },
                     "500": {
                         "description": "Ошибка сервера",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_dto.ErrorResponse"
                         }
                     }
                 }
@@ -608,13 +550,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Ошибка в запросе",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Ошибка сервера",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_dto.ErrorResponse"
                         }
                     }
                 }
@@ -632,7 +574,7 @@ const docTemplate = `{
                 "summary": "Получить продукт по ID",
                 "parameters": [
                     {
-                        "type": "integer",
+                        "type": "string",
                         "description": "ID продукта",
                         "name": "id",
                         "in": "path",
@@ -643,66 +585,19 @@ const docTemplate = `{
                     "200": {
                         "description": "Информация о продукте",
                         "schema": {
-                            "$ref": "#/definitions/models.Product"
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_models.Product"
                         }
                     },
                     "400": {
                         "description": "Некорректный ID",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Продукт не найден",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/products/{id}/cover": {
-            "get": {
-                "description": "Возвращает обложку продукта по его ID",
-                "produces": [
-                    "image/jpeg"
-                ],
-                "tags": [
-                    "products"
-                ],
-                "summary": "Получить обложку продукта",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "ID продукта",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Обложка продукта",
-                        "schema": {
-                            "type": "file"
-                        }
-                    },
-                    "400": {
-                        "description": "Некорректный ID",
-                        "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Обложка не найдена",
-                        "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Ошибка сервера",
-                        "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_dto.ErrorResponse"
                         }
                     }
                 }
@@ -748,13 +643,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Ошибка при обработке формы",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Ошибка загрузки файла",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_dto.ErrorResponse"
                         }
                     }
                 }
@@ -779,25 +674,25 @@ const docTemplate = `{
                     "200": {
                         "description": "Информация о пользователе",
                         "schema": {
-                            "$ref": "#/definitions/models.User"
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_models.User"
                         }
                     },
                     "400": {
                         "description": "Некорректный запрос",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_dto.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Пользователь не найден",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Ошибка сервера",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_dto.ErrorResponse"
                         }
                     }
                 }
@@ -805,34 +700,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "basket.addProductRequest": {
-            "type": "object",
-            "properties": {
-                "product_id": {
-                    "type": "string"
-                }
-            }
-        },
-        "basket.delProductRequest": {
-            "type": "object",
-            "properties": {
-                "product_id": {
-                    "type": "string"
-                }
-            }
-        },
-        "basket.updateQuantityRequest": {
-            "type": "object",
-            "properties": {
-                "product_id": {
-                    "type": "string"
-                },
-                "quantity": {
-                    "type": "integer"
-                }
-            }
-        },
-        "models.BasketItem": {
+        "github_com_go-park-mail-ru_2025_1_ChillGuys_internal_models.BasketItem": {
             "type": "object",
             "properties": {
                 "basket_id": {
@@ -864,27 +732,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.BasketResponse": {
-            "type": "object",
-            "properties": {
-                "products": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.BasketItem"
-                    }
-                },
-                "total": {
-                    "type": "integer"
-                },
-                "total_price": {
-                    "type": "number"
-                },
-                "total_price_discount": {
-                    "type": "number"
-                }
-            }
-        },
-        "models.Category": {
+        "github_com_go-park-mail-ru_2025_1_ChillGuys_internal_models.Category": {
             "type": "object",
             "properties": {
                 "id": {
@@ -895,21 +743,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.CategoryResponse": {
-            "type": "object",
-            "properties": {
-                "categories": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.Category"
-                    }
-                },
-                "total": {
-                    "type": "integer"
-                }
-            }
-        },
-        "models.Product": {
+        "github_com_go-park-mail-ru_2025_1_ChillGuys_internal_models.Product": {
             "type": "object",
             "properties": {
                 "description": {
@@ -934,21 +768,38 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "reviews_count": {
-                    "description": "Добавлено поле",
                     "type": "integer"
                 },
                 "seller_id": {
                     "type": "string"
                 },
                 "status": {
-                    "type": "string"
+                    "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_models.ProductStatus"
                 },
                 "updated_at": {
                     "type": "string"
                 }
             }
         },
-        "models.User": {
+        "github_com_go-park-mail-ru_2025_1_ChillGuys_internal_models.ProductStatus": {
+            "type": "integer",
+            "enum": [
+                0,
+                1,
+                2
+            ],
+            "x-enum-comments": {
+                "ProductApproved": "Одобрено",
+                "ProductPending": "Ожидает",
+                "ProductRejected": "Отказано"
+            },
+            "x-enum-varnames": [
+                "ProductPending",
+                "ProductRejected",
+                "ProductApproved"
+            ]
+        },
+        "github_com_go-park-mail-ru_2025_1_ChillGuys_internal_models.User": {
             "type": "object",
             "properties": {
                 "email": {
@@ -971,18 +822,43 @@ const docTemplate = `{
                 }
             }
         },
-        "models.UserLoginRequestDTO": {
+        "github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_dto.BasketResponse": {
             "type": "object",
             "properties": {
-                "email": {
-                    "type": "string"
+                "products": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_go-park-mail-ru_2025_1_ChillGuys_internal_models.BasketItem"
+                    }
                 },
-                "password": {
+                "total": {
+                    "type": "integer"
+                },
+                "total_price": {
+                    "type": "number"
+                },
+                "total_price_discount": {
+                    "type": "number"
+                }
+            }
+        },
+        "github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_dto.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
                     "type": "string"
                 }
             }
         },
-        "models.UserRegisterRequestDTO": {
+        "github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_dto.UpdateQuantityRequest": {
+            "type": "object",
+            "properties": {
+                "quantity": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_go-park-mail-ru_2025_1_ChillGuys_internal_transport_dto.UserRegisterRequestDTO": {
             "type": "object",
             "properties": {
                 "email": {
@@ -995,14 +871,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "surname": {
-                    "type": "string"
-                }
-            }
-        },
-        "response.ErrorResponse": {
-            "type": "object",
-            "properties": {
-                "message": {
                     "type": "string"
                 }
             }

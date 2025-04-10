@@ -97,7 +97,7 @@ func (mr *MockIAuthUsecaseMockRecorder) Register(arg0, arg1 interface{}) *gomock
 }
 
 // UploadAvatar mocks base method.
-func (m *MockIAuthUsecase) UploadAvatar(arg0 context.Context, arg1 minio.FileDataType) (string, error) {
+func (m *MockIAuthUsecase) UploadAvatar(arg0 context.Context, arg1 minio.FileData) (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UploadAvatar", arg0, arg1)
 	ret0, _ := ret[0].(string)

@@ -11,16 +11,16 @@ import (
 	"net/http"
 )
 
-type OrderHandler struct {
+type OrderService struct {
 	u   order.IOrderUsecase
 	log *logrus.Logger
 }
 
-func NewOrderHandler(
+func NewOrderService(
 	u order.IOrderUsecase,
 	log *logrus.Logger,
-) *OrderHandler {
-	return &OrderHandler{
+) *OrderService {
+	return &OrderService{
 		u:   u,
 		log: log,
 	}
@@ -39,7 +39,7 @@ func NewOrderHandler(
 //	@Failure		500		{object}	response.ErrorResponse	"Внутренняя ошибка сервера"
 //	@Router			/order [post]
 
-func (o *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
+func (o *OrderService) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	userIDStr, isExist := r.Context().Value(domains.UserIDKey).(string)
 	if !isExist {
 		response.SendJSONError(r.Context(), w, http.StatusUnauthorized, "user not found in context")

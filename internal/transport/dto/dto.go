@@ -1,6 +1,8 @@
 package dto
 
 import (
+	"time"
+
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 	"github.com/google/uuid"
 	"github.com/guregu/null"
@@ -21,6 +23,7 @@ func (u *UserDB) ConvertToUser() *models.User {
 	if u == nil {
 		return nil
 	}
+	
 	return &models.User{
 		ID:          u.ID,
 		Email:       u.Email,
@@ -53,4 +56,22 @@ type ErrorResponse struct {
 
 func (u *UserDB) IsVersionValid(version int) bool {
 	return u.UserVersion.Version == version
+}
+
+func NewFromRequest(user UserRegisterRequestDTO, passwordHash []byte) UserDB{
+	userID := uuid.New()
+	userDB := UserDB{
+		ID:           userID,
+		Email:        user.Email,
+		Name:         user.Name,
+		Surname:      user.Surname,
+		PasswordHash: passwordHash,
+		UserVersion: models.UserVersionDB{
+			ID:        uuid.New(),
+			UserID:    userID,
+			Version:   1,
+			UpdatedAt: time.Now(),
+		},
+	}
+	return userDB
 }

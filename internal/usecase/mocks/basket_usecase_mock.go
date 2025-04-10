@@ -9,7 +9,6 @@ import (
 	reflect "reflect"
 
 	models "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
-	dto "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	gomock "github.com/golang/mock/gomock"
 	uuid "github.com/google/uuid"
 )
@@ -37,19 +36,19 @@ func (m *MockIBasketUsecase) EXPECT() *MockIBasketUsecaseMockRecorder {
 	return m.recorder
 }
 
-// AddProduct mocks base method.
-func (m *MockIBasketUsecase) AddProduct(ctx context.Context, productID uuid.UUID) (*models.BasketItem, error) {
+// Add mocks base method.
+func (m *MockIBasketUsecase) Add(ctx context.Context, productID uuid.UUID) (*models.BasketItem, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AddProduct", ctx, productID)
+	ret := m.ctrl.Call(m, "Add", ctx, productID)
 	ret0, _ := ret[0].(*models.BasketItem)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// AddProduct indicates an expected call of AddProduct.
-func (mr *MockIBasketUsecaseMockRecorder) AddProduct(ctx, productID interface{}) *gomock.Call {
+// Add indicates an expected call of Add.
+func (mr *MockIBasketUsecaseMockRecorder) Add(ctx, productID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddProduct", reflect.TypeOf((*MockIBasketUsecase)(nil).AddProduct), ctx, productID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Add", reflect.TypeOf((*MockIBasketUsecase)(nil).Add), ctx, productID)
 }
 
 // Clear mocks base method.
@@ -66,25 +65,25 @@ func (mr *MockIBasketUsecaseMockRecorder) Clear(ctx interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Clear", reflect.TypeOf((*MockIBasketUsecase)(nil).Clear), ctx)
 }
 
-// DeleteProduct mocks base method.
-func (m *MockIBasketUsecase) DeleteProduct(ctx context.Context, productID uuid.UUID) error {
+// Delete mocks base method.
+func (m *MockIBasketUsecase) Delete(ctx context.Context, productID uuid.UUID) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteProduct", ctx, productID)
+	ret := m.ctrl.Call(m, "Delete", ctx, productID)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// DeleteProduct indicates an expected call of DeleteProduct.
-func (mr *MockIBasketUsecaseMockRecorder) DeleteProduct(ctx, productID interface{}) *gomock.Call {
+// Delete indicates an expected call of Delete.
+func (mr *MockIBasketUsecaseMockRecorder) Delete(ctx, productID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteProduct", reflect.TypeOf((*MockIBasketUsecase)(nil).DeleteProduct), ctx, productID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockIBasketUsecase)(nil).Delete), ctx, productID)
 }
 
 // Get mocks base method.
-func (m *MockIBasketUsecase) Get(ctx context.Context) (*dto.BasketResponse, error) {
+func (m *MockIBasketUsecase) Get(ctx context.Context) ([]*models.BasketItem, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Get", ctx)
-	ret0, _ := ret[0].(*dto.BasketResponse)
+	ret0, _ := ret[0].([]*models.BasketItem)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -95,17 +94,17 @@ func (mr *MockIBasketUsecaseMockRecorder) Get(ctx interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockIBasketUsecase)(nil).Get), ctx)
 }
 
-// UpdateProductQuantity mocks base method.
-func (m *MockIBasketUsecase) UpdateProductQuantity(ctx context.Context, productID uuid.UUID, quantity int) (*models.BasketItem, error) {
+// UpdateQuantity mocks base method.
+func (m *MockIBasketUsecase) UpdateQuantity(ctx context.Context, productID uuid.UUID, quantity int) (*models.BasketItem, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateProductQuantity", ctx, productID, quantity)
+	ret := m.ctrl.Call(m, "UpdateQuantity", ctx, productID, quantity)
 	ret0, _ := ret[0].(*models.BasketItem)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// UpdateProductQuantity indicates an expected call of UpdateProductQuantity.
-func (mr *MockIBasketUsecaseMockRecorder) UpdateProductQuantity(ctx, productID, quantity interface{}) *gomock.Call {
+// UpdateQuantity indicates an expected call of UpdateQuantity.
+func (mr *MockIBasketUsecaseMockRecorder) UpdateQuantity(ctx, productID, quantity interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateProductQuantity", reflect.TypeOf((*MockIBasketUsecase)(nil).UpdateProductQuantity), ctx, productID, quantity)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateQuantity", reflect.TypeOf((*MockIBasketUsecase)(nil).UpdateQuantity), ctx, productID, quantity)
 }
