@@ -139,7 +139,7 @@ func NewApp(conf *config.Config) (*App, error) {
 		)).Methods(http.MethodGet)
 	}
 
-	addressRouter := router.PathPrefix("/address").Subrouter()
+	addressRouter := router.PathPrefix("/addresses").Subrouter()
 	{
 		addressRouter.Handle("/", middleware.JWTMiddleware(
 			tokenator,

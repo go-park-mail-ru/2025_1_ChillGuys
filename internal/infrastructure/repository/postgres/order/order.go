@@ -52,7 +52,6 @@ func (r *OrderRepository) CreateOrder(ctx context.Context, in dto.CreateOrderRep
 		return err
 	}
 
-	// Создаём заказ
 	if _, err = tx.ExecContext(ctx, queryCreateOrder,
 		in.Order.ID,
 		in.Order.UserID,
@@ -65,7 +64,6 @@ func (r *OrderRepository) CreateOrder(ctx context.Context, in dto.CreateOrderRep
 		return err
 	}
 
-	// Обновляем количество товаров в наличии
 	for productID, updatedQuantity := range in.UpdatedQuantities {
 		if err = r.UpdateProductQuantity(ctx, productID, updatedQuantity); err != nil {
 			tx.Rollback()
@@ -73,7 +71,6 @@ func (r *OrderRepository) CreateOrder(ctx context.Context, in dto.CreateOrderRep
 		}
 	}
 
-	// Добавляем товары заказа
 	for _, item := range in.Order.Items {
 		if _, err = tx.ExecContext(ctx, queryAddOrderItem,
 			item.ID, in.Order.ID, item.ProductID, item.Price, item.Quantity,

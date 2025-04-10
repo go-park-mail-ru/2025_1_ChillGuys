@@ -2,16 +2,14 @@ package address
 
 import (
 	"context"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/domains"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/address"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
 
 type IAddressUsecase interface {
-	CreateAddress(ctx context.Context, in models.Address) error
+	CreateAddress(context.Context, uuid.UUID, models.Address) error
 	GetAddresses(context.Context, uuid.UUID) ([]models.Address, error)
 	GetPickupPoints(ctx context.Context) ([]models.AddressDB, error)
 }
@@ -31,17 +29,7 @@ func NewAddressUsecase(
 	}
 }
 
-func (u *AddressUsecase) CreateAddress(ctx context.Context, in models.Address) error {
-	userIDStr, isExist := ctx.Value(domains.UserIDKey).(string)
-	if !isExist {
-		return errs.ErrNotFound
-	}
-
-	userID, err := uuid.Parse(userIDStr)
-	if err != nil {
-		return errs.ErrInvalidID
-	}
-
+func (u *AddressUsecase) CreateAddress(ctx context.Context, userID uuid.UUID, in models.Address) error {
 	addressID := uuid.New()
 	addr := models.AddressDB{
 		ID:        addressID,
@@ -57,7 +45,6 @@ func (u *AddressUsecase) CreateAddress(ctx context.Context, in models.Address) e
 		return err
 	}
 
-	// Если адреса не существует, мы его создаём
 	if addrID == uuid.Nil {
 		if err = u.repo.CreateAddress(ctx, addr); err != nil {
 			return err
@@ -66,7 +53,6 @@ func (u *AddressUsecase) CreateAddress(ctx context.Context, in models.Address) e
 		addressID = addrID
 	}
 
-	// Запоминает адрес в таблице адресов пользователя
 	userAddr := models.UserAddress{
 		ID:        uuid.New(),
 		Label:     in.Label,
@@ -92,7 +78,7 @@ func (u *AddressUsecase) GetPickupPoints(ctx context.Context) ([]models.AddressD
 		return nil, err
 	}
 
-	var res []models.AddressDB
+	res := make([]models.AddressDB, len(*points))
 	for _, point := range *points {
 		res = append(res, models.AddressDB{
 			ID:        point.ID,

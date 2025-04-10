@@ -11,7 +11,7 @@ type AddressDB struct {
 	Street    null.String `json:"street"`
 	House     null.String `json:"house"`
 	Apartment null.String `json:"apartment"`
-	ZipCode   null.String `json:"zipCode"`
+	ZipCode   null.String `json:"zip_code"`
 	//Coordinate null.String `json:"coordinate"`
 }
 
@@ -29,5 +29,5 @@ type Address struct {
 	Street    null.String `json:"street"`
 	House     null.String `json:"house"`
 	Apartment null.String `json:"apartment"`
-	ZipCode   null.String `json:"zipCode"`
+	ZipCode   null.String `json:"zip_code"`
 }

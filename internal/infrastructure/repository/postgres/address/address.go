@@ -109,7 +109,7 @@ func (r *AddressRepository) GetUserAddress(ctx context.Context, userID uuid.UUID
 
 	for rows.Next() {
 		var address models.Address
-		err := rows.Scan(
+		if err := rows.Scan(
 			&address.ID,
 			&address.Label,
 			&address.City,
@@ -117,8 +117,7 @@ func (r *AddressRepository) GetUserAddress(ctx context.Context, userID uuid.UUID
 			&address.House,
 			&address.Apartment,
 			&address.ZipCode,
-		)
-		if err != nil {
+		); err != nil {
 			return nil, err
 		}
 		addresses = append(addresses, address)
@@ -142,15 +141,14 @@ func (r *AddressRepository) GetAllPickupPoints(ctx context.Context) (*[]models.A
 
 	for rows.Next() {
 		var addr models.AddressDB
-		err := rows.Scan(
+		if err := rows.Scan(
 			&addr.ID,
 			&addr.City,
 			&addr.Street,
 			&addr.House,
 			&addr.Apartment,
 			&addr.ZipCode,
-		)
-		if err != nil {
+		); err != nil {
 			return nil, err
 		}
 		points = append(points, addr)

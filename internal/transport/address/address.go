@@ -33,7 +33,19 @@ func (h *AddressHandler) CreateAddress(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.addressService.CreateAddress(r.Context(), createAddressReq); err != nil {
+	userIDStr, ok := r.Context().Value(domains.UserIDKey).(string)
+	if !ok {
+		response.SendJSONError(r.Context(), w, http.StatusUnauthorized, "user not found in context")
+		return
+	}
+
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		response.SendJSONError(r.Context(), w, http.StatusBadRequest, "invalid user id format")
+		return
+	}
+
+	if err := h.addressService.CreateAddress(r.Context(), userID, createAddressReq); err != nil {
 		response.HandleDomainError(r.Context(), w, err, "failed to create address")
 		return
 	}
