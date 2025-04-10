@@ -33,12 +33,11 @@ func NewOrderService(
 //	@Produce		json
 //	@Param			input	body		models.CreateOrderDTO	true	"Данные для создания заказа"
 //	@Success		200		{}			"Order successfully created"
-//	@Failure		400		{object}	response.ErrorResponse	"Некорректный запрос"
-//	@Failure		401		{object}	response.ErrorResponse	"Пользователь не найден в контексте"
-//	@Failure		404		{object}	response.ErrorResponse	"Ошибка при создании заказа"
-//	@Failure		500		{object}	response.ErrorResponse	"Внутренняя ошибка сервера"
+//	@Failure		400		{object}	dto.ErrorResponse	"Некорректный запрос"
+//	@Failure		401		{object}	dto.ErrorResponse	"Пользователь не найден в контексте"
+//	@Failure		404		{object}	dto.ErrorResponse	"Ошибка при создании заказа"
+//	@Failure		500		{object}	dto.ErrorResponse	"Внутренняя ошибка сервера"
 //	@Router			/order [post]
-
 func (o *OrderService) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	userIDStr, isExist := r.Context().Value(domains.UserIDKey).(string)
 	if !isExist {
