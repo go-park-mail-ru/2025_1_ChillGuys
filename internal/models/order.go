@@ -11,8 +11,7 @@ import (
 type OrderStatus int
 
 const (
-	Pending                   OrderStatus = iota // Ожидает
-	Placed                                       // Оформлен
+	Placed                    OrderStatus = iota // Оформлен
 	AwaitingConfirmation                         // Ожидает подтверждения
 	BeingPrepared                                // Готовится
 	Shipped                                      // Отправлен
@@ -34,7 +33,6 @@ const (
 
 func (s OrderStatus) String() string {
 	return [...]string{
-		"pending",
 		"placed",
 		"awaiting_confirmation",
 		"being_prepared",
@@ -114,7 +112,7 @@ type OrderPreview struct {
 	TotalPrice         float64               `json:"total_price"`
 	TotalDiscountPrice float64               `json:"total_discount_price"`
 	Products           []OrderPreviewProduct `json:"products"`
-	Address            Address               `json:"address"`
+	Address            AddressDB             `json:"address"`
 	ExpectedDeliveryAt *time.Time            `json:"expected_delivery_at"`
 	ActualDeliveryAt   *time.Time            `json:"actual_delivery_at"`
 	CreatedAt          *time.Time            `json:"created_at,omitempty"`

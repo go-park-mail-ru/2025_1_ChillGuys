@@ -46,7 +46,7 @@ type GetOrderByUserIDResDTO struct {
 }
 
 func (orderItem *GetOrderByUserIDResDTO) ConvertToGetOrderByUserIDResDTO(
-	address *models.Address,
+	address *models.AddressDB,
 	products []models.OrderPreviewProduct,
 ) models.OrderPreview {
 	return models.OrderPreview{

@@ -31,7 +31,7 @@ type IOrderRepository interface {
 	GetOrdersByUserID(context.Context, uuid.UUID) (*[]dto.GetOrderByUserIDResDTO, error)
 	GetOrderProducts(context.Context, uuid.UUID) (*[]dto.GetOrderProductResDTO, error)
 	GetProductImage(context.Context, uuid.UUID) (string, error)
-	GetOrderAddress(context.Context, uuid.UUID) (*models.Address, error)
+	GetOrderAddress(context.Context, uuid.UUID) (*models.AddressDB, error)
 }
 
 type OrderRepository struct {
@@ -246,8 +246,8 @@ func (r *OrderRepository) GetProductImage(ctx context.Context, productID uuid.UU
 	return imageURL, nil
 }
 
-func (r *OrderRepository) GetOrderAddress(ctx context.Context, addressID uuid.UUID) (*models.Address, error) {
-	var address models.Address
+func (r *OrderRepository) GetOrderAddress(ctx context.Context, addressID uuid.UUID) (*models.AddressDB, error) {
+	var address models.AddressDB
 
 	if err := r.db.QueryRowContext(ctx, queryGetOrderAddress, addressID).Scan(
 		&address.City,

@@ -40,7 +40,8 @@ CREATE TABLE IF NOT EXISTS bazaar.address
     house      TEXT NOT NULL,
     apartment  TEXT,
     zip_code   TEXT NOT NULL,
-    updated_at TIMESTAMPTZ DEFAULT now()
+    updated_at TIMESTAMPTZ DEFAULT now(),
+    UNIQUE (city, street, house, apartment, zip_code)
 );
 
 -- Создание таблицы пользователей
@@ -54,6 +55,17 @@ CREATE TABLE IF NOT EXISTS bazaar."user"
     surname       TEXT,
     image_url     TEXT,
     address_id    UUID        REFERENCES bazaar.address (id) ON DELETE SET NULL
+);
+
+-- Связующая таблица: многие ко многим между user и address
+CREATE TABLE IF NOT EXISTS bazaar.user_address
+(
+    id         UUID PRIMARY KEY,
+    label      TEXT,
+    user_id    UUID NOT NULL REFERENCES bazaar."user"(id) ON DELETE CASCADE,
+    address_id UUID NOT NULL REFERENCES bazaar.address(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    UNIQUE(user_id, address_id)
 );
 
 -- Таблица для ПВЗ
