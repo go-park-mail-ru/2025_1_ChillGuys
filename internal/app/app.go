@@ -141,7 +141,7 @@ func NewApp(conf *config.Config) (*App, error) {
 	productCoverRouter := apiRouter.PathPrefix("/cover").Subrouter()
 	{
 		productCoverRouter.HandleFunc("/upload", ProductService.CreateOne).Methods(http.MethodPost)
-		productsRouter.HandleFunc("/files/{objectID}", ProductService.GetOne).Methods(http.MethodGet)
+		productCoverRouter.HandleFunc("/files/{objectID}", ProductService.GetOne).Methods(http.MethodGet)
 	}
 
 	// Маршруты для аутентификации.

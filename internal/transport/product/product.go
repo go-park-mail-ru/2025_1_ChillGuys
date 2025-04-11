@@ -227,7 +227,7 @@ func (h *ProductService) GetOne(w http.ResponseWriter, r *http.Request) {
     }
 
 	// Получаем URL файла из MinIO
-	url, err := h.minioService.GetOne(r.Context(), objectID)
+	data, err := h.minioService.GetOne(r.Context(), objectID)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
             logger.WithError(err).Warn("file not found")
@@ -241,8 +241,8 @@ func (h *ProductService) GetOne(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Формируем успешный ответ
-	response.SendJSONResponse(r.Context(), w, http.StatusOK, map[string]string{
-		"url":       url,
-		"object_id": objectID,
-	})
+	if _, err := w.Write(data); err != nil {
+		http.Error(w, "Failed to send cover file", http.StatusInternalServerError)
+		return
+	}
 }
