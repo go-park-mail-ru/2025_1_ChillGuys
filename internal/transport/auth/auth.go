@@ -14,7 +14,7 @@ import (
 	"net/http"
 )
 
-//go:generate mockgen -source=auth.go -destination=../../usecase/mocks/auth_usecase_mock.go -package=mocks
+//go:generate mockgen -source=auth.go -destination=../../usecase/mocks/auth_usecase_mock.go -package=mocks IAuthUsecase
 type IAuthUsecase interface {
 	Register(context.Context, dto.UserRegisterRequestDTO) (string, error)
 	Login(context.Context, dto.UserLoginRequestDTO) (string, error)

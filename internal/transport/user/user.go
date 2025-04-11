@@ -14,6 +14,7 @@ import (
 	"net/http"
 )
 
+//go:generate mockgen -source=user.go -destination=../../usecase/mocks/user_usecase_mock.go -package=mocks IUserUsecase
 type IUserUsecase interface {
 	GetMe(context.Context) (*models.User, error)
 	UploadAvatar(context.Context, minio.FileDataType) (string, error)

@@ -20,7 +20,7 @@ type ITokenator interface {
 	ParseJWT(tokenString string) (*jwt.JWTClaims, error)
 }
 
-//go:generate mockgen -source=user.go -destination=../../infrastructure/repository/postgres/mocks/auth_repository_mock.go -package=mocks IProductRepository
+//go:generate mockgen -source=auth.go -destination=../../infrastructure/repository/postgres/mocks/auth_repository_mock.go -package=mocks IAuthRepository
 type IAuthRepository interface {
 	CreateUser(context.Context, dto.UserDB) error
 	GetUserByEmail(context.Context, string) (*dto.UserDB, error)

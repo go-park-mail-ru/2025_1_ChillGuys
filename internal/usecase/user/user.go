@@ -14,6 +14,7 @@ import (
 	"strings"
 )
 
+//go:generate mockgen -source=user.go -destination=../../infrastructure/repository/postgres/mocks/user_repository_mock.go -package=mocks IUserRepository
 type IUserRepository interface {
 	GetUserByEmail(context.Context, string) (*dto.UserDB, error)
 	GetUserByID(context.Context, uuid.UUID) (*dto.UserDB, error)
