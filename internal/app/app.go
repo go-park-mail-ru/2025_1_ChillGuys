@@ -125,6 +125,8 @@ func NewApp(conf *config.Config) (*App, error) {
 			Methods(http.MethodGet)
 		userRouter.Handle("/upload-avatar", middleware.JWTMiddleware(tokenator, http.HandlerFunc(userHandler.UploadAvatar))).
 			Methods(http.MethodPost)
+		userRouter.Handle("/update-profile", middleware.JWTMiddleware(tokenator, http.HandlerFunc(userHandler.UpdateUserProfile))).
+			Methods(http.MethodPost)
 	}
 
 	orderRouter := router.PathPrefix("/orders").Subrouter()

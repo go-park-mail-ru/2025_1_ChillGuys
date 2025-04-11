@@ -37,6 +37,7 @@ const (
 		u.surname, 
 		u.password_hash, 
 		u.image_url, 
+		u.phone_number,
 		uv.id AS user_version_id, 
 		uv.version, 
 		uv.updated_at
@@ -47,6 +48,7 @@ const (
 	queryIncrementUserVersion = `UPDATE bazaar."user_version" SET version = version + 1 WHERE user_id = $1`
 	queryCheckUserExists      = `SELECT EXISTS(SELECT 1 FROM bazaar."user" WHERE email = $1)`
 	queryUpdateUserImageURL   = `UPDATE bazaar."user" SET image_url = $1 WHERE id = $2`
+	queryUpdateUser           = `UPDATE bazaar."user" SET email = $1, name = $2, surname = $3, phone_number = $4, password_hash = $5 WHERE id = $6;`
 )
 
 type UserRepository struct {
@@ -137,6 +139,7 @@ func (r *UserRepository) GetUserByID(ctx context.Context, id uuid.UUID) (*dto.Us
 		&user.Surname,
 		&user.PasswordHash,
 		&user.ImageURL,
+		&user.PhoneNumber,
 		&user.UserVersion.ID,
 		&user.UserVersion.Version,
 		&user.UserVersion.UpdatedAt,
@@ -207,4 +210,16 @@ func (r *UserRepository) UpdateUserImageURL(ctx context.Context, userID uuid.UUI
 	}
 
 	return nil
+}
+
+func (r *UserRepository) UpdateUserProfile(ctx context.Context, userID uuid.UUID, in dto.UpdateUserDB) error {
+	_, err := r.db.ExecContext(ctx, queryUpdateUser,
+		in.Email,
+		in.Name,
+		in.Surname,
+		in.PhoneNumber,
+		in.PasswordHash,
+		userID,
+	)
+	return err
 }

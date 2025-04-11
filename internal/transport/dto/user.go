@@ -43,6 +43,23 @@ type UserRegisterRequestDTO struct {
 	Surname  null.String `json:"surname,omitempty" swaggertype:"primitive,string"`
 }
 
+type UpdateUserProfileRequestDTO struct {
+	Email       null.String `json:"email,omitempty"`
+	Name        null.String `json:"name,omitempty"`
+	Surname     null.String `json:"surname,omitempty"`
+	Password    null.String `json:"password,omitempty"`
+	PhoneNumber null.String `json:"phoneNumber,omitempty" swaggertype:"primitive,string"`
+}
+
+type UpdateUserDB struct {
+	Email        string
+	Name         string
+	Surname      null.String
+	ImageURL     null.String
+	PhoneNumber  null.String
+	PasswordHash []byte
+}
+
 type UserResponseDTO struct {
 	Token string `json:"token"`
 }

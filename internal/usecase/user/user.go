@@ -6,6 +6,7 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/minio"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -31,6 +32,7 @@ type IUserRepository interface {
 	CheckUserVersion(context.Context, string, int) bool
 	CheckUserExists(context.Context, string) (bool, error)
 	UpdateUserImageURL(context.Context, uuid.UUID, string) error
+	UpdateUserProfile(context.Context, uuid.UUID, dto.UpdateUserDB) error
 }
 
 type AuthUsecase struct {
@@ -165,6 +167,61 @@ func (u *AuthUsecase) UploadAvatar(ctx context.Context, fileData minio.FileDataT
 	}
 
 	return avatar.URL, nil
+}
+
+func (u *AuthUsecase) UpdateUserProfile(ctx context.Context, user dto.UpdateUserProfileRequestDTO) error {
+	userIDStr, isExist := ctx.Value(domains.UserIDKey).(string)
+	if !isExist {
+		return errs.ErrNotFound
+	}
+
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		return errs.ErrInvalidID
+	}
+
+	currentUser, err := u.repo.GetUserByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	userDB := dto.UpdateUserDB{}
+
+	if user.Email.Valid && strings.TrimSpace(user.Email.String) != "" {
+		userDB.Email = user.Email.String
+	} else {
+		userDB.Email = currentUser.Email
+	}
+
+	if user.Name.Valid && strings.TrimSpace(user.Name.String) != "" {
+		userDB.Name = user.Name.String
+	} else {
+		userDB.Name = currentUser.Name
+	}
+
+	if user.Surname.Valid && strings.TrimSpace(user.Surname.String) != "" {
+		userDB.Surname = user.Surname
+	} else {
+		userDB.Surname = currentUser.Surname
+	}
+
+	if user.PhoneNumber.Valid && strings.TrimSpace(user.PhoneNumber.String) != "" {
+		userDB.PhoneNumber = user.PhoneNumber
+	} else {
+		userDB.PhoneNumber = currentUser.PhoneNumber
+	}
+
+	if user.Password.Valid && strings.TrimSpace(user.Password.String) != "" {
+		passwordHash, err := GeneratePasswordHash(user.Password.String)
+		if err != nil {
+			return err
+		}
+		userDB.PasswordHash = []byte(passwordHash)
+	} else {
+		userDB.PasswordHash = currentUser.PasswordHash
+	}
+
+	return u.repo.UpdateUserProfile(ctx, userID, userDB)
 }
 
 // GeneratePasswordHash Генерация хэша пароля
