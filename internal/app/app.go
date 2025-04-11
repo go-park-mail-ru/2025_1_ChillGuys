@@ -8,16 +8,19 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/minio"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres"
 	addressrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/address"
+	authrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/auth"
 	orderrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/order"
 	productrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/product"
 	userrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/user"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/address"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/auth"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/order"
 	producttr "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/product"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/user"
 	addressus "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/address"
+	authus "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/auth"
 	orderus "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/order"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/product"
 	userus "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/user"
@@ -61,10 +64,14 @@ func NewApp(conf *config.Config) (*App, error) {
 	}
 
 	// Инициализация репозиториев и use-case-ов.
-	userRepo := userrepo.NewUserRepository(db, logger)
-	tokenator := jwt.NewTokenator(userRepo, conf.JWTConfig)
-	userUsecase := userus.NewAuthUsecase(userRepo, tokenator, logger, minioClient)
-	userHandler := user.NewAuthHandler(userUsecase, logger, minioClient, conf)
+	authRepository := authrepo.NewAuthRepository(db, logger)
+	tokenator := jwt.NewTokenator(authRepository, conf.JWTConfig)
+	authUsecase := authus.NewAuthUsecase(authRepository, tokenator, logger)
+	authHandler := auth.NewAuthHandler(authUsecase, logger, conf)
+
+	userRepository := userrepo.NewUserRepository(db, logger)
+	userUsecase := userus.NewUserUsecase(userRepository, tokenator, logger, minioClient)
+	userHandler := user.NewUserHandler(userUsecase, logger, minioClient, conf)
 
 	addressRepo := addressrepo.NewAddressRepository(db, logger)
 	addressUsecase := addressus.NewAddressUsecase(addressRepo, logger)
@@ -112,9 +119,9 @@ func NewApp(conf *config.Config) (*App, error) {
 	// Маршруты для аутентификации.
 	authRouter := router.PathPrefix("/auth").Subrouter()
 	{
-		authRouter.HandleFunc("/login", userHandler.Login).Methods(http.MethodPost)
-		authRouter.HandleFunc("/register", userHandler.Register).Methods(http.MethodPost)
-		authRouter.Handle("/logout", middleware.JWTMiddleware(tokenator, http.HandlerFunc(userHandler.Logout))).
+		authRouter.HandleFunc("/login", authHandler.Login).Methods(http.MethodPost)
+		authRouter.HandleFunc("/register", authHandler.Register).Methods(http.MethodPost)
+		authRouter.Handle("/logout", middleware.JWTMiddleware(tokenator, http.HandlerFunc(authHandler.Logout))).
 			Methods(http.MethodPost)
 	}
 

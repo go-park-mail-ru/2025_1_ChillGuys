@@ -70,7 +70,7 @@ func (o *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 func (o *OrderHandler) GetOrders(w http.ResponseWriter, r *http.Request) {
 	userIDStr, isExist := r.Context().Value(domains.UserIDKey).(string)
 	if !isExist {
-		response.SendJSONError(r.Context(), w, http.StatusUnauthorized, "user not found in context")
+		response.SendJSONError(r.Context(), w, http.StatusUnauthorized, "user id not found in context")
 		return
 	}
 

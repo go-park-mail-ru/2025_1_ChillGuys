@@ -35,13 +35,13 @@ func (h *AddressHandler) CreateAddress(w http.ResponseWriter, r *http.Request) {
 
 	userIDStr, ok := r.Context().Value(domains.UserIDKey).(string)
 	if !ok {
-		response.SendJSONError(r.Context(), w, http.StatusUnauthorized, "user not found in context")
+		response.SendJSONError(r.Context(), w, http.StatusUnauthorized, "auth not found in context")
 		return
 	}
 
 	userID, err := uuid.Parse(userIDStr)
 	if err != nil {
-		response.SendJSONError(r.Context(), w, http.StatusBadRequest, "invalid user id format")
+		response.SendJSONError(r.Context(), w, http.StatusBadRequest, "invalid auth id format")
 		return
 	}
 
@@ -56,13 +56,13 @@ func (h *AddressHandler) CreateAddress(w http.ResponseWriter, r *http.Request) {
 func (h *AddressHandler) GetAddress(w http.ResponseWriter, r *http.Request) {
 	userIDStr, isExist := r.Context().Value(domains.UserIDKey).(string)
 	if !isExist {
-		response.SendJSONError(r.Context(), w, http.StatusUnauthorized, "user not found in context")
+		response.SendJSONError(r.Context(), w, http.StatusUnauthorized, "auth not found in context")
 		return
 	}
 
 	userID, err := uuid.Parse(userIDStr)
 	if err != nil {
-		response.SendJSONError(r.Context(), w, http.StatusBadRequest, "invalid user id format")
+		response.SendJSONError(r.Context(), w, http.StatusBadRequest, "invalid auth id format")
 		return
 	}
 

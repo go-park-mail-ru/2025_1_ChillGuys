@@ -4,48 +4,34 @@ import (
 	"context"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/domains"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/minio"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
-	"strings"
-	"time"
-
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/auth"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
-
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
+	"strings"
 )
 
-type ITokenator interface {
-	CreateJWT(userID string, version int) (string, error)
-	ParseJWT(tokenString string) (*jwt.JWTClaims, error)
-}
-
-//go:generate mockgen -source=user.go -destination=../../infrastructure/repository/postgres/mocks/user_repository_mock.go -package=mocks IProductRepository
 type IUserRepository interface {
-	CreateUser(context.Context, dto.UserDB) error
 	GetUserByEmail(context.Context, string) (*dto.UserDB, error)
 	GetUserByID(context.Context, uuid.UUID) (*dto.UserDB, error)
-	IncrementUserVersion(context.Context, string) error
-	GetUserCurrentVersion(context.Context, string) (int, error)
-	CheckUserVersion(context.Context, string, int) bool
-	CheckUserExists(context.Context, string) (bool, error)
 	UpdateUserImageURL(context.Context, uuid.UUID, string) error
 	UpdateUserProfile(context.Context, uuid.UUID, dto.UpdateUserDB) error
 	UpdateUserEmail(context.Context, uuid.UUID, string) error
 	UpdateUserPassword(context.Context, uuid.UUID, []byte) error
 }
 
-type AuthUsecase struct {
+type UserUsecase struct {
 	log          *logrus.Logger
-	token        ITokenator
+	token        auth.ITokenator
 	repo         IUserRepository
 	minioService minio.Client
 }
 
-func NewAuthUsecase(repo IUserRepository, token ITokenator, log *logrus.Logger, minioService minio.Client) *AuthUsecase {
-	return &AuthUsecase{
+func NewUserUsecase(repo IUserRepository, token auth.ITokenator, log *logrus.Logger, minioService minio.Client) *UserUsecase {
+	return &UserUsecase{
 		repo:         repo,
 		token:        token,
 		log:          log,
@@ -53,78 +39,7 @@ func NewAuthUsecase(repo IUserRepository, token ITokenator, log *logrus.Logger, 
 	}
 }
 
-func (u *AuthUsecase) Register(ctx context.Context, user dto.UserRegisterRequestDTO) (string, error) {
-	passwordHash, err := GeneratePasswordHash(user.Password)
-	if err != nil {
-		return "", err
-	}
-
-	existed, err := u.repo.CheckUserExists(ctx, user.Email)
-	if err != nil {
-		return "", err
-	}
-	if existed {
-		return "", errs.ErrAlreadyExists
-	}
-
-	userID := uuid.New()
-	userDB := dto.UserDB{
-		ID:           userID,
-		Email:        user.Email,
-		Name:         user.Name,
-		Surname:      user.Surname,
-		PasswordHash: passwordHash,
-		UserVersion: models.UserVersionDB{
-			ID:        uuid.New(),
-			UserID:    userID,
-			Version:   1,
-			UpdatedAt: time.Now(),
-		},
-	}
-
-	if err = u.repo.CreateUser(ctx, userDB); err != nil {
-		return "", err
-	}
-
-	token, err := u.token.CreateJWT(userDB.ID.String(), userDB.UserVersion.Version)
-	if err != nil {
-		return "", err
-	}
-
-	return token, nil
-}
-
-func (u *AuthUsecase) Login(ctx context.Context, user dto.UserLoginRequestDTO) (string, error) {
-	userDB, err := u.repo.GetUserByEmail(ctx, user.Email)
-	if err != nil {
-		return "", err
-	}
-	if err := bcrypt.CompareHashAndPassword(userDB.PasswordHash, []byte(user.Password)); err != nil {
-		return "", errs.ErrInvalidCredentials
-	}
-
-	token, err := u.token.CreateJWT(userDB.ID.String(), userDB.UserVersion.Version)
-	if err != nil {
-		return "", err
-	}
-
-	return token, nil
-}
-
-func (u *AuthUsecase) Logout(ctx context.Context) error {
-	userID, isExist := ctx.Value(domains.UserIDKey).(string)
-	if !isExist {
-		return errs.ErrNotFound
-	}
-
-	if err := u.repo.IncrementUserVersion(ctx, userID); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (u *AuthUsecase) GetMe(ctx context.Context) (*models.User, error) {
+func (u *UserUsecase) GetMe(ctx context.Context) (*models.User, error) {
 	userIDStr, isExist := ctx.Value(domains.UserIDKey).(string)
 	if !isExist {
 		return nil, errs.ErrNotFound
@@ -148,7 +63,7 @@ func (u *AuthUsecase) GetMe(ctx context.Context) (*models.User, error) {
 	return user, nil
 }
 
-func (u *AuthUsecase) UploadAvatar(ctx context.Context, fileData minio.FileDataType) (string, error) {
+func (u *UserUsecase) UploadAvatar(ctx context.Context, fileData minio.FileDataType) (string, error) {
 	userIDStr, isExist := ctx.Value(domains.UserIDKey).(string)
 	if !isExist {
 		return "", errs.ErrNotFound
@@ -171,7 +86,7 @@ func (u *AuthUsecase) UploadAvatar(ctx context.Context, fileData minio.FileDataT
 	return avatar.URL, nil
 }
 
-func (u *AuthUsecase) UpdateUserProfile(ctx context.Context, user dto.UpdateUserProfileRequestDTO) error {
+func (u *UserUsecase) UpdateUserProfile(ctx context.Context, user dto.UpdateUserProfileRequestDTO) error {
 	userIDStr, isExist := ctx.Value(domains.UserIDKey).(string)
 	if !isExist {
 		return errs.ErrNotFound
@@ -210,7 +125,7 @@ func (u *AuthUsecase) UpdateUserProfile(ctx context.Context, user dto.UpdateUser
 	return u.repo.UpdateUserProfile(ctx, userID, userDB)
 }
 
-func (u *AuthUsecase) UpdateUserEmail(ctx context.Context, user dto.UpdateUserEmail) error {
+func (u *UserUsecase) UpdateUserEmail(ctx context.Context, user dto.UpdateUserEmail) error {
 	userIDStr, isExist := ctx.Value(domains.UserIDKey).(string)
 	if !isExist {
 		return errs.ErrNotFound
@@ -232,7 +147,7 @@ func (u *AuthUsecase) UpdateUserEmail(ctx context.Context, user dto.UpdateUserEm
 	return u.repo.UpdateUserEmail(ctx, userID, user.Email)
 }
 
-func (u *AuthUsecase) UpdateUserPassword(ctx context.Context, user dto.UpdateUserPassword) error {
+func (u *UserUsecase) UpdateUserPassword(ctx context.Context, user dto.UpdateUserPassword) error {
 	userIDStr, isExist := ctx.Value(domains.UserIDKey).(string)
 	if !isExist {
 		return errs.ErrNotFound
@@ -252,15 +167,10 @@ func (u *AuthUsecase) UpdateUserPassword(ctx context.Context, user dto.UpdateUse
 		return errs.ErrInvalidCredentials
 	}
 
-	passwordHash, err := GeneratePasswordHash(user.NewPassword)
+	passwordHash, err := auth.GeneratePasswordHash(user.NewPassword)
 	if err != nil {
 		return err
 	}
 
 	return u.repo.UpdateUserPassword(ctx, userID, passwordHash)
-}
-
-// GeneratePasswordHash Генерация хэша пароля
-func GeneratePasswordHash(password string) ([]byte, error) {
-	return bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
 }
