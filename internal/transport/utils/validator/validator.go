@@ -53,18 +53,6 @@ func ValidateRegistrationCreds(req dto.UserRegisterRequestDTO) error {
 
 func ValidateUserUpdateProfileCreds(req dto.UpdateUserProfileRequestDTO) error {
 
-	if req.Email.Valid && strings.TrimSpace(req.Email.String) != "" {
-		if err := validateEmail(req.Email.String); err != nil {
-			return err
-		}
-	}
-
-	if req.Password.Valid && strings.TrimSpace(req.Password.String) != "" {
-		if err := validatePassword(req.Password.String); err != nil {
-			return err
-		}
-	}
-
 	if req.Name.Valid && strings.TrimSpace(req.Name.String) != "" {
 		if err := validateName(req.Name.String); err != nil {
 			return err
@@ -81,6 +69,30 @@ func ValidateUserUpdateProfileCreds(req dto.UpdateUserProfileRequestDTO) error {
 		if err := validatePhoneNumber(req.PhoneNumber.String); err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+func ValidateEmailCreds(req dto.UpdateUserEmail) error {
+	if err := validateEmail(req.Email); err != nil {
+		return err
+	}
+
+	if err := validatePassword(req.Password); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func ValidatePasswordCreds(req dto.UpdateUserPassword) error {
+	if err := validatePassword(req.OldPassword); err != nil {
+		return err
+	}
+
+	if err := validatePassword(req.NewPassword); err != nil {
+		return err
 	}
 
 	return nil
@@ -150,17 +162,9 @@ func SanitizeUserLoginRequest(req *dto.UserLoginRequestDTO) {
 }
 
 func SanitizeUserProfileUpdateRequest(req *dto.UpdateUserProfileRequestDTO) {
-	if req.Email.Valid {
-		req.Email.String = strings.TrimSpace(req.Email.String)
-	}
-
 	if req.Name.Valid {
 		req.Name.String = strings.TrimSpace(req.Name.String)
 		req.Name.Valid = req.Name.String != ""
-	}
-
-	if req.Password.Valid {
-		req.Password.String = strings.TrimSpace(req.Password.String)
 	}
 
 	if req.Surname.Valid {
@@ -172,4 +176,14 @@ func SanitizeUserProfileUpdateRequest(req *dto.UpdateUserProfileRequestDTO) {
 		req.PhoneNumber.String = strings.TrimSpace(req.PhoneNumber.String)
 		req.PhoneNumber.Valid = req.PhoneNumber.String != ""
 	}
+}
+
+func SanitizeUserEmailUpdateRequest(req *dto.UpdateUserEmail) {
+	req.Email = strings.TrimSpace(req.Email)
+	req.Password = strings.TrimSpace(req.Password)
+}
+
+func SanitizeUserPasswordUpdateRequest(req *dto.UpdateUserPassword) {
+	req.OldPassword = strings.TrimSpace(req.OldPassword)
+	req.NewPassword = strings.TrimSpace(req.NewPassword)
 }

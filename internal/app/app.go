@@ -127,6 +127,10 @@ func NewApp(conf *config.Config) (*App, error) {
 			Methods(http.MethodPost)
 		userRouter.Handle("/update-profile", middleware.JWTMiddleware(tokenator, http.HandlerFunc(userHandler.UpdateUserProfile))).
 			Methods(http.MethodPost)
+		userRouter.Handle("/update-email", middleware.JWTMiddleware(tokenator, http.HandlerFunc(userHandler.UpdateUserEmail))).
+			Methods(http.MethodPost)
+		userRouter.Handle("/update-password", middleware.JWTMiddleware(tokenator, http.HandlerFunc(userHandler.UpdateUserPassword))).
+			Methods(http.MethodPost)
 	}
 
 	orderRouter := router.PathPrefix("/orders").Subrouter()

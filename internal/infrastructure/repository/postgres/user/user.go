@@ -48,22 +48,24 @@ const (
 	queryIncrementUserVersion = `UPDATE bazaar."user_version" SET version = version + 1 WHERE user_id = $1`
 	queryCheckUserExists      = `SELECT EXISTS(SELECT 1 FROM bazaar."user" WHERE email = $1)`
 	queryUpdateUserImageURL   = `UPDATE bazaar."user" SET image_url = $1 WHERE id = $2`
-	queryUpdateUser           = `UPDATE bazaar."user" SET email = $1, name = $2, surname = $3, phone_number = $4, password_hash = $5 WHERE id = $6;`
+	queryUpdateUser           = `UPDATE bazaar."user" SET name = $1, surname = $2, phone_number = $3 WHERE id = $4;`
+	queryUpdateUserPassword   = `UPDATE bazaar."user" SET password_hash = $1 WHERE id = $2;`
+	queryUpdateUserEmail      = `UPDATE bazaar."user" SET email = $1 WHERE id = $2;`
 )
 
-type UserRepository struct {
+type Repository struct {
 	db  *sql.DB
 	log *logrus.Logger
 }
 
-func NewUserRepository(db *sql.DB, log *logrus.Logger) *UserRepository {
-	return &UserRepository{
+func NewUserRepository(db *sql.DB, log *logrus.Logger) *Repository {
+	return &Repository{
 		db:  db,
 		log: log,
 	}
 }
 
-func (r *UserRepository) CreateUser(ctx context.Context, user dto.UserDB) error {
+func (r *Repository) CreateUser(ctx context.Context, user dto.UserDB) error {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -88,7 +90,7 @@ func (r *UserRepository) CreateUser(ctx context.Context, user dto.UserDB) error 
 	return tx.Commit()
 }
 
-func (r *UserRepository) GetUserCurrentVersion(ctx context.Context, userID string) (int, error) {
+func (r *Repository) GetUserCurrentVersion(ctx context.Context, userID string) (int, error) {
 	var version int
 
 	err := r.db.QueryRowContext(ctx, queryGetUserVersion, userID).Scan(&version)
@@ -104,7 +106,7 @@ func (r *UserRepository) GetUserCurrentVersion(ctx context.Context, userID strin
 	return version, nil
 }
 
-func (r *UserRepository) GetUserByEmail(ctx context.Context, email string) (*dto.UserDB, error) {
+func (r *Repository) GetUserByEmail(ctx context.Context, email string) (*dto.UserDB, error) {
 	var user dto.UserDB
 
 	if err := r.db.QueryRowContext(ctx, queryGetUserByEmail, email).Scan(
@@ -129,7 +131,7 @@ func (r *UserRepository) GetUserByEmail(ctx context.Context, email string) (*dto
 	return &user, nil
 }
 
-func (r *UserRepository) GetUserByID(ctx context.Context, id uuid.UUID) (*dto.UserDB, error) {
+func (r *Repository) GetUserByID(ctx context.Context, id uuid.UUID) (*dto.UserDB, error) {
 	var user dto.UserDB
 
 	err := r.db.QueryRowContext(ctx, queryGetUserByID, id).Scan(
@@ -157,7 +159,7 @@ func (r *UserRepository) GetUserByID(ctx context.Context, id uuid.UUID) (*dto.Us
 	return &user, nil
 }
 
-func (r *UserRepository) IncrementUserVersion(ctx context.Context, userID string) error {
+func (r *Repository) IncrementUserVersion(ctx context.Context, userID string) error {
 	res, err := r.db.ExecContext(ctx, queryIncrementUserVersion, userID)
 	if err != nil {
 		return err
@@ -174,7 +176,7 @@ func (r *UserRepository) IncrementUserVersion(ctx context.Context, userID string
 	return nil
 }
 
-func (r *UserRepository) CheckUserVersion(ctx context.Context, userID string, version int) bool {
+func (r *Repository) CheckUserVersion(ctx context.Context, userID string, version int) bool {
 	var currentVersion int
 
 	if err := r.db.QueryRowContext(ctx, queryGetUserVersion, userID).Scan(&currentVersion); err != nil {
@@ -184,7 +186,7 @@ func (r *UserRepository) CheckUserVersion(ctx context.Context, userID string, ve
 	return currentVersion == version
 }
 
-func (r *UserRepository) CheckUserExists(ctx context.Context, email string) (bool, error) {
+func (r *Repository) CheckUserExists(ctx context.Context, email string) (bool, error) {
 	var exists bool
 
 	if err := r.db.QueryRowContext(ctx, queryCheckUserExists, email).Scan(&exists); err != nil {
@@ -194,7 +196,7 @@ func (r *UserRepository) CheckUserExists(ctx context.Context, email string) (boo
 	return exists, nil
 }
 
-func (r *UserRepository) UpdateUserImageURL(ctx context.Context, userID uuid.UUID, imageURL string) error {
+func (r *Repository) UpdateUserImageURL(ctx context.Context, userID uuid.UUID, imageURL string) error {
 	res, err := r.db.ExecContext(ctx, queryUpdateUserImageURL, imageURL, userID)
 	if err != nil {
 		return err
@@ -212,13 +214,27 @@ func (r *UserRepository) UpdateUserImageURL(ctx context.Context, userID uuid.UUI
 	return nil
 }
 
-func (r *UserRepository) UpdateUserProfile(ctx context.Context, userID uuid.UUID, in dto.UpdateUserDB) error {
+func (r *Repository) UpdateUserProfile(ctx context.Context, userID uuid.UUID, in dto.UpdateUserDB) error {
 	_, err := r.db.ExecContext(ctx, queryUpdateUser,
-		in.Email,
 		in.Name,
 		in.Surname,
 		in.PhoneNumber,
-		in.PasswordHash,
+		userID,
+	)
+	return err
+}
+
+func (r *Repository) UpdateUserEmail(ctx context.Context, userID uuid.UUID, email string) error {
+	_, err := r.db.ExecContext(ctx, queryUpdateUserEmail,
+		email,
+		userID,
+	)
+	return err
+}
+
+func (r *Repository) UpdateUserPassword(ctx context.Context, userID uuid.UUID, passwordHash []byte) error {
+	_, err := r.db.ExecContext(ctx, queryUpdateUserPassword,
+		passwordHash,
 		userID,
 	)
 	return err

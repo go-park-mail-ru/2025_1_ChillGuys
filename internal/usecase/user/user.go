@@ -33,6 +33,8 @@ type IUserRepository interface {
 	CheckUserExists(context.Context, string) (bool, error)
 	UpdateUserImageURL(context.Context, uuid.UUID, string) error
 	UpdateUserProfile(context.Context, uuid.UUID, dto.UpdateUserDB) error
+	UpdateUserEmail(context.Context, uuid.UUID, string) error
+	UpdateUserPassword(context.Context, uuid.UUID, []byte) error
 }
 
 type AuthUsecase struct {
@@ -187,12 +189,6 @@ func (u *AuthUsecase) UpdateUserProfile(ctx context.Context, user dto.UpdateUser
 
 	userDB := dto.UpdateUserDB{}
 
-	if user.Email.Valid && strings.TrimSpace(user.Email.String) != "" {
-		userDB.Email = user.Email.String
-	} else {
-		userDB.Email = currentUser.Email
-	}
-
 	if user.Name.Valid && strings.TrimSpace(user.Name.String) != "" {
 		userDB.Name = user.Name.String
 	} else {
@@ -211,17 +207,57 @@ func (u *AuthUsecase) UpdateUserProfile(ctx context.Context, user dto.UpdateUser
 		userDB.PhoneNumber = currentUser.PhoneNumber
 	}
 
-	if user.Password.Valid && strings.TrimSpace(user.Password.String) != "" {
-		passwordHash, err := GeneratePasswordHash(user.Password.String)
-		if err != nil {
-			return err
-		}
-		userDB.PasswordHash = []byte(passwordHash)
-	} else {
-		userDB.PasswordHash = currentUser.PasswordHash
+	return u.repo.UpdateUserProfile(ctx, userID, userDB)
+}
+
+func (u *AuthUsecase) UpdateUserEmail(ctx context.Context, user dto.UpdateUserEmail) error {
+	userIDStr, isExist := ctx.Value(domains.UserIDKey).(string)
+	if !isExist {
+		return errs.ErrNotFound
 	}
 
-	return u.repo.UpdateUserProfile(ctx, userID, userDB)
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		return errs.ErrInvalidID
+	}
+
+	userDB, err := u.repo.GetUserByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+	if err := bcrypt.CompareHashAndPassword(userDB.PasswordHash, []byte(user.Password)); err != nil {
+		return errs.ErrInvalidCredentials
+	}
+
+	return u.repo.UpdateUserEmail(ctx, userID, user.Email)
+}
+
+func (u *AuthUsecase) UpdateUserPassword(ctx context.Context, user dto.UpdateUserPassword) error {
+	userIDStr, isExist := ctx.Value(domains.UserIDKey).(string)
+	if !isExist {
+		return errs.ErrNotFound
+	}
+
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		return errs.ErrInvalidID
+	}
+
+	userRepo, err := u.repo.GetUserByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	if err := bcrypt.CompareHashAndPassword(userRepo.PasswordHash, []byte(user.OldPassword)); err != nil {
+		return errs.ErrInvalidCredentials
+	}
+
+	passwordHash, err := GeneratePasswordHash(user.NewPassword)
+	if err != nil {
+		return err
+	}
+
+	return u.repo.UpdateUserPassword(ctx, userID, passwordHash)
 }
 
 // GeneratePasswordHash Генерация хэша пароля

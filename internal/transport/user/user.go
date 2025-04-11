@@ -25,6 +25,8 @@ type IAuthUsecase interface {
 	GetMe(context.Context) (*models.User, error)
 	UploadAvatar(context.Context, minio.FileDataType) (string, error)
 	UpdateUserProfile(context.Context, dto.UpdateUserProfileRequestDTO) error
+	UpdateUserEmail(ctx context.Context, user dto.UpdateUserEmail) error
+	UpdateUserPassword(context.Context, dto.UpdateUserPassword) error
 }
 
 type AuthHandler struct {
@@ -236,6 +238,50 @@ func (h *AuthHandler) UpdateUserProfile(w http.ResponseWriter, r *http.Request) 
 
 	if err := h.authService.UpdateUserProfile(r.Context(), updateReq); err != nil {
 		response.HandleDomainError(r.Context(), w, err, "failed to update user profile")
+		return
+	}
+
+	response.SendJSONResponse(r.Context(), w, http.StatusOK, nil)
+}
+
+func (h *AuthHandler) UpdateUserEmail(w http.ResponseWriter, r *http.Request) {
+	var updateReq dto.UpdateUserEmail
+	if err := request.ParseData(r, &updateReq); err != nil {
+		response.SendJSONError(r.Context(), w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	validator.SanitizeUserEmailUpdateRequest(&updateReq)
+
+	if err := validator.ValidateEmailCreds(updateReq); err != nil {
+		response.SendJSONError(r.Context(), w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if err := h.authService.UpdateUserEmail(r.Context(), updateReq); err != nil {
+		response.HandleDomainError(r.Context(), w, err, "failed to update user email")
+		return
+	}
+
+	response.SendJSONResponse(r.Context(), w, http.StatusOK, nil)
+}
+
+func (h *AuthHandler) UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
+	var updateReq dto.UpdateUserPassword
+	if err := request.ParseData(r, &updateReq); err != nil {
+		response.SendJSONError(r.Context(), w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	validator.SanitizeUserPasswordUpdateRequest(&updateReq)
+
+	if err := validator.ValidatePasswordCreds(updateReq); err != nil {
+		response.SendJSONError(r.Context(), w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if err := h.authService.UpdateUserPassword(r.Context(), updateReq); err != nil {
+		response.HandleDomainError(r.Context(), w, err, "failed to update user password")
 		return
 	}
 
