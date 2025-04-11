@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"os"
 	"sync"
 	"time"
 
@@ -63,8 +64,19 @@ func initMinio(config *config.MinioConfig) (*minio.Client, error) {
 		return nil, err
 	}
 	if !exists {
-		if err = Provider.MakeBucket(ctx, config.BucketName, minio.MakeBucketOptions{}); err != nil {
-			return nil, err
+		policy := `{
+			"Version": "2012-10-17",
+			"Statement": [
+				{
+					"Effect": "Allow",
+					"Principal": {"AWS": ["*"]},
+					"Action": ["s3:GetObject"],
+					"Resource": ["arn:aws:s3:::%s/*"]
+				}
+			]
+		}`
+		if err = Provider.SetBucketPolicy(ctx, config.BucketName, fmt.Sprintf(policy, config.BucketName)); err != nil {
+			return nil, fmt.Errorf("failed to set bucket policy: %v", err)
 		}
 	}
 
@@ -211,15 +223,17 @@ func (m *minioProvider) GetOne(ctx context.Context, objectID string) (string, er
 
 	m.log.WithFields(logFields).Debug("attempting to get file URL from MinIO")
 
+	publicURL := os.Getenv("MINIO_PUBLIC_URL")
+    if publicURL == "" {
+        publicURL = "/s3/"
+    }
+
 	// Получение предварительно подписанного URL для доступа к объекту Minio.
-	url, err := m.mc.PresignedGetObject(ctx, m.config.BucketName, objectID, time.Second*24*60*60, nil)
-	if err != nil {
-		m.log.WithFields(logFields).WithError(err).Error("failed to get file URL")
-		return "", fmt.Errorf("failed to retrieve URL for object %s: %v", objectID, err)
-	}
+	url := fmt.Sprintf("%s%s", publicURL, objectID)
+
 
 	m.log.WithFields(logFields).Debug("successfully retrieved file URL")
-	return url.String(), nil
+	return url, nil
 }
 
 // GetMany получает несколько объектов из бакета Minio по их идентификаторам.
