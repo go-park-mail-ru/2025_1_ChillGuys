@@ -78,7 +78,7 @@ func (u *AddressUsecase) GetPickupPoints(ctx context.Context) ([]models.AddressD
 		return nil, err
 	}
 
-	res := make([]models.AddressDB, len(*points))
+	res := make([]models.AddressDB, 0, len(*points))
 	for _, point := range *points {
 		res = append(res, models.AddressDB{
 			ID:        point.ID,

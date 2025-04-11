@@ -2,6 +2,7 @@ package order
 
 import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/domains"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/request"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/response"
@@ -70,7 +71,7 @@ func (o *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 func (o *OrderHandler) GetOrders(w http.ResponseWriter, r *http.Request) {
 	userIDStr, isExist := r.Context().Value(domains.UserIDKey).(string)
 	if !isExist {
-		response.SendJSONError(r.Context(), w, http.StatusUnauthorized, "user not found in context")
+		response.SendJSONError(r.Context(), w, http.StatusUnauthorized, "user id not found in context")
 		return
 	}
 
@@ -86,5 +87,7 @@ func (o *OrderHandler) GetOrders(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.SendJSONResponse(r.Context(), w, http.StatusOK, orders)
+	response.SendJSONResponse(r.Context(), w, http.StatusOK, map[string]*[]models.OrderPreview{
+		"orders": orders,
+	})
 }
