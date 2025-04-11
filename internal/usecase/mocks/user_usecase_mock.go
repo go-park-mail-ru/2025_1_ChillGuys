@@ -14,31 +14,31 @@ import (
 	gomock "github.com/golang/mock/gomock"
 )
 
-// MockIAuthUsecase is a mock of IAuthUsecase interface.
-type MockIAuthUsecase struct {
+// MockIUserUsecase is a mock of IUserUsecase interface.
+type MockIUserUsecase struct {
 	ctrl     *gomock.Controller
-	recorder *MockIAuthUsecaseMockRecorder
+	recorder *MockIUserUsecaseMockRecorder
 }
 
-// MockIAuthUsecaseMockRecorder is the mock recorder for MockIAuthUsecase.
-type MockIAuthUsecaseMockRecorder struct {
-	mock *MockIAuthUsecase
+// MockIUserUsecaseMockRecorder is the mock recorder for MockIUserUsecase.
+type MockIUserUsecaseMockRecorder struct {
+	mock *MockIUserUsecase
 }
 
-// NewMockIAuthUsecase creates a new mock instance.
-func NewMockIAuthUsecase(ctrl *gomock.Controller) *MockIAuthUsecase {
-	mock := &MockIAuthUsecase{ctrl: ctrl}
-	mock.recorder = &MockIAuthUsecaseMockRecorder{mock}
+// NewMockIUserUsecase creates a new mock instance.
+func NewMockIUserUsecase(ctrl *gomock.Controller) *MockIUserUsecase {
+	mock := &MockIUserUsecase{ctrl: ctrl}
+	mock.recorder = &MockIUserUsecaseMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockIAuthUsecase) EXPECT() *MockIAuthUsecaseMockRecorder {
+func (m *MockIUserUsecase) EXPECT() *MockIUserUsecaseMockRecorder {
 	return m.recorder
 }
 
 // GetMe mocks base method.
-func (m *MockIAuthUsecase) GetMe(arg0 context.Context) (*models.User, error) {
+func (m *MockIUserUsecase) GetMe(arg0 context.Context) (*models.User, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetMe", arg0)
 	ret0, _ := ret[0].(*models.User)
@@ -47,57 +47,55 @@ func (m *MockIAuthUsecase) GetMe(arg0 context.Context) (*models.User, error) {
 }
 
 // GetMe indicates an expected call of GetMe.
-func (mr *MockIAuthUsecaseMockRecorder) GetMe(arg0 interface{}) *gomock.Call {
+func (mr *MockIUserUsecaseMockRecorder) GetMe(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMe", reflect.TypeOf((*MockIAuthUsecase)(nil).GetMe), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMe", reflect.TypeOf((*MockIUserUsecase)(nil).GetMe), arg0)
 }
 
-// Login mocks base method.
-func (m *MockIAuthUsecase) Login(arg0 context.Context, arg1 dto.UserLoginRequestDTO) (string, error) {
+// UpdateUserEmail mocks base method.
+func (m *MockIUserUsecase) UpdateUserEmail(ctx context.Context, user dto.UpdateUserEmail) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Login", arg0, arg1)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// Login indicates an expected call of Login.
-func (mr *MockIAuthUsecaseMockRecorder) Login(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Login", reflect.TypeOf((*MockIAuthUsecase)(nil).Login), arg0, arg1)
-}
-
-// Logout mocks base method.
-func (m *MockIAuthUsecase) Logout(arg0 context.Context) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Logout", arg0)
+	ret := m.ctrl.Call(m, "UpdateUserEmail", ctx, user)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// Logout indicates an expected call of Logout.
-func (mr *MockIAuthUsecaseMockRecorder) Logout(arg0 interface{}) *gomock.Call {
+// UpdateUserEmail indicates an expected call of UpdateUserEmail.
+func (mr *MockIUserUsecaseMockRecorder) UpdateUserEmail(ctx, user interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Logout", reflect.TypeOf((*MockIAuthUsecase)(nil).Logout), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUserEmail", reflect.TypeOf((*MockIUserUsecase)(nil).UpdateUserEmail), ctx, user)
 }
 
-// Register mocks base method.
-func (m *MockIAuthUsecase) Register(arg0 context.Context, arg1 dto.UserRegisterRequestDTO) (string, error) {
+// UpdateUserPassword mocks base method.
+func (m *MockIUserUsecase) UpdateUserPassword(arg0 context.Context, arg1 dto.UpdateUserPassword) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Register", arg0, arg1)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret := m.ctrl.Call(m, "UpdateUserPassword", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
-// Register indicates an expected call of Register.
-func (mr *MockIAuthUsecaseMockRecorder) Register(arg0, arg1 interface{}) *gomock.Call {
+// UpdateUserPassword indicates an expected call of UpdateUserPassword.
+func (mr *MockIUserUsecaseMockRecorder) UpdateUserPassword(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Register", reflect.TypeOf((*MockIAuthUsecase)(nil).Register), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUserPassword", reflect.TypeOf((*MockIUserUsecase)(nil).UpdateUserPassword), arg0, arg1)
+}
+
+// UpdateUserProfile mocks base method.
+func (m *MockIUserUsecase) UpdateUserProfile(arg0 context.Context, arg1 dto.UpdateUserProfileRequestDTO) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateUserProfile", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateUserProfile indicates an expected call of UpdateUserProfile.
+func (mr *MockIUserUsecaseMockRecorder) UpdateUserProfile(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUserProfile", reflect.TypeOf((*MockIUserUsecase)(nil).UpdateUserProfile), arg0, arg1)
 }
 
 // UploadAvatar mocks base method.
-func (m *MockIAuthUsecase) UploadAvatar(arg0 context.Context, arg1 minio.FileDataType) (string, error) {
+func (m *MockIUserUsecase) UploadAvatar(arg0 context.Context, arg1 minio.FileDataType) (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UploadAvatar", arg0, arg1)
 	ret0, _ := ret[0].(string)
@@ -106,7 +104,7 @@ func (m *MockIAuthUsecase) UploadAvatar(arg0 context.Context, arg1 minio.FileDat
 }
 
 // UploadAvatar indicates an expected call of UploadAvatar.
-func (mr *MockIAuthUsecaseMockRecorder) UploadAvatar(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockIUserUsecaseMockRecorder) UploadAvatar(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadAvatar", reflect.TypeOf((*MockIAuthUsecase)(nil).UploadAvatar), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadAvatar", reflect.TypeOf((*MockIUserUsecase)(nil).UploadAvatar), arg0, arg1)
 }

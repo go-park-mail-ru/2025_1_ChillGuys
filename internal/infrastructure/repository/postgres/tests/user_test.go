@@ -4,7 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	user2 "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/user"
+	user2 "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/auth"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/user"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	"testing"
@@ -26,7 +27,7 @@ func TestCreateUser(t *testing.T) {
 	}
 	defer db.Close()
 
-	repo := user2.NewUserRepository(db, logrus.New())
+	repo := user2.NewAuthRepository(db, logrus.New())
 
 	userID := uuid.New()
 	userVersionID := uuid.New()
@@ -79,7 +80,7 @@ func TestGetUserByEmail(t *testing.T) {
 	}
 	defer db.Close()
 
-	repo := user2.NewUserRepository(db, logrus.New())
+	repo := user2.NewAuthRepository(db, logrus.New())
 
 	email := "test@example.com"
 	userID := uuid.New()
@@ -111,16 +112,16 @@ func TestGetUserByID(t *testing.T) {
 	}
 	defer db.Close()
 
-	repo := user2.NewUserRepository(db, logrus.New())
+	repo := user.NewUserRepository(db, logrus.New())
 
 	userID := uuid.New()
 	userVersionID := uuid.New()
 	updatedAt := time.Now()
 
-	mock.ExpectQuery(`SELECT u.id, u.email, u.name, u.surname, u.password_hash, u.image_url, uv.id AS user_version_id, uv.version, uv.updated_at FROM bazaar."user" u LEFT JOIN bazaar.user_version uv ON u.id = uv.user_id WHERE u.id = \$1;`).
+	mock.ExpectQuery(`SELECT u.id, u.email, u.name, u.surname, u.password_hash, u.image_url, u.phone_number, uv.id AS user_version_id, uv.version, uv.updated_at FROM bazaar."user" u LEFT JOIN bazaar.user_version uv ON u.id = uv.user_id WHERE u.id = \$1;`).
 		WithArgs(userID).
 		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "email", "name", "surname", "password_hash", "image_url",
+			"id", "email", "name", "surname", "password_hash", "image_url", "phone_number",
 			"user_version_id", "version", "updated_at",
 		}).
 			AddRow(
@@ -130,6 +131,7 @@ func TestGetUserByID(t *testing.T) {
 				"User",
 				[]byte("hashedpassword"),
 				"http://example.com/image.jpg",
+				"+79999999999", // <-- добавь фиктивный номер
 				userVersionID,
 				1,
 				updatedAt,
@@ -157,7 +159,7 @@ func TestCheckUserExists(t *testing.T) {
 	}
 	defer db.Close()
 
-	repo := user2.NewUserRepository(db, logrus.New())
+	repo := user2.NewAuthRepository(db, logrus.New())
 
 	email := "test@example.com"
 
@@ -180,7 +182,7 @@ func TestIncrementUserVersion(t *testing.T) {
 	}
 	defer db.Close()
 
-	repo := user2.NewUserRepository(db, logrus.New())
+	repo := user2.NewAuthRepository(db, logrus.New())
 
 	userID := "123"
 	expectedQuery := `UPDATE bazaar."user_version" SET version = version \+ 1 WHERE user_id = \$1`
@@ -223,7 +225,7 @@ func TestCheckUserVersion(t *testing.T) {
 	}
 	defer db.Close()
 
-	repo := user2.NewUserRepository(db, logrus.New())
+	repo := user2.NewAuthRepository(db, logrus.New())
 
 	userID := "123"
 	version := 5

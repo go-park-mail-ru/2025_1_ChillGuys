@@ -1,56 +1,31 @@
 package dto
 
-import (
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
-	"github.com/google/uuid"
-	"github.com/guregu/null"
-)
+import "github.com/guregu/null"
 
-type UserDB struct {
-	ID           uuid.UUID
-	Email        string
-	Name         string
-	Surname      null.String
-	ImageURL     null.String
-	PhoneNumber  null.String
-	PasswordHash []byte
-	UserVersion  models.UserVersionDB
+type UpdateUserProfileRequestDTO struct {
+	Name        null.String `json:"name,omitempty"`
+	Surname     null.String `json:"surname,omitempty"`
+	PhoneNumber null.String `json:"phoneNumber,omitempty" swaggertype:"primitive,string"`
 }
 
-func (u *UserDB) ConvertToUser() *models.User {
-	if u == nil {
-		return nil
-	}
-	return &models.User{
-		ID:          u.ID,
-		Email:       u.Email,
-		Name:        u.Name,
-		Surname:     u.Surname,
-		ImageURL:    u.ImageURL,
-		PhoneNumber: u.PhoneNumber,
-	}
+type UpdateUserEmailRequestDTO struct {
+	Name        null.String `json:"name,omitempty"`
+	Surname     null.String `json:"surname,omitempty"`
+	PhoneNumber null.String `json:"phoneNumber,omitempty" swaggertype:"primitive,string"`
 }
 
-type UserLoginRequestDTO struct {
+type UpdateUserDB struct {
+	Name        string
+	Surname     null.String
+	PhoneNumber null.String
+}
+
+type UpdateUserEmail struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
 
-type UserRegisterRequestDTO struct {
-	Email    string      `json:"email"`
-	Password string      `json:"password"`
-	Name     string      `json:"name"`
-	Surname  null.String `json:"surname,omitempty" swaggertype:"primitive,string"`
-}
-
-type UserResponseDTO struct {
-	Token string `json:"token"`
-}
-
-type ErrorResponse struct {
-	Message string `json:"message"`
-}
-
-func (u *UserDB) IsVersionValid(version int) bool {
-	return u.UserVersion.Version == version
+type UpdateUserPassword struct {
+	OldPassword string `json:"OldPassword"`
+	NewPassword string `json:"NewPassword"`
 }
