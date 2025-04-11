@@ -3,6 +3,7 @@ package dto
 import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 	"github.com/google/uuid"
+	"time"
 )
 
 type Order struct {
@@ -31,4 +32,34 @@ type CreateOrderItemDTO struct {
 type CreateOrderRepoReq struct {
 	Order             *Order
 	UpdatedQuantities map[uuid.UUID]uint
+}
+
+type GetOrderByUserIDResDTO struct {
+	ID                 uuid.UUID          `json:"id"`
+	Status             models.OrderStatus `json:"status"`
+	TotalPrice         float64            `json:"total_price"`
+	TotalPriceDiscount float64            `json:"total_price_discount"`
+	AddressID          uuid.UUID          `json:"address_id"`
+	ExpectedDeliveryAt *time.Time         `json:"expected_delivery_at"`
+	ActualDeliveryAt   *time.Time         `json:"actual_delivery_at"`
+	CreatedAt          *time.Time         `json:"created_at,omitempty"`
+}
+
+func (orderItem *GetOrderByUserIDResDTO) ConvertToGetOrderByUserIDResDTO(
+	address *models.AddressDB,
+	products []models.OrderPreviewProduct,
+) models.OrderPreview {
+	return models.OrderPreview{
+		ID:                 orderItem.ID,
+		Status:             orderItem.Status,
+		TotalPrice:         orderItem.TotalPrice,
+		TotalDiscountPrice: orderItem.TotalPriceDiscount,
+		Products:           products,
+		Address:            *address,
+	}
+}
+
+type GetOrderProductResDTO struct {
+	ProductID uuid.UUID `json:"product_id"`
+	Quantity  uint      `json:"quantity"`
 }

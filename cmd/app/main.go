@@ -1,11 +1,10 @@
 package main
 
 import (
-	"log"
-
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/app"
 	_ "github.com/lib/pq"
+	"log"
 )
 
 func main() {

@@ -8,6 +8,7 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	"github.com/google/uuid"
+	"github.com/guregu/null"
 	"github.com/sirupsen/logrus"
 	"sync"
 	"time"
@@ -15,6 +16,7 @@ import (
 
 type IOrderUsecase interface {
 	CreateOrder(context.Context, dto.CreateOrderDTO) error
+	GetUserOrders(context.Context, uuid.UUID) (*[]models.OrderPreview, error)
 }
 
 type OrderUsecase struct {
@@ -161,7 +163,7 @@ func (u *OrderUsecase) CreateOrder(ctx context.Context, in dto.CreateOrderDTO) e
 	order := &dto.Order{
 		ID:                 uuid.New(),
 		UserID:             in.UserID,
-		Status:             models.Pending,
+		Status:             models.Placed,
 		TotalPrice:         totalPrice,
 		TotalPriceDiscount: totalDiscountedPrice,
 		AddressID:          in.AddressID,
@@ -174,6 +176,122 @@ func (u *OrderUsecase) CreateOrder(ctx context.Context, in dto.CreateOrderDTO) e
 		Order:             order,
 		UpdatedQuantities: newQuantities,
 	})
+}
+
+func (u *OrderUsecase) GetUserOrders(ctx context.Context, userID uuid.UUID) (*[]models.OrderPreview, error) {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	orders, err := u.repo.GetOrdersByUserID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	mu := &sync.Mutex{}
+	var wg sync.WaitGroup
+	errCh := make(chan error, 1)
+
+	ordersPreview := make([]models.OrderPreview, len(*orders))
+	for i, orderItem := range *orders {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
+			innerWg := sync.WaitGroup{}
+			var (
+				address  *models.AddressDB
+				products []models.OrderPreviewProduct
+			)
+
+			innerWg.Add(2)
+			go func() {
+				defer innerWg.Done()
+				if ctx.Err() != nil {
+					return
+				}
+
+				productIDs, productErr := u.repo.GetOrderProducts(ctx, orderItem.ID)
+				if productErr != nil {
+					trySendError(productErr, errCh, cancel)
+					return
+				}
+
+				// Получаем изображения продуктов
+				productsData := make([]models.OrderPreviewProduct, len(*productIDs))
+				imgMu := &sync.Mutex{}
+				imageWg := sync.WaitGroup{}
+				for i, productData := range *productIDs {
+					imageWg.Add(1)
+
+					go func() {
+						defer imageWg.Done()
+						if ctx.Err() != nil {
+							return
+						}
+
+						productImg, imgErr := u.repo.GetProductImage(ctx, productData.ProductID)
+
+						imgMu.Lock()
+						if imgErr != nil {
+							// Ошибка получения изображения, значит будем отдавать nil
+							productsData[i] = models.OrderPreviewProduct{
+								ProductImageURL: null.String{},
+								ProductQuantity: productData.Quantity,
+							}
+							return
+						}
+
+						productsData[i] = models.OrderPreviewProduct{
+							ProductImageURL: null.StringFrom(productImg),
+							ProductQuantity: productData.Quantity,
+						}
+						imgMu.Unlock()
+					}()
+				}
+
+				imageWg.Wait()
+				products = productsData
+			}()
+
+			go func() {
+				defer innerWg.Done()
+				if ctx.Err() != nil {
+					return
+				}
+
+				addressRes, addressErr := u.repo.GetOrderAddress(ctx, orderItem.AddressID)
+				if addressErr != nil {
+					trySendError(addressErr, errCh, cancel)
+					return
+				}
+
+				address = addressRes
+				address.ID = orderItem.AddressID
+			}()
+
+			innerWg.Wait()
+			if ctx.Err() != nil || address == nil {
+				return
+			}
+
+			mu.Lock()
+			ordersPreview[i] = orderItem.ConvertToGetOrderByUserIDResDTO(address, products)
+			mu.Unlock()
+		}()
+	}
+
+	// Горутина для закрытия канала после завершения всех операций
+	go func() {
+		wg.Wait()
+		close(errCh)
+	}()
+
+	// Возвращаем первую ошибку (если есть)
+	if err = <-errCh; err != nil {
+		return nil, err
+	}
+
+	return &ordersPreview, nil
 }
 
 // trySendError Вспомогательная функция для безопасной отправки ошибки

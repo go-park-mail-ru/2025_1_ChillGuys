@@ -7,14 +7,17 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/minio"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres"
+	addressrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/address"
 	orderrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/order"
 	productrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/product"
 	userrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/user"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/address"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/order"
 	producttr "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/product"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/user"
+	addressus "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/address"
 	orderus "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/order"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/product"
 	userus "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/user"
@@ -62,6 +65,10 @@ func NewApp(conf *config.Config) (*App, error) {
 	tokenator := jwt.NewTokenator(userRepo, conf.JWTConfig)
 	userUsecase := userus.NewAuthUsecase(userRepo, tokenator, logger, minioClient)
 	userHandler := user.NewAuthHandler(userUsecase, logger, minioClient, conf)
+
+	addressRepo := addressrepo.NewAddressRepository(db, logger)
+	addressUsecase := addressus.NewAddressUsecase(addressRepo, logger)
+	addressHandler := address.NewAddressHandler(addressUsecase, logger)
 
 	productRepo := productrepo.NewProductRepository(db, logger)
 	productUsecase := product.NewProductUsecase(logger, productRepo)
@@ -120,12 +127,29 @@ func NewApp(conf *config.Config) (*App, error) {
 			Methods(http.MethodPost)
 	}
 
-	orderRouter := router.PathPrefix("/order").Subrouter()
+	orderRouter := router.PathPrefix("/orders").Subrouter()
 	{
 		orderRouter.Handle("/", middleware.JWTMiddleware(
 			tokenator,
 			http.HandlerFunc(orderHandler.CreateOrder),
 		)).Methods(http.MethodPost)
+		orderRouter.Handle("/", middleware.JWTMiddleware(
+			tokenator,
+			http.HandlerFunc(orderHandler.GetOrders),
+		)).Methods(http.MethodGet)
+	}
+
+	addressRouter := router.PathPrefix("/addresses").Subrouter()
+	{
+		addressRouter.Handle("/", middleware.JWTMiddleware(
+			tokenator,
+			http.HandlerFunc(addressHandler.CreateAddress),
+		)).Methods(http.MethodPost)
+		addressRouter.Handle("/", middleware.JWTMiddleware(
+			tokenator,
+			http.HandlerFunc(addressHandler.GetAddress),
+		)).Methods(http.MethodGet)
+		addressRouter.HandleFunc("/pickup-points", addressHandler.GetPickupPoints).Methods(http.MethodGet)
 	}
 
 	app := &App{
