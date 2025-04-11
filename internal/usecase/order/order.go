@@ -163,7 +163,7 @@ func (u *OrderUsecase) CreateOrder(ctx context.Context, in dto.CreateOrderDTO) e
 	order := &dto.Order{
 		ID:                 uuid.New(),
 		UserID:             in.UserID,
-		Status:             models.Pending,
+		Status:             models.Placed,
 		TotalPrice:         totalPrice,
 		TotalPriceDiscount: totalDiscountedPrice,
 		AddressID:          in.AddressID,
@@ -199,7 +199,7 @@ func (u *OrderUsecase) GetUserOrders(ctx context.Context, userID uuid.UUID) (*[]
 
 			innerWg := sync.WaitGroup{}
 			var (
-				address  *models.Address
+				address  *models.AddressDB
 				products []models.OrderPreviewProduct
 			)
 
@@ -266,6 +266,7 @@ func (u *OrderUsecase) GetUserOrders(ctx context.Context, userID uuid.UUID) (*[]
 				}
 
 				address = addressRes
+				address.ID = orderItem.AddressID
 			}()
 
 			innerWg.Wait()

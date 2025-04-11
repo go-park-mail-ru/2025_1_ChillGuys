@@ -31,7 +31,7 @@ type IOrderRepository interface {
 	GetOrdersByUserID(context.Context, uuid.UUID) (*[]dto.GetOrderByUserIDResDTO, error)
 	GetOrderProducts(context.Context, uuid.UUID) (*[]dto.GetOrderProductResDTO, error)
 	GetProductImage(context.Context, uuid.UUID) (string, error)
-	GetOrderAddress(context.Context, uuid.UUID) (*models.Address, error)
+	GetOrderAddress(context.Context, uuid.UUID) (*models.AddressDB, error)
 }
 
 type OrderRepository struct {
@@ -52,7 +52,6 @@ func (r *OrderRepository) CreateOrder(ctx context.Context, in dto.CreateOrderRep
 		return err
 	}
 
-	// Создаём заказ
 	if _, err = tx.ExecContext(ctx, queryCreateOrder,
 		in.Order.ID,
 		in.Order.UserID,
@@ -65,7 +64,6 @@ func (r *OrderRepository) CreateOrder(ctx context.Context, in dto.CreateOrderRep
 		return err
 	}
 
-	// Обновляем количество товаров в наличии
 	for productID, updatedQuantity := range in.UpdatedQuantities {
 		if err = r.UpdateProductQuantity(ctx, productID, updatedQuantity); err != nil {
 			tx.Rollback()
@@ -73,7 +71,6 @@ func (r *OrderRepository) CreateOrder(ctx context.Context, in dto.CreateOrderRep
 		}
 	}
 
-	// Добавляем товары заказа
 	for _, item := range in.Order.Items {
 		if _, err = tx.ExecContext(ctx, queryAddOrderItem,
 			item.ID, in.Order.ID, item.ProductID, item.Price, item.Quantity,
@@ -246,8 +243,8 @@ func (r *OrderRepository) GetProductImage(ctx context.Context, productID uuid.UU
 	return imageURL, nil
 }
 
-func (r *OrderRepository) GetOrderAddress(ctx context.Context, addressID uuid.UUID) (*models.Address, error) {
-	var address models.Address
+func (r *OrderRepository) GetOrderAddress(ctx context.Context, addressID uuid.UUID) (*models.AddressDB, error) {
+	var address models.AddressDB
 
 	if err := r.db.QueryRowContext(ctx, queryGetOrderAddress, addressID).Scan(
 		&address.City,
