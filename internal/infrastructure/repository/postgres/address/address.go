@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
@@ -41,7 +42,7 @@ type IAddressRepository interface {
 	CheckAddressExists(context.Context, models.AddressDB) (uuid.UUID, error)
 	CreateAddress(context.Context, models.AddressDB) error
 	CreateUserAddress(context.Context, models.UserAddress) error
-	GetUserAddress(context.Context, uuid.UUID) (*[]models.Address, error)
+	GetUserAddress(context.Context, uuid.UUID) (*[]dto.AddressDTO, error)
 	GetAllPickupPoints(ctx context.Context) (*[]models.AddressDB, error)
 }
 
@@ -97,17 +98,17 @@ func (r *AddressRepository) CreateUserAddress(ctx context.Context, in models.Use
 	return nil
 }
 
-func (r *AddressRepository) GetUserAddress(ctx context.Context, userID uuid.UUID) (*[]models.Address, error) {
+func (r *AddressRepository) GetUserAddress(ctx context.Context, userID uuid.UUID) (*[]dto.AddressDTO, error) {
 	rows, err := r.db.QueryContext(ctx, queryGetAddressesByUserID, userID.String())
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var addresses []models.Address
+	var addresses []dto.AddressDTO
 
 	for rows.Next() {
-		var address models.Address
+		var address dto.AddressDTO
 		if err := rows.Scan(
 			&address.ID,
 			&address.Label,

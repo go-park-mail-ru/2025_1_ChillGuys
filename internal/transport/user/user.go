@@ -4,7 +4,6 @@ import (
 	"context"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/minio"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/request"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/response"
@@ -16,11 +15,11 @@ import (
 
 //go:generate mockgen -source=user.go -destination=../../usecase/mocks/user_usecase_mock.go -package=mocks IUserUsecase
 type IUserUsecase interface {
-	GetMe(context.Context) (*models.User, error)
+	GetMe(context.Context) (*dto.UserDTO, error)
 	UploadAvatar(context.Context, minio.FileDataType) (string, error)
 	UpdateUserProfile(context.Context, dto.UpdateUserProfileRequestDTO) error
-	UpdateUserEmail(ctx context.Context, user dto.UpdateUserEmail) error
-	UpdateUserPassword(context.Context, dto.UpdateUserPassword) error
+	UpdateUserEmail(ctx context.Context, user dto.UpdateUserEmailDTO) error
+	UpdateUserPassword(context.Context, dto.UpdateUserPasswordDTO) error
 }
 
 type UserHandler struct {
@@ -49,7 +48,7 @@ func NewUserHandler(
 // @Tags			users
 // @Security		TokenAuth
 // @Produce		json
-// @Success		200	{object}	models.User				"Информация о пользователе"
+// @Success		200	{object}	models.UserDTO				"Информация о пользователе"
 // @Failure		400	{object}	response.ErrorResponse	"Некорректный запрос"
 // @Failure		401	{object}	response.ErrorResponse	"Пользователь не найден"
 // @Failure		500	{object}	response.ErrorResponse	"Ошибка сервера"
@@ -138,7 +137,7 @@ func (h *UserHandler) UpdateUserProfile(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h *UserHandler) UpdateUserEmail(w http.ResponseWriter, r *http.Request) {
-	var updateReq dto.UpdateUserEmail
+	var updateReq dto.UpdateUserEmailDTO
 	if err := request.ParseData(r, &updateReq); err != nil {
 		response.SendJSONError(r.Context(), w, http.StatusBadRequest, err.Error())
 		return
@@ -160,7 +159,7 @@ func (h *UserHandler) UpdateUserEmail(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
-	var updateReq dto.UpdateUserPassword
+	var updateReq dto.UpdateUserPasswordDTO
 	if err := request.ParseData(r, &updateReq); err != nil {
 		response.SendJSONError(r.Context(), w, http.StatusBadRequest, err.Error())
 		return

@@ -74,7 +74,7 @@ func ValidateUserUpdateProfileCreds(req dto.UpdateUserProfileRequestDTO) error {
 	return nil
 }
 
-func ValidateEmailCreds(req dto.UpdateUserEmail) error {
+func ValidateEmailCreds(req dto.UpdateUserEmailDTO) error {
 	if err := validateEmail(req.Email); err != nil {
 		return err
 	}
@@ -86,7 +86,7 @@ func ValidateEmailCreds(req dto.UpdateUserEmail) error {
 	return nil
 }
 
-func ValidatePasswordCreds(req dto.UpdateUserPassword) error {
+func ValidatePasswordCreds(req dto.UpdateUserPasswordDTO) error {
 	if err := validatePassword(req.OldPassword); err != nil {
 		return err
 	}
@@ -178,12 +178,12 @@ func SanitizeUserProfileUpdateRequest(req *dto.UpdateUserProfileRequestDTO) {
 	}
 }
 
-func SanitizeUserEmailUpdateRequest(req *dto.UpdateUserEmail) {
+func SanitizeUserEmailUpdateRequest(req *dto.UpdateUserEmailDTO) {
 	req.Email = strings.TrimSpace(req.Email)
 	req.Password = strings.TrimSpace(req.Password)
 }
 
-func SanitizeUserPasswordUpdateRequest(req *dto.UpdateUserPassword) {
+func SanitizeUserPasswordUpdateRequest(req *dto.UpdateUserPasswordDTO) {
 	req.OldPassword = strings.TrimSpace(req.OldPassword)
 	req.NewPassword = strings.TrimSpace(req.NewPassword)
 }

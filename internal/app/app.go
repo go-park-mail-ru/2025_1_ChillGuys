@@ -176,7 +176,7 @@ func NewApp(conf *config.Config) (*App, error) {
 }
 
 // Run запускает HTTP-сервер.
-func (a *App) Run() error {
+func (a *App) Run() {
 	server := &http.Server{
 		Handler:      a.router,
 		Addr:         fmt.Sprintf(":%s", a.conf.ServerConfig.Port),
@@ -186,5 +186,8 @@ func (a *App) Run() error {
 	}
 
 	a.logger.Infof("starting server on port %s", a.conf.ServerConfig.Port)
-	return server.ListenAndServe()
+
+	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		a.logger.Fatalf("server failed: %v", err)
+	}
 }

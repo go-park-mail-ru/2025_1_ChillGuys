@@ -15,36 +15,32 @@ const (
 	DefaultPathCoverName = "product-default"
 )
 
-// ProductStatus представляет статус товара
-type ProductStatus int
+// ProductStatus представляет статус товара как строку
+type ProductStatus string
 
 // Константы статусов товара
 const (
-	ProductPending  ProductStatus = iota // Ожидает
-	ProductRejected                      // Отказано
-	ProductApproved                      // Одобрено
+	ProductPending  ProductStatus = "pending"  // Ожидает
+	ProductRejected ProductStatus = "rejected" // Отказано
+	ProductApproved ProductStatus = "approved" // Одобрено
 )
 
 // String возвращает строковое представление статуса
 func (s ProductStatus) String() string {
-	return [...]string{
-		"pending",
-		"rejected",
-		"approved",
-	}[s]
+	return string(s)
 }
 
 // ParseProductStatus преобразует строку в ProductStatus
 func ParseProductStatus(status string) (ProductStatus, error) {
 	switch status {
-	case "pending":
+	case string(ProductPending):
 		return ProductPending, nil
-	case "rejected":
+	case string(ProductRejected):
 		return ProductRejected, nil
-	case "approved":
+	case string(ProductApproved):
 		return ProductApproved, nil
 	default:
-		return ProductPending, fmt.Errorf("unknown product status: %s", status)
+		return "", fmt.Errorf("unknown product status: %s", status)
 	}
 }
 
@@ -119,25 +115,25 @@ func ConvertToProductsResponse(products []*Product) ProductsResponse {
 }
 
 type Category struct {
-	ID              uuid.UUID `json:"id" db:"id"`
-	Name            string    `json:"name" db:"name"`
+	ID   uuid.UUID `json:"id" db:"id"`
+	Name string    `json:"name" db:"name"`
 }
 
 type CategoryResponse struct {
-	Total    	int             `json:"total"`
-	Categorys 	[]Category 		`json:"categories"`
+	Total     int        `json:"total"`
+	Categorys []Category `json:"categories"`
 }
 
-func ConvertToCategoriesResponse(categories []*Category) CategoryResponse{
+func ConvertToCategoriesResponse(categories []*Category) CategoryResponse {
 	categoryList := make([]Category, 0, len(categories))
-    for _, cat := range categories {
-        if cat != nil {
-            categoryList = append(categoryList, *cat)
-        }
-    }
+	for _, cat := range categories {
+		if cat != nil {
+			categoryList = append(categoryList, *cat)
+		}
+	}
 
 	return CategoryResponse{
-		Total: len(categories),
+		Total:     len(categories),
 		Categorys: categoryList,
 	}
-} 
+}

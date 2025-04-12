@@ -16,7 +16,7 @@ import (
 
 type IOrderUsecase interface {
 	CreateOrder(context.Context, dto.CreateOrderDTO) error
-	GetUserOrders(context.Context, uuid.UUID) (*[]models.OrderPreview, error)
+	GetUserOrders(context.Context, uuid.UUID) (*[]dto.OrderPreviewDTO, error)
 }
 
 type OrderUsecase struct {
@@ -178,7 +178,7 @@ func (u *OrderUsecase) CreateOrder(ctx context.Context, in dto.CreateOrderDTO) e
 	})
 }
 
-func (u *OrderUsecase) GetUserOrders(ctx context.Context, userID uuid.UUID) (*[]models.OrderPreview, error) {
+func (u *OrderUsecase) GetUserOrders(ctx context.Context, userID uuid.UUID) (*[]dto.OrderPreviewDTO, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -191,7 +191,7 @@ func (u *OrderUsecase) GetUserOrders(ctx context.Context, userID uuid.UUID) (*[]
 	var wg sync.WaitGroup
 	errCh := make(chan error, 1)
 
-	ordersPreview := make([]models.OrderPreview, len(*orders))
+	ordersPreview := make([]dto.OrderPreviewDTO, len(*orders))
 	for i, orderItem := range *orders {
 		wg.Add(1)
 		go func() {
@@ -200,7 +200,7 @@ func (u *OrderUsecase) GetUserOrders(ctx context.Context, userID uuid.UUID) (*[]
 			innerWg := sync.WaitGroup{}
 			var (
 				address  *models.AddressDB
-				products []models.OrderPreviewProduct
+				products []models.OrderPreviewProductDTO
 			)
 
 			innerWg.Add(2)
@@ -217,7 +217,7 @@ func (u *OrderUsecase) GetUserOrders(ctx context.Context, userID uuid.UUID) (*[]
 				}
 
 				// Получаем изображения продуктов
-				productsData := make([]models.OrderPreviewProduct, len(*productIDs))
+				productsData := make([]models.OrderPreviewProductDTO, len(*productIDs))
 				imgMu := &sync.Mutex{}
 				imageWg := sync.WaitGroup{}
 				for i, productData := range *productIDs {
@@ -234,14 +234,14 @@ func (u *OrderUsecase) GetUserOrders(ctx context.Context, userID uuid.UUID) (*[]
 						imgMu.Lock()
 						if imgErr != nil {
 							// Ошибка получения изображения, значит будем отдавать nil
-							productsData[i] = models.OrderPreviewProduct{
+							productsData[i] = models.OrderPreviewProductDTO{
 								ProductImageURL: null.String{},
 								ProductQuantity: productData.Quantity,
 							}
 							return
 						}
 
-						productsData[i] = models.OrderPreviewProduct{
+						productsData[i] = models.OrderPreviewProductDTO{
 							ProductImageURL: null.StringFrom(productImg),
 							ProductQuantity: productData.Quantity,
 						}

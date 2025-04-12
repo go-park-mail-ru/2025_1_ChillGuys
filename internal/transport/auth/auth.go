@@ -3,8 +3,8 @@ package auth
 import (
 	"context"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/domains"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/minio"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/domains"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/cookie"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/request"
@@ -75,7 +75,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	cookieProvider := cookie.NewCookieProvider(&h.config)
 
-	cookieProvider.Set(w, token, string(domains.Token))
+	cookieProvider.Set(w, token, domains.TokenCookieName)
 
 	response.SendJSONResponse(r.Context(), w, http.StatusOK, nil)
 }
@@ -115,7 +115,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 	cookieProvider := cookie.NewCookieProvider(&h.config)
 
-	cookieProvider.Set(w, token, string(domains.Token))
+	cookieProvider.Set(w, token, domains.TokenCookieName)
 
 	response.SendJSONResponse(r.Context(), w, http.StatusOK, nil)
 }
@@ -136,7 +136,7 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 
 	cookieProvider := cookie.NewCookieProvider(&h.config)
 
-	cookieProvider.Unset(w, string(domains.Token))
+	cookieProvider.Unset(w, domains.TokenCookieName)
 
 	response.SendJSONResponse(r.Context(), w, http.StatusOK, nil)
 }

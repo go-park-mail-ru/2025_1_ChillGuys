@@ -2,7 +2,7 @@ package middleware
 
 import (
 	"context"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/domains"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/domains"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/response"
 	"github.com/sirupsen/logrus"
@@ -16,7 +16,7 @@ func JWTMiddleware(tokenator *jwt.Tokenator, next http.Handler) http.Handler {
 		ctx := r.Context()
 
 		// Получаем request_id из контекста
-		reqID := ctx.Value(domains.ReqIDKey)
+		reqID := ctx.Value(domains.ReqIDKey{})
 		if reqID == nil {
 			reqID = "unknown"
 		}
@@ -28,7 +28,7 @@ func JWTMiddleware(tokenator *jwt.Tokenator, next http.Handler) http.Handler {
 			"path":        r.URL.Path,
 		})
 
-		cookieValue, err := r.Cookie(string(domains.Token))
+		cookieValue, err := r.Cookie(string(domains.TokenCookieName))
 		if err != nil {
 			requestLogger.Warn("Missing or invalid token cookie")
 			w.WriteHeader(http.StatusUnauthorized)
@@ -77,7 +77,7 @@ func JWTMiddleware(tokenator *jwt.Tokenator, next http.Handler) http.Handler {
 		}
 
 		// Передаем userID в контекст
-		ctx = context.WithValue(ctx, domains.UserIDKey, claims.UserID)
+		ctx = context.WithValue(ctx, domains.UserIDKey{}, claims.UserID)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

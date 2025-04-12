@@ -8,7 +8,7 @@ import (
 	context "context"
 	reflect "reflect"
 
-	dto "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
+	models "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 	jwt "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
 	gomock "github.com/golang/mock/gomock"
 	uuid "github.com/google/uuid"
@@ -120,7 +120,7 @@ func (mr *MockIAuthRepositoryMockRecorder) CheckUserVersion(arg0, arg1, arg2 int
 }
 
 // CreateUser mocks base method.
-func (m *MockIAuthRepository) CreateUser(arg0 context.Context, arg1 dto.UserDB) error {
+func (m *MockIAuthRepository) CreateUser(arg0 context.Context, arg1 models.UserDB) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateUser", arg0, arg1)
 	ret0, _ := ret[0].(error)
@@ -134,10 +134,10 @@ func (mr *MockIAuthRepositoryMockRecorder) CreateUser(arg0, arg1 interface{}) *g
 }
 
 // GetUserByEmail mocks base method.
-func (m *MockIAuthRepository) GetUserByEmail(arg0 context.Context, arg1 string) (*dto.UserDB, error) {
+func (m *MockIAuthRepository) GetUserByEmail(arg0 context.Context, arg1 string) (*models.UserDB, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetUserByEmail", arg0, arg1)
-	ret0, _ := ret[0].(*dto.UserDB)
+	ret0, _ := ret[0].(*models.UserDB)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -149,10 +149,10 @@ func (mr *MockIAuthRepositoryMockRecorder) GetUserByEmail(arg0, arg1 interface{}
 }
 
 // GetUserByID mocks base method.
-func (m *MockIAuthRepository) GetUserByID(arg0 context.Context, arg1 uuid.UUID) (*dto.UserDB, error) {
+func (m *MockIAuthRepository) GetUserByID(arg0 context.Context, arg1 uuid.UUID) (*models.UserDB, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetUserByID", arg0, arg1)
-	ret0, _ := ret[0].(*dto.UserDB)
+	ret0, _ := ret[0].(*models.UserDB)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

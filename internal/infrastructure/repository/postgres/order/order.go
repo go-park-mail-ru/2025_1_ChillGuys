@@ -12,12 +12,12 @@ import (
 )
 
 const (
-	queryCreateOrder           = `INSERT INTO bazaar."order" (id, user_id, status, total_price, total_price_discount, address_id) VALUES ($1, $2, $3, $4, $5, $6)`
-	queryAddOrderItem          = `INSERT INTO bazaar."order_item" (id, order_id, product_id, price, quantity) VALUES ($1, $2, $3, $4, $5)`
+	queryCreateOrder           = `INSERT INTO bazaar.order (id, user_id, status, total_price, total_price_discount, address_id) VALUES ($1, $2, $3, $4, $5, $6)`
+	queryAddOrderItem          = `INSERT INTO bazaar.order_item (id, order_id, product_id, price, quantity) VALUES ($1, $2, $3, $4, $5)`
 	queryGetProductPrice       = `SELECT price, status, quantity FROM bazaar.product WHERE id = $1 LIMIT 1`
 	queryGetProductDiscount    = `SELECT discounted_price, start_date, end_date FROM bazaar.discount WHERE product_id = $1`
 	queryUpdateProductQuantity = `UPDATE bazaar.product SET quantity = $1 WHERE id = $2`
-	queryGetOrdersByUserID     = `SELECT id, status, total_price, total_price_discount, address_id, expected_delivery_at, actual_delivery_at, created_at FROM bazaar."order" WHERE user_id = $1`
+	queryGetOrdersByUserID     = `SELECT id, status, total_price, total_price_discount, address_id, expected_delivery_at, actual_delivery_at, created_at FROM bazaar.order WHERE user_id = $1`
 	queryGetOrderProducts      = `SELECT product_id, quantity FROM bazaar.order_item WHERE order_id = $1`
 	queryGetProductImg         = `SELECT preview_image_url FROM bazaar.product WHERE id = $1 LIMIT 1`
 	queryGetOrderAddress       = `SELECT region, city, address_string, coordinate FROM bazaar.address WHERE id = $1 LIMIT 1`
@@ -93,7 +93,7 @@ func (r *OrderRepository) ProductPrice(ctx context.Context, ProductID uuid.UUID)
 		&product.Quantity,
 	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, errs.ErrNotFound
+			return nil, errs.NewNotFoundError("product not found")
 		}
 		return nil, err
 	}
@@ -132,7 +132,7 @@ func (r *OrderRepository) ProductDiscounts(ctx context.Context, productID uuid.U
 	}
 
 	if len(discounts) == 0 {
-		return nil, errs.ErrNotFound
+		return nil, errs.NewNotFoundError("product discounts not found")
 	}
 
 	return discounts, nil
@@ -149,7 +149,7 @@ func (r *OrderRepository) UpdateProductQuantity(ctx context.Context, productID u
 		return err
 	}
 	if rowsAffected == 0 {
-		return errs.ErrNotFound
+		return errs.NewNotFoundError("product not found for quantity update")
 	}
 
 	return nil
@@ -192,7 +192,7 @@ func (r *OrderRepository) GetOrdersByUserID(ctx context.Context, userID uuid.UUI
 	}
 
 	if len(orders) == 0 {
-		return nil, errs.ErrNotFound
+		return nil, errs.NewNotFoundError("orders not found for user")
 	}
 
 	return &orders, nil
@@ -222,7 +222,7 @@ func (r *OrderRepository) GetOrderProducts(ctx context.Context, productID uuid.U
 	}
 
 	if len(result) == 0 {
-		return nil, errs.ErrNotFound
+		return nil, errs.NewNotFoundError("order products not found")
 	}
 
 	return &result, nil
@@ -235,7 +235,7 @@ func (r *OrderRepository) GetProductImage(ctx context.Context, productID uuid.UU
 		&imageURL,
 	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return "", errs.ErrNotFound
+			return "", errs.NewNotFoundError("product image not found")
 		}
 		return "", err
 	}
@@ -253,7 +253,7 @@ func (r *OrderRepository) GetOrderAddress(ctx context.Context, addressID uuid.UU
 		&address.Coordinate,
 	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, errs.ErrNotFound
+			return nil, errs.NewNotFoundError("order address not found")
 		}
 		return nil, err
 	}

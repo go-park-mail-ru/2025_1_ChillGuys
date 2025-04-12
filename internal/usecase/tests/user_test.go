@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/domains"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/minio"
 	user2 "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/mocks"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/domains"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/user"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
@@ -41,7 +41,7 @@ func TestUserUsecase_GetMe(t *testing.T) {
 	uc := user.NewUserUsecase(mockRepo, mockToken, logger, minio)
 
 	testUserID := uuid.New()
-	testUserDB := &dto.UserDB{
+	testUserDB := &models.UserDB{
 		ID:      testUserID,
 		Email:   "test@example.com",
 		Name:    "Test",
@@ -49,7 +49,7 @@ func TestUserUsecase_GetMe(t *testing.T) {
 	}
 
 	t.Run("Success", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), domains.UserIDKey, testUserID.String())
+		ctx := context.WithValue(context.Background(), domains.UserIDKey{}, testUserID.String())
 
 		mockRepo.EXPECT().
 			GetUserByID(gomock.Any(), testUserID).
@@ -73,7 +73,7 @@ func TestUserUsecase_GetMe(t *testing.T) {
 	})
 
 	t.Run("InvalidUserID", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), domains.UserIDKey, "invalid-uuid")
+		ctx := context.WithValue(context.Background(), domains.UserIDKey{}, "invalid-uuid")
 
 		user, err := uc.GetMe(ctx)
 
@@ -83,7 +83,7 @@ func TestUserUsecase_GetMe(t *testing.T) {
 	})
 
 	t.Run("GetUserByIDError", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), domains.UserIDKey, testUserID.String())
+		ctx := context.WithValue(context.Background(), domains.UserIDKey{}, testUserID.String())
 
 		mockRepo.EXPECT().
 			GetUserByID(gomock.Any(), testUserID).
@@ -97,7 +97,7 @@ func TestUserUsecase_GetMe(t *testing.T) {
 	})
 
 	t.Run("UserNotFoundInDB", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), domains.UserIDKey, testUserID.String())
+		ctx := context.WithValue(context.Background(), domains.UserIDKey{}, testUserID.String())
 
 		mockRepo.EXPECT().
 			GetUserByID(gomock.Any(), testUserID).

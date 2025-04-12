@@ -4,14 +4,15 @@ import (
 	"context"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/address"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
 
 type IAddressUsecase interface {
-	CreateAddress(context.Context, uuid.UUID, models.Address) error
-	GetAddresses(context.Context, uuid.UUID) ([]models.GetAddressRes, error)
-	GetPickupPoints(ctx context.Context) ([]models.GetPointAddressRes, error)
+	CreateAddress(context.Context, uuid.UUID, dto.AddressDTO) error
+	GetAddresses(context.Context, uuid.UUID) ([]dto.GetAddressResDTO, error)
+	GetPickupPoints(ctx context.Context) ([]dto.GetPointAddressResDTO, error)
 }
 
 type AddressUsecase struct {
@@ -29,7 +30,7 @@ func NewAddressUsecase(
 	}
 }
 
-func (u *AddressUsecase) CreateAddress(ctx context.Context, userID uuid.UUID, in models.Address) error {
+func (u *AddressUsecase) CreateAddress(ctx context.Context, userID uuid.UUID, in dto.AddressDTO) error {
 	addressID := uuid.New()
 	addr := models.AddressDB{
 		ID:            addressID,
@@ -62,15 +63,15 @@ func (u *AddressUsecase) CreateAddress(ctx context.Context, userID uuid.UUID, in
 	return u.repo.CreateUserAddress(ctx, userAddr)
 }
 
-func (u *AddressUsecase) GetAddresses(ctx context.Context, userID uuid.UUID) ([]models.GetAddressRes, error) {
+func (u *AddressUsecase) GetAddresses(ctx context.Context, userID uuid.UUID) ([]dto.GetAddressResDTO, error) {
 	addresses, err := u.repo.GetUserAddress(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	res := make([]models.GetAddressRes, 0, len(*addresses))
+	res := make([]dto.GetAddressResDTO, 0, len(*addresses))
 	for _, addr := range *addresses {
-		res = append(res, models.GetAddressRes{
+		res = append(res, dto.GetAddressResDTO{
 			ID:            addr.ID,
 			Label:         addr.Label,
 			AddressString: addr.AddressString,
@@ -81,15 +82,15 @@ func (u *AddressUsecase) GetAddresses(ctx context.Context, userID uuid.UUID) ([]
 	return res, nil
 }
 
-func (u *AddressUsecase) GetPickupPoints(ctx context.Context) ([]models.GetPointAddressRes, error) {
+func (u *AddressUsecase) GetPickupPoints(ctx context.Context) ([]dto.GetPointAddressResDTO, error) {
 	points, err := u.repo.GetAllPickupPoints(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	res := make([]models.GetPointAddressRes, 0, len(*points))
+	res := make([]dto.GetPointAddressResDTO, 0, len(*points))
 	for _, point := range *points {
-		res = append(res, models.GetPointAddressRes{
+		res = append(res, dto.GetPointAddressResDTO{
 			ID:            point.ID,
 			AddressString: point.AddressString,
 			Coordinate:    point.Coordinate,

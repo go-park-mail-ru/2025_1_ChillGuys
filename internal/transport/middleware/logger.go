@@ -3,7 +3,7 @@ package middleware
 import (
 	"context"
 	"fmt"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/domains"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/domains"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/logctx"
 	"math/rand"
 	"net/http"
@@ -26,7 +26,7 @@ func (m *LoggerMiddleware) LogRequest(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reqID := fmt.Sprintf("%016x", rand.Int())[:10]
 
-		ctx := context.WithValue(r.Context(), domains.ReqIDKey, reqID)
+		ctx := context.WithValue(r.Context(), domains.ReqIDKey{}, reqID)
 
 		requestLogger := m.logger.WithFields(logrus.Fields{
 			"request_id":  reqID,
@@ -49,6 +49,5 @@ func (m *LoggerMiddleware) LogRequest(next http.Handler) http.Handler {
 		}()
 
 		next.ServeHTTP(w, r)
-		requestLogger.Info("request completed")
 	})
 }

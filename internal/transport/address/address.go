@@ -1,8 +1,8 @@
 package address
 
 import (
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/domains"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/domains"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/request"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/response"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/address"
@@ -27,13 +27,13 @@ func NewAddressHandler(
 }
 
 func (h *AddressHandler) CreateAddress(w http.ResponseWriter, r *http.Request) {
-	var createAddressReq models.Address
+	var createAddressReq dto.AddressDTO
 	if err := request.ParseData(r, &createAddressReq); err != nil {
 		response.SendJSONError(r.Context(), w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	userIDStr, ok := r.Context().Value(domains.UserIDKey).(string)
+	userIDStr, ok := r.Context().Value(domains.UserIDKey{}).(string)
 	if !ok {
 		response.SendJSONError(r.Context(), w, http.StatusUnauthorized, "auth not found in context")
 		return
@@ -54,7 +54,7 @@ func (h *AddressHandler) CreateAddress(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AddressHandler) GetAddress(w http.ResponseWriter, r *http.Request) {
-	userIDStr, isExist := r.Context().Value(domains.UserIDKey).(string)
+	userIDStr, isExist := r.Context().Value(domains.UserIDKey{}).(string)
 	if !isExist {
 		response.SendJSONError(r.Context(), w, http.StatusUnauthorized, "auth not found in context")
 		return
@@ -73,10 +73,10 @@ func (h *AddressHandler) GetAddress(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if addresses == nil {
-		addresses = []models.GetAddressRes{}
+		addresses = []dto.GetAddressResDTO{}
 	}
 
-	response.SendJSONResponse(r.Context(), w, http.StatusOK, map[string][]models.GetAddressRes{
+	response.SendJSONResponse(r.Context(), w, http.StatusOK, map[string][]dto.GetAddressResDTO{
 		"addresses": addresses,
 	})
 }
@@ -88,7 +88,7 @@ func (h *AddressHandler) GetPickupPoints(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	response.SendJSONResponse(r.Context(), w, http.StatusOK, map[string][]models.GetPointAddressRes{
-		"pickup_points": points,
+	response.SendJSONResponse(r.Context(), w, http.StatusOK, map[string][]dto.GetPointAddressResDTO{
+		"pickupPoints": points,
 	})
 }

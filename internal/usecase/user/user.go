@@ -2,9 +2,9 @@ package user
 
 import (
 	"context"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/domains"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/minio"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/domains"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/auth"
@@ -16,10 +16,10 @@ import (
 
 //go:generate mockgen -source=user.go -destination=../../infrastructure/repository/postgres/mocks/user_repository_mock.go -package=mocks IUserRepository
 type IUserRepository interface {
-	GetUserByEmail(context.Context, string) (*dto.UserDB, error)
-	GetUserByID(context.Context, uuid.UUID) (*dto.UserDB, error)
+	GetUserByEmail(context.Context, string) (*models.UserDB, error)
+	GetUserByID(context.Context, uuid.UUID) (*models.UserDB, error)
 	UpdateUserImageURL(context.Context, uuid.UUID, string) error
-	UpdateUserProfile(context.Context, uuid.UUID, dto.UpdateUserDB) error
+	UpdateUserProfile(context.Context, uuid.UUID, models.UpdateUserDB) error
 	UpdateUserEmail(context.Context, uuid.UUID, string) error
 	UpdateUserPassword(context.Context, uuid.UUID, []byte) error
 }
@@ -40,8 +40,8 @@ func NewUserUsecase(repo IUserRepository, token auth.ITokenator, log *logrus.Log
 	}
 }
 
-func (u *UserUsecase) GetMe(ctx context.Context) (*models.User, error) {
-	userIDStr, isExist := ctx.Value(domains.UserIDKey).(string)
+func (u *UserUsecase) GetMe(ctx context.Context) (*dto.UserDTO, error) {
+	userIDStr, isExist := ctx.Value(domains.UserIDKey{}).(string)
 	if !isExist {
 		return nil, errs.ErrNotFound
 	}
@@ -57,15 +57,23 @@ func (u *UserUsecase) GetMe(ctx context.Context) (*models.User, error) {
 	}
 
 	user := userRepo.ConvertToUser()
+
 	if user == nil {
 		return nil, errs.ErrNotFound
 	}
 
-	return user, nil
+	return &dto.UserDTO{
+		ID:          user.ID,
+		Email:       user.Email,
+		Name:        user.Name,
+		Surname:     user.Surname,
+		ImageURL:    user.ImageURL,
+		PhoneNumber: user.PhoneNumber,
+	}, nil
 }
 
 func (u *UserUsecase) UploadAvatar(ctx context.Context, fileData minio.FileDataType) (string, error) {
-	userIDStr, isExist := ctx.Value(domains.UserIDKey).(string)
+	userIDStr, isExist := ctx.Value(domains.UserIDKey{}).(string)
 	if !isExist {
 		return "", errs.ErrNotFound
 	}
@@ -88,7 +96,7 @@ func (u *UserUsecase) UploadAvatar(ctx context.Context, fileData minio.FileDataT
 }
 
 func (u *UserUsecase) UpdateUserProfile(ctx context.Context, user dto.UpdateUserProfileRequestDTO) error {
-	userIDStr, isExist := ctx.Value(domains.UserIDKey).(string)
+	userIDStr, isExist := ctx.Value(domains.UserIDKey{}).(string)
 	if !isExist {
 		return errs.ErrNotFound
 	}
@@ -103,7 +111,7 @@ func (u *UserUsecase) UpdateUserProfile(ctx context.Context, user dto.UpdateUser
 		return err
 	}
 
-	userDB := dto.UpdateUserDB{}
+	userDB := models.UpdateUserDB{}
 
 	if user.Name.Valid && strings.TrimSpace(user.Name.String) != "" {
 		userDB.Name = user.Name.String
@@ -126,8 +134,8 @@ func (u *UserUsecase) UpdateUserProfile(ctx context.Context, user dto.UpdateUser
 	return u.repo.UpdateUserProfile(ctx, userID, userDB)
 }
 
-func (u *UserUsecase) UpdateUserEmail(ctx context.Context, user dto.UpdateUserEmail) error {
-	userIDStr, isExist := ctx.Value(domains.UserIDKey).(string)
+func (u *UserUsecase) UpdateUserEmail(ctx context.Context, user dto.UpdateUserEmailDTO) error {
+	userIDStr, isExist := ctx.Value(domains.UserIDKey{}).(string)
 	if !isExist {
 		return errs.ErrNotFound
 	}
@@ -148,8 +156,8 @@ func (u *UserUsecase) UpdateUserEmail(ctx context.Context, user dto.UpdateUserEm
 	return u.repo.UpdateUserEmail(ctx, userID, user.Email)
 }
 
-func (u *UserUsecase) UpdateUserPassword(ctx context.Context, user dto.UpdateUserPassword) error {
-	userIDStr, isExist := ctx.Value(domains.UserIDKey).(string)
+func (u *UserUsecase) UpdateUserPassword(ctx context.Context, user dto.UpdateUserPasswordDTO) error {
+	userIDStr, isExist := ctx.Value(domains.UserIDKey{}).(string)
 	if !isExist {
 		return errs.ErrNotFound
 	}

@@ -18,7 +18,5 @@ func main() {
 		log.Fatalf("failed to create app: %v", err)
 	}
 
-	if err := application.Run(); err != nil {
-		log.Fatalf("server error: %v", err)
-	}
+	application.Run()
 }

@@ -9,7 +9,6 @@ import (
 	reflect "reflect"
 
 	minio "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/minio"
-	models "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 	dto "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	gomock "github.com/golang/mock/gomock"
 )
@@ -38,10 +37,10 @@ func (m *MockIUserUsecase) EXPECT() *MockIUserUsecaseMockRecorder {
 }
 
 // GetMe mocks base method.
-func (m *MockIUserUsecase) GetMe(arg0 context.Context) (*models.User, error) {
+func (m *MockIUserUsecase) GetMe(arg0 context.Context) (*dto.UserDTO, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetMe", arg0)
-	ret0, _ := ret[0].(*models.User)
+	ret0, _ := ret[0].(*dto.UserDTO)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -53,7 +52,7 @@ func (mr *MockIUserUsecaseMockRecorder) GetMe(arg0 interface{}) *gomock.Call {
 }
 
 // UpdateUserEmail mocks base method.
-func (m *MockIUserUsecase) UpdateUserEmail(ctx context.Context, user dto.UpdateUserEmail) error {
+func (m *MockIUserUsecase) UpdateUserEmail(ctx context.Context, user dto.UpdateUserEmailDTO) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateUserEmail", ctx, user)
 	ret0, _ := ret[0].(error)
@@ -67,7 +66,7 @@ func (mr *MockIUserUsecaseMockRecorder) UpdateUserEmail(ctx, user interface{}) *
 }
 
 // UpdateUserPassword mocks base method.
-func (m *MockIUserUsecase) UpdateUserPassword(arg0 context.Context, arg1 dto.UpdateUserPassword) error {
+func (m *MockIUserUsecase) UpdateUserPassword(arg0 context.Context, arg1 dto.UpdateUserPasswordDTO) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateUserPassword", arg0, arg1)
 	ret0, _ := ret[0].(error)

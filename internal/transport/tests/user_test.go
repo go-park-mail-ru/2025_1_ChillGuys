@@ -5,7 +5,7 @@ import (
 	"errors"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/minio"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/user"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/mocks"
 	"github.com/golang/mock/gomock"
@@ -55,7 +55,7 @@ func TestUserHandler_GetMe(t *testing.T) {
 			mockBehavior: func() {
 				mockUserUsecase.EXPECT().
 					GetMe(gomock.Any()).
-					Return(&models.User{
+					Return(&dto.UserDTO{
 						ID:          userID,
 						Email:       "test@example.com",
 						Name:        "John",
@@ -73,7 +73,7 @@ func TestUserHandler_GetMe(t *testing.T) {
 			mockBehavior: func() {
 				mockUserUsecase.EXPECT().
 					GetMe(gomock.Any()).
-					Return((*models.User)(nil), errors.New("user not found"))
+					Return((*dto.UserDTO)(nil), errors.New("user not found"))
 			},
 			expectedStatus: http.StatusInternalServerError,
 			expectedBody:   `{"message":"user not found"}`,

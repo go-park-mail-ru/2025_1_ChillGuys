@@ -4,16 +4,16 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
 
 const (
-	queryCreateUser        = `INSERT INTO bazaar."user" (id, email, name, surname, password_hash, image_url) VALUES($1, $2, $3, $4, $5, $6);`
-	queryCreateUserVersion = `INSERT INTO bazaar."user_version" (id, user_id, version, updated_at) VALUES($1, $2, $3, $4);`
-	queryGetUserVersion    = `SELECT version FROM bazaar."user_version" WHERE user_id = $1`
+	queryCreateUser        = `INSERT INTO bazaar.user (id, email, name, surname, password_hash, image_url) VALUES($1, $2, $3, $4, $5, $6);`
+	queryCreateUserVersion = `INSERT INTO bazaar.user_version (id, user_id, version, updated_at) VALUES($1, $2, $3, $4);`
+	queryGetUserVersion    = `SELECT version FROM bazaar.user_version WHERE user_id = $1`
 	queryGetUserByEmail    = `
 	SELECT
 		u.id,
@@ -25,7 +25,7 @@ const (
 		uv.id AS user_version_id,
 		uv.version,
 		uv.updated_at
-	FROM bazaar."user" u
+	FROM bazaar.user u
 			 LEFT JOIN bazaar.user_version uv ON u.id = uv.user_id
 	WHERE u.email = $1;
 	`
@@ -41,12 +41,12 @@ const (
 		uv.id AS user_version_id, 
 		uv.version, 
 		uv.updated_at
-	FROM bazaar."user" u
+	FROM bazaar.user u
 	LEFT JOIN bazaar.user_version uv ON u.id = uv.user_id
 	WHERE u.id = $1;
 	`
-	queryIncrementUserVersion = `UPDATE bazaar."user_version" SET version = version + 1 WHERE user_id = $1`
-	queryCheckUserExists      = `SELECT EXISTS(SELECT 1 FROM bazaar."user" WHERE email = $1)`
+	queryIncrementUserVersion = `UPDATE bazaar.user_version SET version = version + 1 WHERE user_id = $1`
+	queryCheckUserExists      = `SELECT EXISTS(SELECT 1 FROM bazaar.user WHERE email = $1)`
 )
 
 type AuthRepository struct {
@@ -61,7 +61,7 @@ func NewAuthRepository(db *sql.DB, log *logrus.Logger) *AuthRepository {
 	}
 }
 
-func (r *AuthRepository) CreateUser(ctx context.Context, user dto.UserDB) error {
+func (r *AuthRepository) CreateUser(ctx context.Context, user models.UserDB) error {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -93,7 +93,7 @@ func (r *AuthRepository) GetUserCurrentVersion(ctx context.Context, userID strin
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return 0, errs.ErrNotFound
+			return 0, errs.NewNotFoundError("user version not found")
 		}
 
 		return 0, err
@@ -102,8 +102,8 @@ func (r *AuthRepository) GetUserCurrentVersion(ctx context.Context, userID strin
 	return version, nil
 }
 
-func (r *AuthRepository) GetUserByEmail(ctx context.Context, email string) (*dto.UserDB, error) {
-	var user dto.UserDB
+func (r *AuthRepository) GetUserByEmail(ctx context.Context, email string) (*models.UserDB, error) {
+	var user models.UserDB
 
 	if err := r.db.QueryRowContext(ctx, queryGetUserByEmail, email).Scan(
 		&user.ID,
@@ -117,7 +117,7 @@ func (r *AuthRepository) GetUserByEmail(ctx context.Context, email string) (*dto
 		&user.UserVersion.UpdatedAt,
 	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, errs.ErrNotFound
+			return nil, errs.NewNotFoundError("user with this email not found")
 		}
 		return nil, err
 	}
@@ -127,8 +127,8 @@ func (r *AuthRepository) GetUserByEmail(ctx context.Context, email string) (*dto
 	return &user, nil
 }
 
-func (r *AuthRepository) GetUserByID(ctx context.Context, id uuid.UUID) (*dto.UserDB, error) {
-	var user dto.UserDB
+func (r *AuthRepository) GetUserByID(ctx context.Context, id uuid.UUID) (*models.UserDB, error) {
+	var user models.UserDB
 
 	err := r.db.QueryRowContext(ctx, queryGetUserByID, id).Scan(
 		&user.ID,
@@ -166,7 +166,7 @@ func (r *AuthRepository) IncrementUserVersion(ctx context.Context, userID string
 		return err
 	}
 	if rowsAffected == 0 {
-		return errs.ErrNotFound
+		return errs.NewNotFoundError("address not found")
 	}
 
 	return nil

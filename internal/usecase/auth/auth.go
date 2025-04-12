@@ -2,7 +2,7 @@ package auth
 
 import (
 	"context"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/domains"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/domains"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	"time"
@@ -22,9 +22,9 @@ type ITokenator interface {
 
 //go:generate mockgen -source=auth.go -destination=../../infrastructure/repository/postgres/mocks/auth_repository_mock.go -package=mocks IAuthRepository
 type IAuthRepository interface {
-	CreateUser(context.Context, dto.UserDB) error
-	GetUserByEmail(context.Context, string) (*dto.UserDB, error)
-	GetUserByID(context.Context, uuid.UUID) (*dto.UserDB, error)
+	CreateUser(context.Context, models.UserDB) error
+	GetUserByEmail(context.Context, string) (*models.UserDB, error)
+	GetUserByID(context.Context, uuid.UUID) (*models.UserDB, error)
 	IncrementUserVersion(context.Context, string) error
 	GetUserCurrentVersion(context.Context, string) (int, error)
 	CheckUserVersion(context.Context, string, int) bool
@@ -60,7 +60,7 @@ func (u *AuthUsecase) Register(ctx context.Context, user dto.UserRegisterRequest
 	}
 
 	userID := uuid.New()
-	userDB := dto.UserDB{
+	userDB := models.UserDB{
 		ID:           userID,
 		Email:        user.Email,
 		Name:         user.Name,
@@ -104,7 +104,7 @@ func (u *AuthUsecase) Login(ctx context.Context, user dto.UserLoginRequestDTO) (
 }
 
 func (u *AuthUsecase) Logout(ctx context.Context) error {
-	userID, isExist := ctx.Value(domains.UserIDKey).(string)
+	userID, isExist := ctx.Value(domains.UserIDKey{}).(string)
 	if !isExist {
 		return errs.ErrNotFound
 	}

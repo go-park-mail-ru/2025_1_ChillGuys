@@ -3,9 +3,7 @@ package models
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/google/uuid"
 	"github.com/guregu/null"
-	"time"
 )
 
 type OrderStatus int
@@ -90,35 +88,7 @@ func (s OrderStatus) MarshalJSON() ([]byte, error) {
 	return json.Marshal(s.String())
 }
 
-type OrderDB struct {
-	ID         uuid.UUID `db:"id"`
-	UserID     string    `db:"user_id"`
-	Status     string    `db:"status"`
-	TotalPrice float64   `db:"total_price"`
-	AddressID  uuid.UUID `db:"address_id"`
-}
-
-type OrderItemDB struct {
-	ID        uuid.UUID `db:"id"`
-	OrderID   uuid.UUID `db:"order_id"`
-	ProductID uuid.UUID `db:"product_id"`
-	Price     float64   `db:"product_price"`
-	Quantity  uint      `db:"quantity"`
-}
-
-type OrderPreview struct {
-	ID                 uuid.UUID             `json:"id"`
-	Status             OrderStatus           `json:"status"`
-	TotalPrice         float64               `json:"total_price"`
-	TotalDiscountPrice float64               `json:"total_discount_price"`
-	Products           []OrderPreviewProduct `json:"products"`
-	Address            AddressDB             `json:"address"`
-	ExpectedDeliveryAt *time.Time            `json:"expected_delivery_at"`
-	ActualDeliveryAt   *time.Time            `json:"actual_delivery_at"`
-	CreatedAt          *time.Time            `json:"created_at,omitempty"`
-}
-
-type OrderPreviewProduct struct {
-	ProductImageURL null.String `json:"product_image_url"`
-	ProductQuantity uint        `json:"product_quantity"`
+type OrderPreviewProductDTO struct {
+	ProductImageURL null.String
+	ProductQuantity uint
 }

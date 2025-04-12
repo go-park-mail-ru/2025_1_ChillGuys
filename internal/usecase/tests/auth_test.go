@@ -3,8 +3,8 @@ package tests
 import (
 	"context"
 	"errors"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/domains"
 	user2 "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/mocks"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/domains"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/auth"
@@ -46,7 +46,7 @@ func TestAuthUsecase_Register(t *testing.T) {
 
 		mockRepo.EXPECT().
 			CreateUser(gomock.Any(), gomock.All(
-				gomock.AssignableToTypeOf(dto.UserDB{}),
+				gomock.AssignableToTypeOf(models.UserDB{}),
 				gomock.Not(gomock.Nil()),
 			)).
 			Return(nil).
@@ -133,7 +133,7 @@ func TestAuthUsecase_Login(t *testing.T) {
 	}
 
 	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(testUser.Password), bcrypt.MinCost)
-	testUserDB := &dto.UserDB{
+	testUserDB := &models.UserDB{
 		ID:           uuid.New(),
 		Email:        testUser.Email,
 		PasswordHash: hashedPassword,
@@ -147,7 +147,7 @@ func TestAuthUsecase_Login(t *testing.T) {
 			UpdatedAt: time.Now(),
 		}
 
-		userDB := &dto.UserDB{
+		userDB := &models.UserDB{
 			ID:           testUserID,
 			Email:        testUser.Email,
 			PasswordHash: hashedPassword,
@@ -230,7 +230,7 @@ func TestAuthUsecase_Logout(t *testing.T) {
 	testUserID := uuid.New().String()
 
 	t.Run("Success", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), domains.UserIDKey, testUserID)
+		ctx := context.WithValue(context.Background(), domains.UserIDKey{}, testUserID)
 
 		mockRepo.EXPECT().
 			IncrementUserVersion(gomock.Any(), testUserID).
@@ -250,7 +250,7 @@ func TestAuthUsecase_Logout(t *testing.T) {
 	})
 
 	t.Run("IncrementVersionError", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), domains.UserIDKey, testUserID)
+		ctx := context.WithValue(context.Background(), domains.UserIDKey{}, testUserID)
 
 		mockRepo.EXPECT().
 			IncrementUserVersion(gomock.Any(), testUserID).

@@ -7,7 +7,6 @@ import (
 	user2 "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/auth"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/user"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	"testing"
 	"time"
 
@@ -31,7 +30,7 @@ func TestCreateUser(t *testing.T) {
 
 	userID := uuid.New()
 	userVersionID := uuid.New()
-	user := dto.UserDB{
+	user := models.UserDB{
 		ID:           userID,
 		Email:        "test@example.com",
 		Name:         "Test",
@@ -48,7 +47,7 @@ func TestCreateUser(t *testing.T) {
 
 	mock.ExpectBegin()
 
-	mock.ExpectExec("INSERT INTO bazaar.\"user\"").WithArgs(
+	mock.ExpectExec("INSERT INTO bazaar.user").WithArgs(
 		user.ID,
 		user.Email,
 		user.Name,
@@ -57,7 +56,7 @@ func TestCreateUser(t *testing.T) {
 		user.ImageURL,
 	).WillReturnResult(sqlmock.NewResult(1, 1))
 
-	mock.ExpectExec("INSERT INTO bazaar.\"user_version\"").WithArgs(
+	mock.ExpectExec("INSERT INTO bazaar.user_version").WithArgs(
 		user.UserVersion.ID,
 		user.UserVersion.UserID,
 		user.UserVersion.Version,
@@ -86,7 +85,7 @@ func TestGetUserByEmail(t *testing.T) {
 	userID := uuid.New()
 	userVersionID := uuid.New()
 
-	mock.ExpectQuery(`SELECT u.id, u.email, u.name, u.surname, u.password_hash, u.image_url, uv.id AS user_version_id, uv.version, uv.updated_at FROM bazaar."user" u LEFT JOIN bazaar.user_version uv ON u.id = uv.user_id WHERE u.email = \$1;`).
+	mock.ExpectQuery(`SELECT u.id, u.email, u.name, u.surname, u.password_hash, u.image_url, uv.id AS user_version_id, uv.version, uv.updated_at FROM bazaar.user u LEFT JOIN bazaar.user_version uv ON u.id = uv.user_id WHERE u.email = \$1;`).
 		WithArgs(email).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "email", "name", "surname", "password_hash", "image_url", "user_version_id", "version", "updated_at",
@@ -118,7 +117,7 @@ func TestGetUserByID(t *testing.T) {
 	userVersionID := uuid.New()
 	updatedAt := time.Now()
 
-	mock.ExpectQuery(`SELECT u.id, u.email, u.name, u.surname, u.password_hash, u.image_url, u.phone_number, uv.id AS user_version_id, uv.version, uv.updated_at FROM bazaar."user" u LEFT JOIN bazaar.user_version uv ON u.id = uv.user_id WHERE u.id = \$1;`).
+	mock.ExpectQuery(`SELECT u.id, u.email, u.name, u.surname, u.password_hash, u.image_url, u.phone_number, uv.id AS user_version_id, uv.version, uv.updated_at FROM bazaar.user u LEFT JOIN bazaar.user_version uv ON u.id = uv.user_id WHERE u.id = \$1;`).
 		WithArgs(userID).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "email", "name", "surname", "password_hash", "image_url", "phone_number",
@@ -185,7 +184,7 @@ func TestIncrementUserVersion(t *testing.T) {
 	repo := user2.NewAuthRepository(db, logrus.New())
 
 	userID := "123"
-	expectedQuery := `UPDATE bazaar."user_version" SET version = version \+ 1 WHERE user_id = \$1`
+	expectedQuery := `UPDATE bazaar.user_version SET version = version \+ 1 WHERE user_id = \$1`
 
 	t.Run("Success", func(t *testing.T) {
 		mock.ExpectExec(expectedQuery).
@@ -229,7 +228,7 @@ func TestCheckUserVersion(t *testing.T) {
 
 	userID := "123"
 	version := 5
-	expectedQuery := `SELECT version FROM bazaar."user_version" WHERE user_id = \$1`
+	expectedQuery := `SELECT version FROM bazaar.user_version WHERE user_id = \$1`
 
 	t.Run("VersionMatches", func(t *testing.T) {
 		mock.ExpectQuery(expectedQuery).

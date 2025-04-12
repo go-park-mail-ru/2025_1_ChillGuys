@@ -15,7 +15,7 @@ func SendJSONError(ctx context.Context, w http.ResponseWriter, statusCode int, m
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
 
-	resp, err := json.Marshal(dto.ErrorResponse{Message: message})
+	resp, err := json.Marshal(dto.ErrorResponseDTO{Message: message})
 	if err != nil {
 		logctx.GetLogger(ctx).Error("failed to marshal response: ", err.Error())
 		return
