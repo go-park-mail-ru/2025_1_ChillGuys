@@ -93,7 +93,7 @@ func NewApp(conf *config.Config) (*App, error) {
 	apiRouter := router.PathPrefix("/api").Subrouter()
 	apiRouter = apiRouter.PathPrefix("/v1").Subrouter()
 
-	router.HandleFunc("/", OptionsRequest).Methods(http.MethodOptions)
+	router.PathPrefix("/").HandlerFunc(OptionsRequest).Methods(http.MethodOptions)
 
 	apiRouter.Use(func(next http.Handler) http.Handler {
 		return middleware.CORSMiddleware(next, conf.ServerConfig)
@@ -147,7 +147,6 @@ func NewApp(conf *config.Config) (*App, error) {
 	productCoverRouter := apiRouter.PathPrefix("/cover").Subrouter()
 	{
 		productCoverRouter.HandleFunc("/upload", ProductService.CreateOne).Methods(http.MethodPost)
-		productCoverRouter.HandleFunc("/files/{objectID}", ProductService.GetOne).Methods(http.MethodGet)
 	}
 
 	// Маршруты для аутентификации.

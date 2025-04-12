@@ -2,11 +2,9 @@ package product
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/minio"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
@@ -195,54 +193,4 @@ func (h *ProductService) CreateOne(w http.ResponseWriter, r *http.Request) {
 
 	// Возвращаем успешный ответ с URL файла
 	response.SendJSONResponse(r.Context(), w, http.StatusOK, productResponse)
-}
-
-// FIXME: models.SuccessResponse не найден
-
-// GetOne godoc
-//
-//	@Summary		Получить файл по ID
-//	@Description	Возвращает URL для доступа к файлу в MinIO
-//	@Tags			files
-//	@Produce		json
-//	@Param			objectID	path		string				true	"ID объекта в MinIO"
-//	@Success		200			{object}	map[string]string	"Ссылка на файл"
-//	@Failure		400			{object}	dto.ErrorResponse	"Неверный ID объекта"
-//	@Failure		404			{object}	dto.ErrorResponse	"Файл не найден"
-//	@Failure		500			{object}	dto.ErrorResponse	"Ошибка сервера"
-//	@Router			/files/{objectID} [get]
-func (h *ProductService) GetOne(w http.ResponseWriter, r *http.Request) {
-	const op = "ProductService.GetOne"
-    logger := logctx.GetLogger(r.Context()).WithField("op", op)
-
-	// Получаем ID объекта из параметров URL
-	vars := mux.Vars(r)
-	objectID := vars["objectID"]
-
-	// Проверяем валидность UUID
-	if _, err := uuid.Parse(objectID); err != nil {
-        logger.WithError(err).Error("parse object ID")
-        response.HandleDomainError(r.Context(), w, fmt.Errorf("invalid object ID format"), op)
-        return
-    }
-
-	// Получаем URL файла из MinIO
-	data, err := h.minioService.GetOne(r.Context(), objectID)
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-            logger.WithError(err).Warn("file not found")
-            response.HandleDomainError(r.Context(), w, fmt.Errorf("file not found"), op)
-            return
-        }
-
-        logger.WithError(err).Error("get file from minio")
-        response.HandleDomainError(r.Context(), w, fmt.Errorf("failed to get file"), op)
-        return
-	}
-
-	// Формируем успешный ответ
-	if _, err := w.Write(data); err != nil {
-		http.Error(w, "Failed to send cover file", http.StatusInternalServerError)
-		return
-	}
 }

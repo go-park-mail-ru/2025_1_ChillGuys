@@ -1,388 +1,295 @@
-package tests_test
+package tests
 
 import (
 	"context"
 	"errors"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/domains"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/minio"
-	user2 "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/mocks"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/user"
 	"testing"
 	"time"
 
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/domains"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/user"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/guregu/null"
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/crypto/bcrypt"
-
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 )
 
-func TestAuthUsecase_Register(t *testing.T) {
+func setupTest(t *testing.T) (*mocks.MockIUserRepository, *mocks.MockITokenator, *user.AuthUsecase) {
 	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+	mockRepo := mocks.NewMockIUserRepository(ctrl)
+	mockToken := mocks.NewMockITokenator(ctrl)
+	
+	// Since Minio is not critical for auth tests, we can pass nil
+	uc := user.NewAuthUsecase(mockRepo, mockToken, nil)
+	
+	return mockRepo, mockToken, uc
+}
 
-	mockRepo := user2.NewMockIUserRepository(ctrl)
-	mockToken := user2.NewMockITokenator(ctrl)
-	logger := logrus.New()
-	minioConfig := &config.MinioConfig{
-		Port:         "9000",
-		Endpoint:     "localhost",
-		BucketName:   "my-bucket",
-		RootUser:     "minioadmin",
-		RootPassword: "minioadminpassword",
-		UseSSL:       false,
-	}
-	minio, err := minio.NewMinioClient(minioConfig, logger)
-
-	assert.Error(t, err)
-	uc := user.NewAuthUsecase(mockRepo, mockToken, logger, minio)
-
-	testUser := dto.UserRegisterRequestDTO{
+func TestAuthUsecase_Register(t *testing.T) {
+	registerReq := dto.UserRegisterRequestDTO{
 		Email:    "test@example.com",
 		Password: "password123",
 		Name:     "Test",
 		Surname:  null.StringFrom("User"),
 	}
 
-	t.Run("Success", func(t *testing.T) {
-		mockRepo.EXPECT().
-			CheckUserExists(gomock.Any(), testUser.Email).
-			Return(false, nil).
-			Times(1)
+	t.Run("success", func(t *testing.T) {
+		mockRepo, mockToken, uc := setupTest(t)
 
 		mockRepo.EXPECT().
-			CreateUser(gomock.Any(), gomock.All(
-				gomock.AssignableToTypeOf(dto.UserDB{}),
-				gomock.Not(gomock.Nil()),
-			)).
-			Return(nil).
-			Times(1)
+			CheckExistence(gomock.Any(), registerReq.Email).
+			Return(false, nil)
+
+		mockRepo.EXPECT().
+			Create(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, user dto.UserDB) error {
+				assert.Equal(t, registerReq.Email, user.Email)
+				assert.Equal(t, registerReq.Name, user.Name)
+				assert.Equal(t, registerReq.Surname, user.Surname)
+				assert.NotEmpty(t, user.PasswordHash)
+				return nil
+			})
 
 		mockToken.EXPECT().
-			CreateJWT(gomock.Any(), gomock.Any()).
-			Return("test-token", nil).
-			Times(1)
+			CreateJWT(gomock.Any(), 1).
+			Return("test-token", nil)
 
-		token, err := uc.Register(context.Background(), testUser)
-
+		token, err := uc.Register(context.Background(), registerReq)
 		assert.NoError(t, err)
 		assert.Equal(t, "test-token", token)
 	})
 
-	t.Run("CheckUserExistsError", func(t *testing.T) {
+	t.Run("user already exists", func(t *testing.T) {
+		mockRepo, _, uc := setupTest(t)
+
 		mockRepo.EXPECT().
-			CheckUserExists(gomock.Any(), testUser.Email).
-			Return(false, errors.New("db error")).
-			Times(1)
+			CheckExistence(gomock.Any(), registerReq.Email).
+			Return(true, nil)
 
-		token, err := uc.Register(context.Background(), testUser)
-
-		assert.Error(t, err)
-		assert.Empty(t, token)
+		_, err := uc.Register(context.Background(), registerReq)
+		assert.ErrorIs(t, err, errs.ErrAlreadyExists)
 	})
 
-	t.Run("CreateUserError", func(t *testing.T) {
-		mockRepo.EXPECT().
-			CheckUserExists(gomock.Any(), testUser.Email).
-			Return(false, nil).
-			Times(1)
+	t.Run("repository error on check existence", func(t *testing.T) {
+		mockRepo, _, uc := setupTest(t)
 
 		mockRepo.EXPECT().
-			CreateUser(gomock.Any(), gomock.Any()).
-			Return(errors.New("db error")).
-			Times(1)
+			CheckExistence(gomock.Any(), registerReq.Email).
+			Return(false, errors.New("db error"))
 
-		token, err := uc.Register(context.Background(), testUser)
-
+		_, err := uc.Register(context.Background(), registerReq)
 		assert.Error(t, err)
-		assert.Empty(t, token)
 	})
 
-	t.Run("CreateJWTError", func(t *testing.T) {
-		mockRepo.EXPECT().
-			CheckUserExists(gomock.Any(), testUser.Email).
-			Return(false, nil).
-			Times(1)
+	t.Run("repository error on create", func(t *testing.T) {
+		mockRepo, _, uc := setupTest(t)
 
 		mockRepo.EXPECT().
-			CreateUser(gomock.Any(), gomock.Any()).
-			Return(nil).
-			Times(1)
+			CheckExistence(gomock.Any(), registerReq.Email).
+			Return(false, nil)
+
+		mockRepo.EXPECT().
+			Create(gomock.Any(), gomock.Any()).
+			Return(errors.New("db error"))
+
+		_, err := uc.Register(context.Background(), registerReq)
+		assert.Error(t, err)
+	})
+
+	t.Run("token creation error", func(t *testing.T) {
+		mockRepo, mockToken, uc := setupTest(t)
+
+		mockRepo.EXPECT().
+			CheckExistence(gomock.Any(), registerReq.Email).
+			Return(false, nil)
+
+		mockRepo.EXPECT().
+			Create(gomock.Any(), gomock.Any()).
+			Return(nil)
 
 		mockToken.EXPECT().
 			CreateJWT(gomock.Any(), 1).
-			Return("", errors.New("jwt error")).
-			Times(1)
+			Return("", errors.New("token error"))
 
-		token, err := uc.Register(context.Background(), testUser)
-
+		_, err := uc.Register(context.Background(), registerReq)
 		assert.Error(t, err)
-		assert.Empty(t, token)
 	})
 }
 
 func TestAuthUsecase_Login(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockRepo := user2.NewMockIUserRepository(ctrl)
-	mockToken := user2.NewMockITokenator(ctrl)
-	logger := logrus.New()
-	minioConfig := &config.MinioConfig{
-		Port:         "9000",               // Порт Minio
-		Endpoint:     "localhost",          // Адрес Minio
-		BucketName:   "my-bucket",          // Название бакета
-		RootUser:     "minioadmin",         // Имя пользователя
-		RootPassword: "minioadminpassword", // Пароль пользователя
-		UseSSL:       false,                // Не используем SSL
-	}
-	minio, err := minio.NewMinioClient(minioConfig, logger)
-
-	assert.Error(t, err)
-	uc := user.NewAuthUsecase(mockRepo, mockToken, logger, minio)
-
-	testUserID := uuid.New()
-
-	testUser := dto.UserLoginRequestDTO{
+	loginReq := dto.UserLoginRequestDTO{
 		Email:    "test@example.com",
 		Password: "password123",
 	}
 
-	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(testUser.Password), bcrypt.MinCost)
-	testUserDB := &dto.UserDB{
+	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(loginReq.Password), bcrypt.MinCost)
+	userDB := &dto.UserDB{
 		ID:           uuid.New(),
-		Email:        testUser.Email,
+		Email:        loginReq.Email,
 		PasswordHash: hashedPassword,
-	}
-
-	t.Run("Success", func(t *testing.T) {
-		userVersion := models.UserVersionDB{
+		UserVersion: models.UserVersionDB{
 			ID:        uuid.New(),
-			UserID:    testUserID,
+			UserID:    uuid.New(),
 			Version:   1,
 			UpdatedAt: time.Now(),
-		}
+		},
+	}
 
-		userDB := &dto.UserDB{
-			ID:           testUserID,
-			Email:        testUser.Email,
-			PasswordHash: hashedPassword,
-			UserVersion:  userVersion,
-		}
+	t.Run("success", func(t *testing.T) {
+		mockRepo, mockToken, uc := setupTest(t)
 
 		mockRepo.EXPECT().
-			GetUserByEmail(gomock.Any(), testUser.Email).
-			Return(userDB, nil).
-			Times(1)
+			GetByEmail(gomock.Any(), loginReq.Email).
+			Return(userDB, nil)
 
 		mockToken.EXPECT().
 			CreateJWT(userDB.ID.String(), userDB.UserVersion.Version).
-			Return("test-token", nil).
-			Times(1)
+			Return("test-token", nil)
 
-		token, err := uc.Login(context.Background(), testUser)
-
+		token, err := uc.Login(context.Background(), loginReq)
 		assert.NoError(t, err)
 		assert.Equal(t, "test-token", token)
 	})
 
-	t.Run("UserNotFound", func(t *testing.T) {
+	t.Run("user not found", func(t *testing.T) {
+		mockRepo, _, uc := setupTest(t)
+
 		mockRepo.EXPECT().
-			GetUserByEmail(gomock.Any(), testUser.Email).
-			Return(nil, errors.New("not found")).
-			Times(1)
+			GetByEmail(gomock.Any(), loginReq.Email).
+			Return(nil, errs.ErrNotFound)
 
-		token, err := uc.Login(context.Background(), testUser)
-
-		assert.Error(t, err)
-		assert.Empty(t, token)
+		_, err := uc.Login(context.Background(), loginReq)
+		assert.ErrorIs(t, err, errs.ErrNotFound)
 	})
 
-	t.Run("InvalidCredentials", func(t *testing.T) {
-		invalidUserDB := *testUserDB
-		invalidUserDB.PasswordHash = []byte("wrong-hash")
+	t.Run("invalid password", func(t *testing.T) {
+		mockRepo, _, uc := setupTest(t)
+
+		invalidUser := *userDB
+		invalidUser.PasswordHash = []byte("wrong-hash")
 
 		mockRepo.EXPECT().
-			GetUserByEmail(gomock.Any(), testUser.Email).
-			Return(&invalidUserDB, nil).
-			Times(1)
+			GetByEmail(gomock.Any(), loginReq.Email).
+			Return(&invalidUser, nil)
 
-		token, err := uc.Login(context.Background(), testUser)
-
-		assert.Error(t, err)
-		assert.Equal(t, errs.ErrInvalidCredentials, err)
-		assert.Empty(t, token)
+		_, err := uc.Login(context.Background(), loginReq)
+		assert.ErrorIs(t, err, errs.ErrInvalidCredentials)
 	})
 
-	t.Run("CreateJWTError", func(t *testing.T) {
+	t.Run("token creation error", func(t *testing.T) {
+		mockRepo, mockToken, uc := setupTest(t)
+
 		mockRepo.EXPECT().
-			GetUserByEmail(gomock.Any(), testUser.Email).
-			Return(testUserDB, nil).
-			Times(1)
+			GetByEmail(gomock.Any(), loginReq.Email).
+			Return(userDB, nil)
 
 		mockToken.EXPECT().
-			CreateJWT(testUserDB.ID.String(), testUserDB.UserVersion.Version).
-			Return("", errors.New("jwt error")).
-			Times(1)
+			CreateJWT(userDB.ID.String(), userDB.UserVersion.Version).
+			Return("", errors.New("token error"))
 
-		token, err := uc.Login(context.Background(), testUser)
-
+		_, err := uc.Login(context.Background(), loginReq)
 		assert.Error(t, err)
-		assert.Empty(t, token)
 	})
-
 }
 
 func TestAuthUsecase_Logout(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+	userID := uuid.New().String()
 
-	mockRepo := user2.NewMockIUserRepository(ctrl)
-	mockToken := user2.NewMockITokenator(ctrl)
-	logger := logrus.New()
-	minioConfig := &config.MinioConfig{
-		Port:         "9000",               // Порт Minio
-		Endpoint:     "localhost",          // Адрес Minio
-		BucketName:   "my-bucket",          // Название бакета
-		RootUser:     "minioadmin",         // Имя пользователя
-		RootPassword: "minioadminpassword", // Пароль пользователя
-		UseSSL:       false,                // Не используем SSL
-	}
-	minio, err := minio.NewMinioClient(minioConfig, logger)
-
-	assert.Error(t, err)
-	uc := user.NewAuthUsecase(mockRepo, mockToken, logger, minio)
-
-	testUserID := uuid.New().String()
-
-	t.Run("Success", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), domains.UserIDKey, testUserID)
+	t.Run("success", func(t *testing.T) {
+		mockRepo, _, uc := setupTest(t)
+		ctx := context.WithValue(context.Background(), domains.UserIDKey, userID)
 
 		mockRepo.EXPECT().
-			IncrementUserVersion(gomock.Any(), testUserID).
-			Return(nil).
-			Times(1)
+			IncrementVersion(gomock.Any(), userID).
+			Return(nil)
 
 		err := uc.Logout(ctx)
-
 		assert.NoError(t, err)
 	})
 
-	t.Run("UserNotFoundInContext", func(t *testing.T) {
-		err := uc.Logout(context.Background())
+	t.Run("no user in context", func(t *testing.T) {
+		_, _, uc := setupTest(t)
 
-		assert.Error(t, err)
-		assert.Equal(t, errs.ErrNotFound, err)
+		err := uc.Logout(context.Background())
+		assert.ErrorIs(t, err, errs.ErrNotFound)
 	})
 
-	t.Run("IncrementVersionError", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), domains.UserIDKey, testUserID)
+	t.Run("repository error", func(t *testing.T) {
+		mockRepo, _, uc := setupTest(t)
+		ctx := context.WithValue(context.Background(), domains.UserIDKey, userID)
 
 		mockRepo.EXPECT().
-			IncrementUserVersion(gomock.Any(), testUserID).
-			Return(errors.New("db error")).
-			Times(1)
+			IncrementVersion(gomock.Any(), userID).
+			Return(errors.New("db error"))
 
 		err := uc.Logout(ctx)
-
 		assert.Error(t, err)
 	})
 }
 
 func TestAuthUsecase_GetMe(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockRepo := user2.NewMockIUserRepository(ctrl)
-	mockToken := user2.NewMockITokenator(ctrl)
-	logger := logrus.New()
-	minioConfig := &config.MinioConfig{
-		Port:         "9000",               // Порт Minio
-		Endpoint:     "localhost",          // Адрес Minio
-		BucketName:   "my-bucket",          // Название бакета
-		RootUser:     "minioadmin",         // Имя пользователя
-		RootPassword: "minioadminpassword", // Пароль пользователя
-		UseSSL:       false,                // Не используем SSL
-	}
-	minio, err := minio.NewMinioClient(minioConfig, logger)
-
-	assert.Error(t, err)
-	uc := user.NewAuthUsecase(mockRepo, mockToken, logger, minio)
-
-	testUserID := uuid.New()
-	testUserDB := &dto.UserDB{
-		ID:      testUserID,
+	userID := uuid.New()
+	userDB := &dto.UserDB{
+		ID:      userID,
 		Email:   "test@example.com",
 		Name:    "Test",
 		Surname: null.StringFrom("User"),
 	}
 
-	t.Run("Success", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), domains.UserIDKey, testUserID.String())
+	t.Run("success", func(t *testing.T) {
+		mockRepo, _, uc := setupTest(t)
+		ctx := context.WithValue(context.Background(), domains.UserIDKey, userID.String())
 
 		mockRepo.EXPECT().
-			GetUserByID(gomock.Any(), testUserID).
-			Return(testUserDB, nil).
-			Times(1)
+			GetByID(gomock.Any(), userID).
+			Return(userDB, nil)
 
 		user, err := uc.GetMe(ctx)
-
 		assert.NoError(t, err)
-		assert.Equal(t, testUserDB.Email, user.Email)
-		assert.Equal(t, testUserDB.Name, user.Name)
-		assert.Equal(t, testUserDB.Surname, user.Surname)
+		assert.Equal(t, userDB.ConvertToUser(), user)
 	})
 
-	t.Run("UserNotFoundInContext", func(t *testing.T) {
-		user, err := uc.GetMe(context.Background())
+	t.Run("no user in context", func(t *testing.T) {
+		_, _, uc := setupTest(t)
 
-		assert.Error(t, err)
-		assert.Equal(t, errs.ErrNotFound, err)
-		assert.Nil(t, user)
+		_, err := uc.GetMe(context.Background())
+		assert.ErrorIs(t, err, errs.ErrNotFound)
 	})
 
-	t.Run("InvalidUserID", func(t *testing.T) {
+	t.Run("invalid user id format", func(t *testing.T) {
+		_, _, uc := setupTest(t)
 		ctx := context.WithValue(context.Background(), domains.UserIDKey, "invalid-uuid")
 
-		user, err := uc.GetMe(ctx)
-
-		assert.Error(t, err)
-		assert.Equal(t, errs.ErrInvalidID, err)
-		assert.Nil(t, user)
+		_, err := uc.GetMe(ctx)
+		assert.ErrorIs(t, err, errs.ErrInvalidID)
 	})
 
-	t.Run("GetUserByIDError", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), domains.UserIDKey, testUserID.String())
+	t.Run("user not found", func(t *testing.T) {
+		mockRepo, _, uc := setupTest(t)
+		ctx := context.WithValue(context.Background(), domains.UserIDKey, userID.String())
 
 		mockRepo.EXPECT().
-			GetUserByID(gomock.Any(), testUserID).
-			Return(nil, errors.New("db error")).
-			Times(1)
+			GetByID(gomock.Any(), userID).
+			Return(nil, errs.ErrNotFound)
 
-		user, err := uc.GetMe(ctx)
-
-		assert.Error(t, err)
-		assert.Nil(t, user)
+		_, err := uc.GetMe(ctx)
+		assert.ErrorIs(t, err, errs.ErrNotFound)
 	})
 
-	t.Run("UserNotFoundInDB", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), domains.UserIDKey, testUserID.String())
+	t.Run("repository error", func(t *testing.T) {
+		mockRepo, _, uc := setupTest(t)
+		ctx := context.WithValue(context.Background(), domains.UserIDKey, userID.String())
 
 		mockRepo.EXPECT().
-			GetUserByID(gomock.Any(), testUserID).
-			Return(nil, nil).
-			Times(1)
+			GetByID(gomock.Any(), userID).
+			Return(nil, errors.New("db error"))
 
-		user, err := uc.GetMe(ctx)
-
+		_, err := uc.GetMe(ctx)
 		assert.Error(t, err)
-		assert.Equal(t, errs.ErrNotFound, err)
-		assert.Nil(t, user)
 	})
 }

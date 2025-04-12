@@ -12,14 +12,6 @@ import (
 	"github.com/google/uuid"
 )
 
-//проверяем есть ли у юзера корзина если нет то создаем (по юзер айди)
-
-//добвление товара в корзину - создание элемента в таблице basket_item
-//quantity = 1
-
-//отдача всех товаров в корзине т.е всех basket_item в которых basket_id соответствует юзер_id в basket_user
-
-
 const(
 	queryGetBasketByUserID = `SELECT id FROM bazaar.basket WHERE user_id = $1 LIMIT 1`
 

@@ -9,8 +9,12 @@ func CORSMiddleware(next http.Handler, conf *config.ServerConfig) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		origin := r.Header.Get("Origin")
 
-		//allowedOrigin := conf.AllowOrigin
-		allowedOrigin := "*"
+		if origin == "" {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		allowedOrigin := conf.AllowOrigin
 
 		if allowedOrigin != "*" && allowedOrigin != origin {
 			http.Error(w, "CORS Origin not allowed", http.StatusForbidden)

@@ -8,7 +8,7 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/logctx"
 )
 
-//go:generate mockgen -source=product.go -destination=../../infrastructure/repository/postgres/mocks/product_repository_mock.go -package=mocks IProductRepository
+//go:generate mockgen -source=category.go -destination=../../infrastructure/repository/postgres/mocks/category_repository_mock.go -package=mocks ICategoryRepository
 type ICategoryRepository interface {
 	GetAllCategories(ctx context.Context)([]*models.Category, error)
 }

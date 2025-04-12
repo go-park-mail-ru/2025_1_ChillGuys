@@ -10,7 +10,7 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/response"
 )
 
-//go:generate mockgen -source=category.go -destination=../../usecase/mocks/product_usecase_mock.go -package=mocks IProductUsecase
+//go:generate mockgen -source=category.go -destination=../../usecase/mocks/category_usecase_mock.go -package=mocks ICategoryUsecase
 type ICategoryUsecase interface {
 	GetAllCategories(ctx context.Context) ([]*models.Category, error)
 }

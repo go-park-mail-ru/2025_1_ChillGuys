@@ -36,21 +36,6 @@ func (m *MockIProductUsecase) EXPECT() *MockIProductUsecaseMockRecorder {
 	return m.recorder
 }
 
-// GetAllCategories mocks base method.
-func (m *MockIProductUsecase) GetAllCategories(ctx context.Context) ([]*models.Category, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAllCategories", ctx)
-	ret0, _ := ret[0].([]*models.Category)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetAllCategories indicates an expected call of GetAllCategories.
-func (mr *MockIProductUsecaseMockRecorder) GetAllCategories(ctx interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllCategories", reflect.TypeOf((*MockIProductUsecase)(nil).GetAllCategories), ctx)
-}
-
 // GetAllProducts mocks base method.
 func (m *MockIProductUsecase) GetAllProducts(ctx context.Context) ([]*models.Product, error) {
 	m.ctrl.T.Helper()
@@ -79,21 +64,6 @@ func (m *MockIProductUsecase) GetProductByID(ctx context.Context, id uuid.UUID) 
 func (mr *MockIProductUsecaseMockRecorder) GetProductByID(ctx, id interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProductByID", reflect.TypeOf((*MockIProductUsecase)(nil).GetProductByID), ctx, id)
-}
-
-// GetProductCover mocks base method.
-func (m *MockIProductUsecase) GetProductCover(ctx context.Context, id uuid.UUID) ([]byte, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetProductCover", ctx, id)
-	ret0, _ := ret[0].([]byte)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetProductCover indicates an expected call of GetProductCover.
-func (mr *MockIProductUsecaseMockRecorder) GetProductCover(ctx, id interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProductCover", reflect.TypeOf((*MockIProductUsecase)(nil).GetProductCover), ctx, id)
 }
 
 // GetProductsByCategory mocks base method.
