@@ -6,13 +6,11 @@ import (
 )
 
 type AddressDB struct {
-	ID        uuid.UUID   `json:"id"`
-	City      null.String `json:"city"`
-	Street    null.String `json:"street"`
-	House     null.String `json:"house"`
-	Apartment null.String `json:"apartment"`
-	ZipCode   null.String `json:"zip_code"`
-	//Coordinate null.String `json:"coordinate"`
+	ID            uuid.UUID   `json:"id"`
+	Region        null.String `json:"region"`
+	City          null.String `json:"city"`
+	AddressString null.String `json:"address_string"`
+	Coordinate    null.String `json:"coordinate"`
 }
 
 type UserAddress struct {
@@ -23,11 +21,23 @@ type UserAddress struct {
 }
 
 type Address struct {
-	ID        uuid.UUID   `json:"id"`
-	Label     null.String `json:"label"`
-	City      null.String `json:"city"`
-	Street    null.String `json:"street"`
-	House     null.String `json:"house"`
-	Apartment null.String `json:"apartment"`
-	ZipCode   null.String `json:"zip_code"`
+	ID            uuid.UUID   `json:"id"`
+	Label         null.String `json:"label"`
+	Region        null.String `json:"region"`
+	City          null.String `json:"city"`
+	AddressString null.String `json:"address_string"`
+	Coordinate    null.String `json:"coordinate"`
+}
+
+type GetAddressRes struct {
+	ID            uuid.UUID   `json:"id"`
+	Label         null.String `json:"label"`
+	AddressString null.String `json:"address_string"`
+	Coordinate    null.String `json:"coordinate"`
+}
+
+type GetPointAddressRes struct {
+	ID            uuid.UUID   `json:"id"`
+	AddressString null.String `json:"address_string"`
+	Coordinate    null.String `json:"coordinate"`
 }

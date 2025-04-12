@@ -73,10 +73,10 @@ func (h *AddressHandler) GetAddress(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if addresses == nil {
-		addresses = []models.Address{}
+		addresses = []models.GetAddressRes{}
 	}
 
-	response.SendJSONResponse(r.Context(), w, http.StatusOK, map[string][]models.Address{
+	response.SendJSONResponse(r.Context(), w, http.StatusOK, map[string][]models.GetAddressRes{
 		"addresses": addresses,
 	})
 }
@@ -88,7 +88,7 @@ func (h *AddressHandler) GetPickupPoints(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	response.SendJSONResponse(r.Context(), w, http.StatusOK, map[string][]models.AddressDB{
+	response.SendJSONResponse(r.Context(), w, http.StatusOK, map[string][]models.GetPointAddressRes{
 		"pickup_points": points,
 	})
 }

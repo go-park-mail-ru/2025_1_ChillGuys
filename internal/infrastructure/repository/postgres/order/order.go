@@ -20,7 +20,7 @@ const (
 	queryGetOrdersByUserID     = `SELECT id, status, total_price, total_price_discount, address_id, expected_delivery_at, actual_delivery_at, created_at FROM bazaar."order" WHERE user_id = $1`
 	queryGetOrderProducts      = `SELECT product_id, quantity FROM bazaar.order_item WHERE order_id = $1`
 	queryGetProductImg         = `SELECT preview_image_url FROM bazaar.product WHERE id = $1 LIMIT 1`
-	queryGetOrderAddress       = `SELECT city, street, house, apartment, zip_code FROM bazaar.address WHERE id = $1 LIMIT 1`
+	queryGetOrderAddress       = `SELECT region, city, address_string, coordinate FROM bazaar.address WHERE id = $1 LIMIT 1`
 )
 
 type IOrderRepository interface {
@@ -247,11 +247,10 @@ func (r *OrderRepository) GetOrderAddress(ctx context.Context, addressID uuid.UU
 	var address models.AddressDB
 
 	if err := r.db.QueryRowContext(ctx, queryGetOrderAddress, addressID).Scan(
+		&address.Region,
 		&address.City,
-		&address.Street,
-		&address.House,
-		&address.Apartment,
-		&address.ZipCode,
+		&address.AddressString,
+		&address.Coordinate,
 	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errs.ErrNotFound

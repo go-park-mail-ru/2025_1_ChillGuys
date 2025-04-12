@@ -12,12 +12,12 @@ import (
 const (
 	queryCheckAddressExists = `
         SELECT id FROM bazaar.address
-        WHERE city = $1 AND street = $2 AND house = $3 AND apartment = $4 AND zip_code = $5
+        WHERE region = $1 AND city = $2 AND address_string = $3 AND coordinate = $4
         LIMIT 1
     `
 	queryUpsertAddress = `
-        INSERT INTO bazaar.address (id, city, street, house, apartment, zip_code) 
-        VALUES ($1, $2, $3, $4, $5, $6)
+        INSERT INTO bazaar.address (id, region, city, address_string, coordinate) 
+        VALUES ($1, $2, $3, $4, $5)
     `
 	queryUpsertUserAddress = `
         INSERT INTO bazaar.user_address (id, label, user_id, address_id)
@@ -25,13 +25,13 @@ const (
         ON CONFLICT (user_id, address_id) DO NOTHING
     `
 	queryGetAddressesByUserID = `
-		SELECT a.id, ua.label, a.city, a.street, a.house, a.apartment, a.zip_code
+		SELECT a.id, ua.label, a.region, a.city, a.address_string, a.coordinate
 		FROM bazaar.address AS a
 		JOIN bazaar.user_address AS ua ON a.id = ua.address_id
 		WHERE ua.user_id = $1
 	`
 	queryGetAllPickupPoints = `
-		SELECT a.id, a.city, a.street, a.house, a.apartment, a.zip_code
+		SELECT a.id, a.region, a.city, a.address_string, a.coordinate
 		FROM bazaar.pickup_point AS pp
 		JOIN bazaar.address AS a ON pp.address_id = a.id
 	`
@@ -60,7 +60,7 @@ func NewAddressRepository(db *sql.DB, log *logrus.Logger) *AddressRepository {
 func (r *AddressRepository) CheckAddressExists(ctx context.Context, address models.AddressDB) (uuid.UUID, error) {
 	var id uuid.UUID
 	err := r.db.QueryRowContext(ctx, queryCheckAddressExists,
-		address.City, address.Street, address.House, address.Apartment, address.ZipCode,
+		address.Region, address.City, address.AddressString, address.Coordinate,
 	).Scan(&id)
 
 	if errors.Is(err, sql.ErrNoRows) {
@@ -75,11 +75,10 @@ func (r *AddressRepository) CheckAddressExists(ctx context.Context, address mode
 func (r *AddressRepository) CreateAddress(ctx context.Context, in models.AddressDB) error {
 	_, err := r.db.QueryContext(ctx, queryUpsertAddress,
 		in.ID.String(),
+		in.Region,
 		in.City,
-		in.Street,
-		in.House,
-		in.Apartment,
-		in.ZipCode,
+		in.AddressString,
+		in.Coordinate,
 	)
 
 	return err
@@ -112,11 +111,10 @@ func (r *AddressRepository) GetUserAddress(ctx context.Context, userID uuid.UUID
 		if err := rows.Scan(
 			&address.ID,
 			&address.Label,
+			&address.Region,
 			&address.City,
-			&address.Street,
-			&address.House,
-			&address.Apartment,
-			&address.ZipCode,
+			&address.AddressString,
+			&address.Coordinate,
 		); err != nil {
 			return nil, err
 		}
@@ -143,11 +141,10 @@ func (r *AddressRepository) GetAllPickupPoints(ctx context.Context) (*[]models.A
 		var addr models.AddressDB
 		if err := rows.Scan(
 			&addr.ID,
+			&addr.Region,
 			&addr.City,
-			&addr.Street,
-			&addr.House,
-			&addr.Apartment,
-			&addr.ZipCode,
+			&addr.AddressString,
+			&addr.Coordinate,
 		); err != nil {
 			return nil, err
 		}

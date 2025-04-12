@@ -10,8 +10,8 @@ import (
 
 type IAddressUsecase interface {
 	CreateAddress(context.Context, uuid.UUID, models.Address) error
-	GetAddresses(context.Context, uuid.UUID) ([]models.Address, error)
-	GetPickupPoints(ctx context.Context) ([]models.AddressDB, error)
+	GetAddresses(context.Context, uuid.UUID) ([]models.GetAddressRes, error)
+	GetPickupPoints(ctx context.Context) ([]models.GetPointAddressRes, error)
 }
 
 type AddressUsecase struct {
@@ -32,12 +32,11 @@ func NewAddressUsecase(
 func (u *AddressUsecase) CreateAddress(ctx context.Context, userID uuid.UUID, in models.Address) error {
 	addressID := uuid.New()
 	addr := models.AddressDB{
-		ID:        addressID,
-		City:      in.City,
-		Street:    in.Street,
-		House:     in.House,
-		Apartment: in.Apartment,
-		ZipCode:   in.ZipCode,
+		ID:            addressID,
+		Region:        in.Region,
+		City:          in.City,
+		AddressString: in.AddressString,
+		Coordinate:    in.Coordinate,
 	}
 
 	addrID, err := u.repo.CheckAddressExists(ctx, addr)
@@ -63,30 +62,37 @@ func (u *AddressUsecase) CreateAddress(ctx context.Context, userID uuid.UUID, in
 	return u.repo.CreateUserAddress(ctx, userAddr)
 }
 
-func (u *AddressUsecase) GetAddresses(ctx context.Context, userID uuid.UUID) ([]models.Address, error) {
+func (u *AddressUsecase) GetAddresses(ctx context.Context, userID uuid.UUID) ([]models.GetAddressRes, error) {
 	addresses, err := u.repo.GetUserAddress(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	return *addresses, nil
+	res := make([]models.GetAddressRes, 0, len(*addresses))
+	for _, addr := range *addresses {
+		res = append(res, models.GetAddressRes{
+			ID:            addr.ID,
+			Label:         addr.Label,
+			AddressString: addr.AddressString,
+			Coordinate:    addr.Coordinate,
+		})
+	}
+
+	return res, nil
 }
 
-func (u *AddressUsecase) GetPickupPoints(ctx context.Context) ([]models.AddressDB, error) {
+func (u *AddressUsecase) GetPickupPoints(ctx context.Context) ([]models.GetPointAddressRes, error) {
 	points, err := u.repo.GetAllPickupPoints(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	res := make([]models.AddressDB, 0, len(*points))
+	res := make([]models.GetPointAddressRes, 0, len(*points))
 	for _, point := range *points {
-		res = append(res, models.AddressDB{
-			ID:        point.ID,
-			City:      point.City,
-			Street:    point.Street,
-			House:     point.House,
-			Apartment: point.Apartment,
-			ZipCode:   point.ZipCode,
+		res = append(res, models.GetPointAddressRes{
+			ID:            point.ID,
+			AddressString: point.AddressString,
+			Coordinate:    point.Coordinate,
 		})
 	}
 
