@@ -39,6 +39,10 @@ type App struct {
 	// Дополнительно можно добавить другие компоненты, если потребуется.
 }
 
+func OptionsRequest(w http.ResponseWriter, r *http.Request){
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // NewApp инициализирует приложение, создавая все необходимые компоненты.
 func NewApp(conf *config.Config) (*App, error) {
 	logger := logrus.New()
@@ -88,6 +92,8 @@ func NewApp(conf *config.Config) (*App, error) {
 	router.PathPrefix("/swagger/").Handler(httpSwagger.WrapHandler)
 	apiRouter := router.PathPrefix("/api").Subrouter()
 	apiRouter = apiRouter.PathPrefix("/v1").Subrouter()
+
+	router.HandleFunc("/", OptionsRequest).Methods(http.MethodOptions)
 
 	apiRouter.Use(func(next http.Handler) http.Handler {
 		return middleware.CORSMiddleware(next, conf.ServerConfig)
