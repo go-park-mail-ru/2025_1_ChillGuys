@@ -82,6 +82,8 @@ const(
 		RETURNING id, basket_id, product_id, quantity, updated_at
 	`
 
+	queryGetQuantityProduct = `SELECT quantity FROM bazaar.product WHERE id = $1`
+
 	queryClearBasket = `
 		DELETE FROM bazaar.basket_item
 		WHERE basket_id = $1
@@ -115,6 +117,25 @@ func (r *BasketRepository) getBasket(ctx context.Context, userID uuid.UUID) (uui
 	}
 
 	return basketID, nil
+}
+
+func (r*BasketRepository) getQuantityProduct(ctx context.Context, productID uuid.UUID) (uint, error) {
+	const op = "BasketRepository.getQuantityProduct"
+    logger := logctx.GetLogger(ctx).WithField("op", op).WithField("product_id", productID)
+
+	var quantity uint
+
+	err := r.DB.QueryRowContext(ctx, queryGetQuantityProduct, productID).Scan(&quantity)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+            logger.Warn("basket not found")
+            return 0, errs.NewNotFoundError(op)
+        }
+        logger.WithError(err).Error("get basket")
+        return 0, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return quantity, nil
 }
 
 func (r *BasketRepository) Get(ctx context.Context, userID uuid.UUID) ([]*models.BasketItem, error) {
@@ -230,17 +251,28 @@ func (r *BasketRepository) Delete(ctx context.Context, userID uuid.UUID, product
 	return nil
 }
 
-func (r *BasketRepository) UpdateQuantity(ctx context.Context, userID uuid.UUID, productID uuid.UUID, quantity int) (*models.BasketItem, error) {
+func (r *BasketRepository) UpdateQuantity(ctx context.Context, userID uuid.UUID, productID uuid.UUID, quantity int) (*models.BasketItem, int, error) {
 	const op = "BasketRepository.UpdateQuantity"
     logger := logctx.GetLogger(ctx).WithField("op", op).
         WithField("user_id", userID).
         WithField("product_id", productID).
         WithField("quantity", quantity)
 
+	quantityProduct, err := r.getQuantityProduct(ctx, productID)
+	if err != nil {
+		logger.WithError(err).Error("failed to get basket ID")
+        return nil, -1, fmt.Errorf("%s: %w", op, err)
+	}
+
+	if uint(quantity) > quantityProduct {
+        logger.Warn("requested quantity exceeds available")
+        return nil, -1, errs.NewBusinessLogicError("requested quantity exceeds available stock")
+    }
+
 	basketID, err := r.getBasket(ctx, userID)
 	if err != nil {
         logger.WithError(err).Error("failed to get basket ID")
-        return nil, fmt.Errorf("%s: %w", op, err)
+        return nil, -1, fmt.Errorf("%s: %w", op, err)
     }
 
 	item := &models.BasketItem{}
@@ -255,13 +287,13 @@ func (r *BasketRepository) UpdateQuantity(ctx context.Context, userID uuid.UUID,
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
             logger.Warn("product not found in basket")
-            return nil, fmt.Errorf("%s: %w", op, errs.NewNotFoundError(op))
+            return nil, -1, fmt.Errorf("%s: %w", op, errs.NewNotFoundError(op))
         }
         logger.WithError(err).Error("update product quantity")
-        return nil, fmt.Errorf("%s: %w", op, err)
+        return nil, -1, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return item, nil
+	return item, int(quantityProduct)-quantity, nil
 }
 
 func (r *BasketRepository) Clear(ctx context.Context, userID uuid.UUID) error {

@@ -6,6 +6,18 @@ type UpdateQuantityRequest struct {
 	Quantity  int       `json:"quantity"`
 }
 
+type UpdateQuantityResponse struct {
+	QuantityRemain 		int 				`json:"remain_quantity"`
+	Item 				*models.BasketItem  `json:"item"`
+}
+
+func ConvertToQuantityResponse(item *models.BasketItem, quantity int) UpdateQuantityResponse {
+	return UpdateQuantityResponse{
+		QuantityRemain: quantity,
+		Item: item,
+	}
+}
+
 type BasketResponse struct {
     Total              int          		`json:"total"`
     TotalPrice         float64      		`json:"total_price"`
