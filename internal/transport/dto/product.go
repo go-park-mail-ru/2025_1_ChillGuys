@@ -43,3 +43,7 @@ func ConvertToProductsResponse(products []*models.Product) ProductsResponse {
 		Products: briefProducts,
 	}
 }
+
+type GetProductsByIDRequest struct {
+	ProductIDs []uuid.UUID `json:"productIDs" validate:"required,min=1"`
+}
