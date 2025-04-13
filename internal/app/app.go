@@ -187,25 +187,25 @@ func NewApp(conf *config.Config) (*App, error) {
 			Methods(http.MethodPost)
 	}
 
-	orderRouter := router.PathPrefix("/orders").Subrouter()
+	orderRouter := apiRouter.PathPrefix("/orders").Subrouter()
 	{
-		orderRouter.Handle("/", middleware.JWTMiddleware(
+		orderRouter.Handle("", middleware.JWTMiddleware(
 			tokenator,
 			http.HandlerFunc(orderService.CreateOrder),
 		)).Methods(http.MethodPost)
-		orderRouter.Handle("/", middleware.JWTMiddleware(
+		orderRouter.Handle("", middleware.JWTMiddleware(
 			tokenator,
 			http.HandlerFunc(orderService.GetOrders),
 		)).Methods(http.MethodGet)
 	}
 
-	addressRouter := router.PathPrefix("/addresses").Subrouter()
+	addressRouter := apiRouter.PathPrefix("/addresses").Subrouter()
 	{
-		addressRouter.Handle("/", middleware.JWTMiddleware(
+		addressRouter.Handle("", middleware.JWTMiddleware(
 			tokenator,
 			http.HandlerFunc(addressService.CreateAddress),
 		)).Methods(http.MethodPost)
-		addressRouter.Handle("/", middleware.JWTMiddleware(
+		addressRouter.Handle("", middleware.JWTMiddleware(
 			tokenator,
 			http.HandlerFunc(addressService.GetAddress),
 		)).Methods(http.MethodGet)

@@ -4,8 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/logctx"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
@@ -47,6 +49,11 @@ const (
 	`
 	queryIncrementUserVersion = `UPDATE bazaar.user_version SET version = version + 1 WHERE user_id = $1`
 	queryCheckUserExists      = `SELECT EXISTS(SELECT 1 FROM bazaar.user WHERE email = $1)`
+
+	queryCreateBasket 		  = `
+			INSERT INTO bazaar.basket (id, user_id, total_price, total_price_discount)
+			SELECT $1, $2, 0, 0
+	`
 )
 
 type AuthRepository struct {
@@ -62,8 +69,12 @@ func NewAuthRepository(db *sql.DB, log *logrus.Logger) *AuthRepository {
 }
 
 func (r *AuthRepository) CreateUser(ctx context.Context, user models.UserDB) error {
+	const op = "AuthRepository.CreateUser"
+    logger := logctx.GetLogger(ctx).WithField("op", op)
+	
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
+		logger.WithError(err).Error("begin transaction")
 		return err
 	}
 
@@ -71,6 +82,7 @@ func (r *AuthRepository) CreateUser(ctx context.Context, user models.UserDB) err
 		user.ID, user.Email, user.Name, user.Surname, user.PasswordHash, user.ImageURL,
 	)
 	if err != nil {
+		logger.WithError(err).Error("create user")
 		tx.Rollback()
 		return err
 	}
@@ -79,23 +91,42 @@ func (r *AuthRepository) CreateUser(ctx context.Context, user models.UserDB) err
 		user.UserVersion.ID, user.UserVersion.UserID, user.UserVersion.Version, user.UserVersion.UpdatedAt,
 	)
 	if err != nil {
+		logger.WithError(err).Error("create user version")
 		tx.Rollback()
 		return err
 	}
 
-	return tx.Commit()
+	basketID := uuid.New()
+    _, err = tx.ExecContext(ctx, queryCreateBasket,
+        basketID,
+        user.ID, 
+    )
+    if err != nil {
+		logger.WithError(err).Error("failed to create basket")
+        return err
+    }
+
+	if err = tx.Commit(); err != nil {
+		logger.WithError(err).Error("commit transaction")
+		return err
+	}
+	return nil
 }
 
 func (r *AuthRepository) GetUserCurrentVersion(ctx context.Context, userID string) (int, error) {
+	const op = "AuthRepository.GetUserCurrentVersion"
+	logger := logctx.GetLogger(ctx).WithField("op", op)
+
 	var version int
 
 	err := r.db.QueryRowContext(ctx, queryGetUserVersion, userID).Scan(&version)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return 0, errs.NewNotFoundError("user version not found")
+			logger.Warn("user version not found")
+			return 0, errs.NewNotFoundError(op)
 		}
-
+		logger.WithError(err).Error("get user version")
 		return 0, err
 	}
 
@@ -103,6 +134,9 @@ func (r *AuthRepository) GetUserCurrentVersion(ctx context.Context, userID strin
 }
 
 func (r *AuthRepository) GetUserByEmail(ctx context.Context, email string) (*models.UserDB, error) {
+	const op = "AuthRepository.GetUserByEmail"
+	logger := logctx.GetLogger(ctx).WithField("op", op)
+
 	var user models.UserDB
 
 	if err := r.db.QueryRowContext(ctx, queryGetUserByEmail, email).Scan(
@@ -117,8 +151,10 @@ func (r *AuthRepository) GetUserByEmail(ctx context.Context, email string) (*mod
 		&user.UserVersion.UpdatedAt,
 	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, errs.NewNotFoundError("user with this email not found")
+			logger.Warn("user not found by email")
+			return nil, errs.NewNotFoundError(op)
 		}
+		logger.WithError(err).Error("get user by email")
 		return nil, err
 	}
 
@@ -128,6 +164,9 @@ func (r *AuthRepository) GetUserByEmail(ctx context.Context, email string) (*mod
 }
 
 func (r *AuthRepository) GetUserByID(ctx context.Context, id uuid.UUID) (*models.UserDB, error) {
+	const op = "AuthRepository.GetUserByID"
+	logger := logctx.GetLogger(ctx).WithField("op", op)
+
 	var user models.UserDB
 
 	err := r.db.QueryRowContext(ctx, queryGetUserByID, id).Scan(
@@ -146,9 +185,10 @@ func (r *AuthRepository) GetUserByID(ctx context.Context, id uuid.UUID) (*models
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, errs.ErrNotFound
+			logger.Warn("user not found by ID")
+			return nil, errs.NewNotFoundError(op)
 		}
-
+		logger.WithError(err).Error("get user by ID")
 		return nil, err
 	}
 
@@ -156,16 +196,23 @@ func (r *AuthRepository) GetUserByID(ctx context.Context, id uuid.UUID) (*models
 }
 
 func (r *AuthRepository) IncrementUserVersion(ctx context.Context, userID string) error {
+	const op = "AuthRepository.IncrementVersion"
+	logger := logctx.GetLogger(ctx).WithField("op", op)
+
 	res, err := r.db.ExecContext(ctx, queryIncrementUserVersion, userID)
 	if err != nil {
+		logger.WithError(err).Error("increment version")
 		return err
 	}
 
 	rowsAffected, err := res.RowsAffected()
 	if err != nil {
+		logger.WithError(err).Error("get rows affected")
 		return err
 	}
+
 	if rowsAffected == 0 {
+		logger.Warn("no rows affected when incrementing version")
 		return errs.NewNotFoundError("address not found")
 	}
 
@@ -173,9 +220,13 @@ func (r *AuthRepository) IncrementUserVersion(ctx context.Context, userID string
 }
 
 func (r *AuthRepository) CheckUserVersion(ctx context.Context, userID string, version int) bool {
+	const op = "AuthRepository.CheckUserVersion"
+	logger := logctx.GetLogger(ctx).WithField("op", op)
+
 	var currentVersion int
 
 	if err := r.db.QueryRowContext(ctx, queryGetUserVersion, userID).Scan(&currentVersion); err != nil {
+		logger.WithError(err).Error("check version")
 		return false
 	}
 
@@ -183,9 +234,13 @@ func (r *AuthRepository) CheckUserVersion(ctx context.Context, userID string, ve
 }
 
 func (r *AuthRepository) CheckUserExists(ctx context.Context, email string) (bool, error) {
+	const op = "AuthRepository.CheckUserExists"
+	logger := logctx.GetLogger(ctx).WithField("op", op)
+
 	var exists bool
 
 	if err := r.db.QueryRowContext(ctx, queryCheckUserExists, email).Scan(&exists); err != nil {
+		logger.WithError(err).Error("failed to check user existence")
 		return false, err
 	}
 

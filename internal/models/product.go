@@ -33,6 +33,7 @@ type Product struct {
 	Description     string        `json:"description,omitempty" db:"description"`
 	Status          ProductStatus `json:"status" db:"status"`
 	Price           float64       `json:"price" db:"price"`
+	PriceDiscount   float64  	  `json:"price_discount"`
 	Quantity        uint          `json:"quantity" db:"quantity"`
 	UpdatedAt       time.Time     `json:"updated_at" db:"updated_at"`
 	Rating          uint          `json:"rating,omitempty" db:"rating"`

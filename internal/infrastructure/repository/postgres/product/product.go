@@ -16,14 +16,19 @@ import (
 const (
 	queryGetAllProducts = `
 		SELECT p.id, p.seller_id, p.name, p.preview_image_url, p.description, 
-				p.status, p.price, p.quantity, p.updated_at, p.rating, p.reviews_count 
+				p.status, p.price, p.quantity, p.updated_at, p.rating, p.reviews_count,
+				d.discounted_price
 		FROM bazaar.product p 
+		LEFT JOIN bazaar.discount d ON p.id = d.product_id
 		WHERE p.status = 'approved'
 	`
 	queryGetProductByID = `
-		SELECT id, seller_id, name, preview_image_url, description, 
-				status, price, quantity, updated_at, rating, reviews_count 
-			FROM bazaar.product WHERE id = $1
+		SELECT p.id, p.seller_id, p.name, p.preview_image_url, p.description, 
+				p.status, p.price, p.quantity, p.updated_at, p.rating, p.reviews_count,
+				d.discounted_price
+		FROM bazaar.product p
+		LEFT JOIN bazaar.discount d ON p.id = d.product_id
+		WHERE p.id = $1
 	`
 	queryGetProductsByCategory = `
         SELECT p.id, p.seller_id, p.name, p.preview_image_url, p.description, 
@@ -59,6 +64,7 @@ func (p *ProductRepository) GetAllProducts(ctx context.Context) ([]*models.Produ
 	defer rows.Close()
 
 	for rows.Next() {
+		var priceDiscount sql.NullFloat64
 		product := &models.Product{}
 		err = rows.Scan(
 			&product.ID,
@@ -72,11 +78,13 @@ func (p *ProductRepository) GetAllProducts(ctx context.Context) ([]*models.Produ
 			&product.UpdatedAt,
 			&product.Rating,
 			&product.ReviewsCount,
+			&priceDiscount,
 		)
 		if err != nil {
 			logger.WithError(err).Error("scan product row")
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
+		product.PriceDiscount = priceDiscount.Float64
 		productsList = append(productsList, product)
 	}
 
@@ -94,6 +102,7 @@ func (p *ProductRepository) GetProductByID(ctx context.Context, id uuid.UUID) (*
     logger := logctx.GetLogger(ctx).WithField("op", op)
 	
 	product := &models.Product{}
+	var priceDiscount sql.NullFloat64
 	err := p.DB.QueryRowContext(ctx, queryGetProductByID, id).
 		Scan(
 			&product.ID,
@@ -107,6 +116,7 @@ func (p *ProductRepository) GetProductByID(ctx context.Context, id uuid.UUID) (*
 			&product.UpdatedAt,
 			&product.Rating,
 			&product.ReviewsCount,
+			&priceDiscount,
 		)
 
 	if err != nil {
@@ -117,6 +127,7 @@ func (p *ProductRepository) GetProductByID(ctx context.Context, id uuid.UUID) (*
         logger.WithError(err).Error("failed to get product by ID")
         return nil, fmt.Errorf("%s: %w", op, err)
 	}
+	product.PriceDiscount = priceDiscount.Float64
 
 	return product, nil
 }
