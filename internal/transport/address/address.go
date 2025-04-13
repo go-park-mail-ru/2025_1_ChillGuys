@@ -26,6 +26,19 @@ func NewAddressHandler(
 	}
 }
 
+// CreateAddress godoc
+//
+//	@Summary		Создание нового адреса
+//	@Description	Создает новый адрес для текущего пользователя
+//	@Tags			address
+//	@Accept			json
+//	@Produce		json
+//	@Param			address	body	dto.AddressDTO	true	"Данные адреса"
+//	@Success		201		"Адрес успешно создан"
+//	@Failure		400		{object}	object	"Неверный формат данных или ID пользователя"
+//	@Failure		401		{object}	object	"Пользователь не авторизован"
+//	@Failure		500		{object}	object	"Ошибка сервера при создании адреса"
+//	@Router			/api/v1/address [post]
 func (h *AddressHandler) CreateAddress(w http.ResponseWriter, r *http.Request) {
 	var createAddressReq dto.AddressDTO
 	if err := request.ParseData(r, &createAddressReq); err != nil {
@@ -53,6 +66,17 @@ func (h *AddressHandler) CreateAddress(w http.ResponseWriter, r *http.Request) {
 	response.SendJSONResponse(r.Context(), w, http.StatusCreated, nil)
 }
 
+// GetAddress godoc
+//
+//	@Summary		Получение списка адресов пользователя
+//	@Description	Возвращает все адреса текущего пользователя
+//	@Tags			address
+//	@Produce		json
+//	@Success		200	{object}	dto.AddressListResponse	"Успешный запрос"
+//	@Failure		400	{object}	object					"Неверный формат ID пользователя"
+//	@Failure		401	{object}	object					"Пользователь не авторизован"
+//	@Failure		500	{object}	object					"Ошибка сервера при получении адресов"
+//	@Router			/api/v1/address [get]
 func (h *AddressHandler) GetAddress(w http.ResponseWriter, r *http.Request) {
 	userIDStr, isExist := r.Context().Value(domains.UserIDKey{}).(string)
 	if !isExist {
@@ -76,11 +100,20 @@ func (h *AddressHandler) GetAddress(w http.ResponseWriter, r *http.Request) {
 		addresses = []dto.GetAddressResDTO{}
 	}
 
-	response.SendJSONResponse(r.Context(), w, http.StatusOK, map[string][]dto.GetAddressResDTO{
-		"addresses": addresses,
+	response.SendJSONResponse(r.Context(), w, http.StatusOK, dto.AddressListResponse{
+		Addresses: addresses,
 	})
 }
 
+// GetPickupPoints godoc
+//
+//	@Summary		Получение списка пунктов выдачи
+//	@Description	Возвращает все доступные пункты выдачи
+//	@Tags			address
+//	@Produce		json
+//	@Success		200	{object}	dto.PickupPointListResponse	"Успешный запрос"
+//	@Failure		500	{object}	object						"Ошибка сервера при получении пунктов выдачи"
+//	@Router			/api/v1/address/pickup-points [get]
 func (h *AddressHandler) GetPickupPoints(w http.ResponseWriter, r *http.Request) {
 	points, err := h.addressService.GetPickupPoints(r.Context())
 	if err != nil {
@@ -88,7 +121,7 @@ func (h *AddressHandler) GetPickupPoints(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	response.SendJSONResponse(r.Context(), w, http.StatusOK, map[string][]dto.GetPointAddressResDTO{
-		"pickupPoints": points,
+	response.SendJSONResponse(r.Context(), w, http.StatusOK, dto.PickupPointListResponse{
+		PickupPoints: points,
 	})
 }

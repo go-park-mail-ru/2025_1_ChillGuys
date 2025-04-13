@@ -94,11 +94,7 @@ func (mr *MockIUserUsecaseMockRecorder) UpdateUserProfile(arg0, arg1 interface{}
 }
 
 // UploadAvatar mocks base method.
-<<<<<<< HEAD
-func (m *MockIUserUsecase) UploadAvatar(arg0 context.Context, arg1 minio.FileDataType) (string, error) {
-=======
-func (m *MockIAuthUsecase) UploadAvatar(arg0 context.Context, arg1 minio.FileData) (string, error) {
->>>>>>> 2d4fb8dd0279e5702a7028c53ba069a2f3bb35ab
+func (m *MockIUserUsecase) UploadAvatar(arg0 context.Context, arg1 minio.FileData) (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UploadAvatar", arg0, arg1)
 	ret0, _ := ret[0].(string)

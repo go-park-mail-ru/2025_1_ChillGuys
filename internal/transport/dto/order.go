@@ -3,6 +3,7 @@ package dto
 import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 	"github.com/google/uuid"
+	"github.com/guregu/null"
 	"time"
 )
 
@@ -46,20 +47,20 @@ type GetOrderByUserIDResDTO struct {
 }
 
 type OrderPreviewDTO struct {
-	ID                 uuid.UUID                       `json:"id"`
-	Status             models.OrderStatus              `json:"status"`
-	TotalPrice         float64                         `json:"totalPrice"`
-	TotalDiscountPrice float64                         `json:"totalDiscountPrice"`
-	Products           []models.OrderPreviewProductDTO `json:"products"`
-	Address            models.AddressDB                `json:"address"`
-	ExpectedDeliveryAt *time.Time                      `json:"expectedDeliveryAt"`
-	ActualDeliveryAt   *time.Time                      `json:"actualDeliveryAt"`
-	CreatedAt          *time.Time                      `json:"createdAt,omitempty"`
+	ID                 uuid.UUID                `json:"id"`
+	Status             models.OrderStatus       `json:"status"`
+	TotalPrice         float64                  `json:"totalPrice"`
+	TotalDiscountPrice float64                  `json:"totalDiscountPrice"`
+	Products           []OrderPreviewProductDTO `json:"products"`
+	Address            models.AddressDB         `json:"address"`
+	ExpectedDeliveryAt *time.Time               `json:"expectedDeliveryAt"`
+	ActualDeliveryAt   *time.Time               `json:"actualDeliveryAt"`
+	CreatedAt          *time.Time               `json:"createdAt,omitempty"`
 }
 
 func (orderItem *GetOrderByUserIDResDTO) ConvertToGetOrderByUserIDResDTO(
 	address *models.AddressDB,
-	products []models.OrderPreviewProductDTO,
+	products []OrderPreviewProductDTO,
 ) OrderPreviewDTO {
 	return OrderPreviewDTO{
 		ID:                 orderItem.ID,
@@ -74,4 +75,13 @@ func (orderItem *GetOrderByUserIDResDTO) ConvertToGetOrderByUserIDResDTO(
 type GetOrderProductResDTO struct {
 	ProductID uuid.UUID `json:"productID"`
 	Quantity  uint      `json:"quantity"`
+}
+
+type OrderListResponse struct {
+	Orders []OrderPreviewDTO `json:"orders"`
+}
+
+type OrderPreviewProductDTO struct {
+	ProductImageURL null.String `json:"ProductImageURL" swaggertype:"primitive,string"`
+	ProductQuantity uint
 }

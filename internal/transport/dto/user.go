@@ -15,8 +15,8 @@ type UserDTO struct {
 }
 
 type UpdateUserProfileRequestDTO struct {
-	Name        null.String `json:"name,omitempty"`
-	Surname     null.String `json:"surname,omitempty"`
+	Name        null.String `json:"name,omitempty" swaggertype:"primitive,string"`
+	Surname     null.String `json:"surname,omitempty" swaggertype:"primitive,string"`
 	PhoneNumber null.String `json:"phoneNumber,omitempty" swaggertype:"primitive,string"`
 }
 

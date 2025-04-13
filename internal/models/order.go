@@ -3,7 +3,6 @@ package models
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/guregu/null"
 )
 
 type OrderStatus int
@@ -86,9 +85,4 @@ func ParseOrderStatus(s string) (OrderStatus, error) {
 
 func (s OrderStatus) MarshalJSON() ([]byte, error) {
 	return json.Marshal(s.String())
-}
-
-type OrderPreviewProductDTO struct {
-	ProductImageURL null.String
-	ProductQuantity uint
 }

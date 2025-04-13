@@ -9,163 +9,120 @@
     "host": "90.156.217.63:8081",
     "basePath": "/api/v1",
     "paths": {
-        "/api/v1/basket": {
+        "/api/v1/address": {
             "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Возвращает все товары в корзине пользователя",
+                "description": "Возвращает все адреса текущего пользователя",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "basket"
+                    "address"
                 ],
-                "summary": "Получить содержимое корзины",
+                "summary": "Получение списка адресов пользователя",
                 "responses": {
                     "200": {
-                        "description": "Содержимое корзины",
+                        "description": "Успешный запрос",
                         "schema": {
-                            "$ref": "#/definitions/dto.BasketResponse"
+                            "$ref": "#/definitions/dto.AddressListResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Неверный формат ID пользователя",
+                        "schema": {
+                            "type": "object"
                         }
                     },
                     "401": {
                         "description": "Пользователь не авторизован",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Корзина не найдена",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "type": "object"
                         }
                     },
                     "500": {
-                        "description": "Ошибка сервера",
+                        "description": "Ошибка сервера при получении адресов",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "type": "object"
                         }
                     }
                 }
-            }
-        },
-        "/api/v1/basket/{id}": {
+            },
             "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
+                "description": "Создает новый адрес для текущего пользователя",
+                "consumes": [
+                    "application/json"
                 ],
-                "description": "Добавляет товар в корзину пользователя или увеличивает количество, если товар уже есть",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "basket"
+                    "address"
                 ],
-                "summary": "Добавить товар в корзину",
+                "summary": "Создание нового адреса",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "ID товара",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
+                        "description": "Данные адреса",
+                        "name": "address",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.AddressDTO"
+                        }
                     }
                 ],
                 "responses": {
                     "201": {
-                        "description": "Добавленный товар",
-                        "schema": {
-                            "$ref": "#/definitions/models.BasketItem"
-                        }
+                        "description": "Адрес успешно создан"
                     },
                     "400": {
-                        "description": "Некорректный ID",
+                        "description": "Неверный формат данных или ID пользователя",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "type": "object"
                         }
                     },
                     "401": {
                         "description": "Пользователь не авторизован",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Товар не найден",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "type": "object"
                         }
                     },
                     "500": {
-                        "description": "Ошибка сервера",
+                        "description": "Ошибка сервера при создании адреса",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "type": "object"
                         }
                     }
                 }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
+            }
+        },
+        "/api/v1/address/pickup-points": {
+            "get": {
+                "description": "Возвращает все доступные пункты выдачи",
+                "produces": [
+                    "application/json"
                 ],
-                "description": "Удаляет товар из корзины пользователя",
                 "tags": [
-                    "basket"
+                    "address"
                 ],
-                "summary": "Удалить товар из корзины",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "ID товара",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
+                "summary": "Получение списка пунктов выдачи",
                 "responses": {
-                    "204": {
-                        "description": "Товар успешно удалён"
-                    },
-                    "400": {
-                        "description": "Некорректный ID",
+                    "200": {
+                        "description": "Успешный запрос",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Пользователь не авторизован",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Товар не найден в корзине",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/dto.PickupPointListResponse"
                         }
                     },
                     "500": {
-                        "description": "Внутренняя ошибка сервера",
+                        "description": "Ошибка сервера при получении пунктов выдачи",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "type": "object"
                         }
                     }
                 }
-            },
-            "patch": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Изменяет количество указанного товара в корзине",
+            }
+        },
+        "/api/v1/auth/login": {
+            "post": {
+                "description": "Авторизует пользователя и устанавливает JWT-токен в cookies",
                 "consumes": [
                     "application/json"
                 ],
@@ -173,148 +130,89 @@
                     "application/json"
                 ],
                 "tags": [
-                    "basket"
+                    "auth"
                 ],
-                "summary": "Обновить количество товара",
+                "summary": "Авторизация пользователя",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "ID товара",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Новое количество",
-                        "name": "quantity",
+                        "description": "Данные для входа",
+                        "name": "credentials",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.UpdateQuantityRequest"
+                            "$ref": "#/definitions/dto.UserLoginRequestDTO"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Обновленный товар",
-                        "schema": {
-                            "$ref": "#/definitions/models.BasketItem"
-                        }
-                    },
-                    "400": {
-                        "description": "Некорректные данные",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Пользователь не авторизован",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Товар не найден",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Ошибка сервера",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/products/category/{id}": {
-            "get": {
-                "description": "Возвращает список всех одобренных товаров, принадлежащих указанной категории.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "products"
-                ],
-                "summary": "Получить товары по категории",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "UUID категории в формате строки",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Успешный запрос. Возвращает массив товаров.",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.Product"
+                        "description": "Успешная авторизация",
+                        "headers": {
+                            "Set-Cookie": {
+                                "type": "string",
+                                "description": "JWT-токен авторизации"
                             }
                         }
                     },
                     "400": {
-                        "description": "Неверный формат UUID категории",
+                        "description": "Ошибка валидации данных",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "type": "object"
                         }
                     },
-                    "404": {
-                        "description": "Категория не найдена",
+                    "401": {
+                        "description": "Неверные email или пароль",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "type": "object"
                         }
                     },
                     "500": {
                         "description": "Внутренняя ошибка сервера",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "type": "object"
                         }
                     }
                 }
             }
         },
-        "/auth/logout": {
+        "/api/v1/auth/logout": {
             "post": {
-                "security": [
-                    {
-                        "TokenAuth": []
-                    }
+                "description": "Завершает сеанс пользователя и удаляет JWT-токен из cookies",
+                "produces": [
+                    "application/json"
                 ],
-                "description": "Выход пользователя",
                 "tags": [
                     "auth"
                 ],
-                "summary": "Logout user",
+                "summary": "Выход из системы",
                 "responses": {
                     "200": {
-                        "description": "No Content",
-                        "schema": {
-                            "type": ""
+                        "description": "Успешный выход из системы",
+                        "headers": {
+                            "Set-Cookie": {
+                                "type": "string",
+                                "description": "Очищает JWT-токен (устанавливает пустое значение с истекшим сроком)"
+                            }
                         }
                     },
                     "401": {
-                        "description": "Пользователь не найден",
+                        "description": "Пользователь не авторизован",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "type": "object"
                         }
                     },
                     "500": {
-                        "description": "Ошибка сервера",
+                        "description": "Внутренняя ошибка сервера",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "type": "object"
                         }
                     }
                 }
             }
         },
-        "/auth/register": {
+        "/api/v1/auth/register": {
             "post": {
-                "description": "Создает нового пользователя, хеширует пароль и устанавливает JWT-токен в куки",
+                "description": "Создает нового пользователя и устанавливает JWT-токен в cookies",
                 "consumes": [
                     "application/json"
                 ],
@@ -324,11 +222,11 @@
                 "tags": [
                     "auth"
                 ],
-                "summary": "Register user",
+                "summary": "Регистрация пользователя",
                 "parameters": [
                     {
                         "description": "Данные для регистрации",
-                        "name": "input",
+                        "name": "userData",
                         "in": "body",
                         "required": true,
                         "schema": {
@@ -338,70 +236,36 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "No Content",
-                        "schema": {
-                            "type": ""
-                        },
+                        "description": "Успешная регистрация",
                         "headers": {
-                            "Set-Set": {
+                            "Set-Cookie": {
                                 "type": "string",
-                                "description": "Устанавливает JWT-токен в куки"
+                                "description": "JWT-токен авторизации"
                             }
                         }
                     },
                     "400": {
-                        "description": "Некорректный запрос",
+                        "description": "Некорректные данные",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "type": "object"
                         }
                     },
                     "409": {
                         "description": "Пользователь уже существует",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "type": "object"
                         }
                     },
                     "500": {
                         "description": "Внутренняя ошибка сервера",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "type": "object"
                         }
                     }
                 }
             }
         },
-        "/basket": {
-            "delete": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Полностью удаляет все товары из корзины пользователя",
-                "tags": [
-                    "basket"
-                ],
-                "summary": "Очистить корзину",
-                "responses": {
-                    "204": {
-                        "description": "Корзина успешно очищена"
-                    },
-                    "401": {
-                        "description": "Пользователь не авторизован",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Ошибка сервера",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/categories": {
+        "/api/v1/categories": {
             "get": {
                 "description": "Возвращает список всех доступных категорий товаров",
                 "produces": [
@@ -413,134 +277,64 @@
                 "summary": "Получить все категории",
                 "responses": {
                     "200": {
-                        "description": "Список категорий",
+                        "description": "OK",
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.Category"
+                                "$ref": "#/definitions/dto.CategoryResponse"
                             }
                         }
                     },
                     "500": {
-                        "description": "Внутренняя ошибка сервера",
+                        "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "type": "object"
                         }
                     }
                 }
             }
         },
-        "/files/{objectID}": {
+        "/api/v1/orders": {
             "get": {
-                "description": "Возвращает URL для доступа к файлу в MinIO",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "files"
-                ],
-                "summary": "Получить файл по ID",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "ID объекта в MinIO",
-                        "name": "objectID",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Ссылка на файл",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Неверный ID объекта",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Файл не найден",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Ошибка сервера",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/order": {
-            "post": {
-                "description": "Создает новый заказ для пользователя",
-                "consumes": [
-                    "application/json"
-                ],
+                "description": "Возвращает список всех заказов текущего пользователя",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "order"
                 ],
-                "summary": "Create new order",
-                "parameters": [
-                    {
-                        "description": "Данные для создания заказа",
-                        "name": "input",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.CreateOrderDTO"
-                        }
-                    }
-                ],
+                "summary": "Получить список заказов",
                 "responses": {
                     "200": {
-                        "description": "Order successfully created",
+                        "description": "Список заказов",
                         "schema": {
-                            "type": ""
+                            "$ref": "#/definitions/dto.OrderListResponse"
                         }
                     },
                     "400": {
-                        "description": "Некорректный запрос",
+                        "description": "Некорректный ID пользователя",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "type": "object"
                         }
                     },
                     "401": {
-                        "description": "Пользователь не найден в контексте",
+                        "description": "Пользователь не авторизован",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Ошибка при создании заказа",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "type": "object"
                         }
                     },
                     "500": {
                         "description": "Внутренняя ошибка сервера",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "type": "object"
                         }
                     }
                 }
             }
         },
-        "/products": {
+        "/api/v1/products": {
             "get": {
-                "description": "Возвращает список всех продуктов",
+                "description": "Возвращает список всех доступных продуктов",
                 "produces": [
                     "application/json"
                 ],
@@ -550,7 +344,7 @@
                 "summary": "Получить все продукты",
                 "responses": {
                     "200": {
-                        "description": "Список продуктов",
+                        "description": "OK",
                         "schema": {
                             "type": "array",
                             "items": {
@@ -559,17 +353,116 @@
                         }
                     },
                     "500": {
-                        "description": "Ошибка сервера",
+                        "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "type": "object"
                         }
                     }
                 }
             }
         },
-        "/products/upload": {
+        "/api/v1/products/category/{id}": {
+            "get": {
+                "description": "Возвращает список товаров указанной категории, отсортированных по дате обновления (новые сначала)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "products"
+                ],
+                "summary": "Получить товары по категории",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID категории",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Product"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный формат UUID",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "404": {
+                        "description": "Категория не найдена",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/products/list": {
             "post": {
-                "description": "Загружает один файл в хранилище MinIO",
+                "description": "Возвращает список товаров по переданным идентификаторам",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "products"
+                ],
+                "summary": "Получить товары по списку ID",
+                "parameters": [
+                    {
+                        "description": "Список ID товаров",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.GetProductsByIDRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Product"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректные данные",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/products/upload": {
+            "post": {
+                "description": "Загружает изображение товара в хранилище MinIO",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -579,11 +472,11 @@
                 "tags": [
                     "products"
                 ],
-                "summary": "Загрузить файл в MinIO",
+                "summary": "Загрузить изображение товара",
                 "parameters": [
                     {
                         "type": "file",
-                        "description": "Файл для загрузки",
+                        "description": "Изображение товара",
                         "name": "file",
                         "in": "formData",
                         "required": true
@@ -591,7 +484,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Информация о загруженном файле",
+                        "description": "URL загруженного изображения",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -600,23 +493,23 @@
                         }
                     },
                     "400": {
-                        "description": "Ошибка в запросе",
+                        "description": "Ошибка в данных запроса",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "type": "object"
                         }
                     },
                     "500": {
-                        "description": "Ошибка сервера",
+                        "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "type": "object"
                         }
                     }
                 }
             }
         },
-        "/products/{id}": {
+        "/api/v1/products/{id}": {
             "get": {
-                "description": "Возвращает продукт по его ID",
+                "description": "Возвращает детальную информацию о продукте по его ID",
                 "produces": [
                     "application/json"
                 ],
@@ -627,7 +520,7 @@
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "ID продукта",
+                        "description": "UUID продукта",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -635,116 +528,21 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Информация о продукте",
+                        "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/models.Product"
                         }
                     },
                     "400": {
-                        "description": "Некорректный ID",
+                        "description": "Некорректный формат UUID",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "type": "object"
                         }
                     },
                     "404": {
                         "description": "Продукт не найден",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/users/avatar": {
-            "post": {
-                "security": [
-                    {
-                        "TokenAuth": []
-                    }
-                ],
-                "description": "Загружает аватар пользователя",
-                "consumes": [
-                    "multipart/form-data"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "users"
-                ],
-                "summary": "Upload avatar",
-                "parameters": [
-                    {
-                        "type": "file",
-                        "description": "Файл изображения",
-                        "name": "file",
-                        "in": "formData",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "URL загруженного аватара",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Ошибка при обработке формы",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Ошибка загрузки файла",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/users/me": {
-            "get": {
-                "security": [
-                    {
-                        "TokenAuth": []
-                    }
-                ],
-                "description": "Получение информации о текущем пользователе",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "users"
-                ],
-                "summary": "Get user info",
-                "responses": {
-                    "200": {
-                        "description": "Информация о пользователе",
-                        "schema": {
-                            "$ref": "#/definitions/models.User"
-                        }
-                    },
-                    "400": {
-                        "description": "Некорректный запрос",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Пользователь не найден",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Ошибка сервера",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "type": "object"
                         }
                     }
                 }
@@ -752,39 +550,176 @@
         }
     },
     "definitions": {
-        "dto.BasketResponse": {
+        "dto.AddressDTO": {
             "type": "object",
             "properties": {
-                "products": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.BasketItem"
-                    }
+                "addressString": {
+                    "type": "string"
                 },
-                "total": {
-                    "type": "integer"
+                "city": {
+                    "type": "string"
                 },
-                "total_price": {
-                    "type": "number"
+                "coordinate": {
+                    "type": "string"
                 },
-                "total_price_discount": {
-                    "type": "number"
-                }
-            }
-        },
-        "dto.ErrorResponse": {
-            "type": "object",
-            "properties": {
-                "message": {
+                "id": {
+                    "type": "string"
+                },
+                "label": {
+                    "type": "string"
+                },
+                "region": {
                     "type": "string"
                 }
             }
         },
-        "dto.UpdateQuantityRequest": {
+        "dto.AddressListResponse": {
             "type": "object",
             "properties": {
-                "quantity": {
+                "addresses": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.GetAddressResDTO"
+                    }
+                }
+            }
+        },
+        "dto.CategoryResponse": {
+            "type": "object",
+            "properties": {
+                "categories": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Category"
+                    }
+                },
+                "total": {
                     "type": "integer"
+                }
+            }
+        },
+        "dto.GetAddressResDTO": {
+            "type": "object",
+            "properties": {
+                "addressString": {
+                    "type": "string"
+                },
+                "coordinate": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "label": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.GetPointAddressResDTO": {
+            "type": "object",
+            "properties": {
+                "addressString": {
+                    "type": "string"
+                },
+                "coordinate": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.GetProductsByIDRequest": {
+            "type": "object",
+            "required": [
+                "productIDs"
+            ],
+            "properties": {
+                "productIDs": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "dto.OrderListResponse": {
+            "type": "object",
+            "properties": {
+                "orders": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.OrderPreviewDTO"
+                    }
+                }
+            }
+        },
+        "dto.OrderPreviewDTO": {
+            "type": "object",
+            "properties": {
+                "actualDeliveryAt": {
+                    "type": "string"
+                },
+                "address": {
+                    "$ref": "#/definitions/models.AddressDB"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "expectedDeliveryAt": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "products": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.OrderPreviewProductDTO"
+                    }
+                },
+                "status": {
+                    "$ref": "#/definitions/models.OrderStatus"
+                },
+                "totalDiscountPrice": {
+                    "type": "number"
+                },
+                "totalPrice": {
+                    "type": "number"
+                }
+            }
+        },
+        "dto.OrderPreviewProductDTO": {
+            "type": "object",
+            "properties": {
+                "ProductImageURL": {
+                    "type": "string"
+                },
+                "productQuantity": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.PickupPointListResponse": {
+            "type": "object",
+            "properties": {
+                "pickupPoints": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.GetPointAddressResDTO"
+                    }
+                }
+            }
+        },
+        "dto.UserLoginRequestDTO": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
                 }
             }
         },
@@ -805,34 +740,22 @@
                 }
             }
         },
-        "models.BasketItem": {
+        "models.AddressDB": {
             "type": "object",
             "properties": {
-                "basket_id": {
+                "addressString": {
+                    "type": "string"
+                },
+                "city": {
+                    "type": "string"
+                },
+                "coordinate": {
                     "type": "string"
                 },
                 "id": {
                     "type": "string"
                 },
-                "price_discount": {
-                    "type": "number"
-                },
-                "product_id": {
-                    "type": "string"
-                },
-                "product_image": {
-                    "type": "string"
-                },
-                "product_name": {
-                    "type": "string"
-                },
-                "product_price": {
-                    "type": "number"
-                },
-                "quantity": {
-                    "type": "integer"
-                },
-                "updated_at": {
+                "region": {
                     "type": "string"
                 }
             }
@@ -848,39 +771,68 @@
                 }
             }
         },
-        "models.CreateOrderDTO": {
-            "type": "object",
-            "properties": {
-                "address_id": {
-                    "type": "string"
-                },
-                "items": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.CreateOrderItemDTO"
-                    }
-                },
-                "userID": {
-                    "type": "string"
-                }
-            }
-        },
-        "models.CreateOrderItemDTO": {
-            "type": "object",
-            "properties": {
-                "id": {
-                    "type": "string"
-                },
-                "product_id": {
-                    "type": "string"
-                },
-                "product_price": {
-                    "type": "number"
-                },
-                "quantity": {
-                    "type": "integer"
-                }
-            }
+        "models.OrderStatus": {
+            "type": "integer",
+            "enum": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9,
+                10,
+                11,
+                12,
+                13,
+                14,
+                15,
+                16,
+                17
+            ],
+            "x-enum-comments": {
+                "AwaitingConfirmation": "Ожидает подтверждения",
+                "AwaitingPayment": "Ожидает оплаты",
+                "BeingPrepared": "Готовится",
+                "Canceled": "Отменен",
+                "CanceledBySeller": "Отменен продавцом",
+                "CanceledByUser": "Отменен пользователем",
+                "CanceledDueToPaymentError": "Отменен из-за ошибки платежа",
+                "Delivered": "Доставлен",
+                "DeliveredToPickupPoint": "Доставлен в пункт самовывоза",
+                "InTransit": "В пути",
+                "Paid": "Оплачено (опечатка в оригинале: должно быть Paid)",
+                "PaymentFailed": "Платеж не удался",
+                "Placed": "Оформлен",
+                "ReturnCompleted": "Возврат завершен",
+                "ReturnInitiated": "Возврат инициирован",
+                "ReturnProcessed": "Возврат обработан",
+                "ReturnRequested": "Возврат запрашивается",
+                "Shipped": "Отправлен"
+            },
+            "x-enum-varnames": [
+                "Placed",
+                "AwaitingConfirmation",
+                "BeingPrepared",
+                "Shipped",
+                "InTransit",
+                "DeliveredToPickupPoint",
+                "Delivered",
+                "Canceled",
+                "AwaitingPayment",
+                "Paid",
+                "PaymentFailed",
+                "ReturnRequested",
+                "ReturnProcessed",
+                "ReturnInitiated",
+                "ReturnCompleted",
+                "CanceledByUser",
+                "CanceledBySeller",
+                "CanceledDueToPaymentError"
+            ]
         },
         "models.Product": {
             "type": "object",
@@ -898,6 +850,9 @@
                     "type": "string"
                 },
                 "price": {
+                    "type": "number"
+                },
+                "price_discount": {
                     "type": "number"
                 },
                 "quantity": {
@@ -937,29 +892,6 @@
                 "ProductRejected",
                 "ProductApproved"
             ]
-        },
-        "models.User": {
-            "type": "object",
-            "properties": {
-                "email": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "imageURL": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "phoneNumber": {
-                    "type": "string"
-                },
-                "surname": {
-                    "type": "string"
-                }
-            }
         }
     },
     "securityDefinitions": {
