@@ -2,133 +2,54 @@ package user
 
 import (
 	"context"
+	"fmt"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/minio"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/domains"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/cookie"
-	"time"
-
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/auth"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/helpers"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
-
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
+	"strings"
 )
 
-type ITokenator interface {
-	CreateJWT(userID string, version int) (string, error)
-	ParseJWT(tokenString string) (*jwt.JWTClaims, error)
-}
-
-//go:generate mockgen -source=user.go -destination=../../infrastructure/repository/postgres/mocks/user_repository_mock.go -package=mocks IProductRepository
+//go:generate mockgen -source=user.go -destination=../../infrastructure/repository/postgres/mocks/user_repository_mock.go -package=mocks IUserRepository
 type IUserRepository interface {
-	CreateUser(context.Context, models.UserDB) error
 	GetUserByEmail(context.Context, string) (*models.UserDB, error)
 	GetUserByID(context.Context, uuid.UUID) (*models.UserDB, error)
-	IncrementUserVersion(context.Context, string) error
-	GetUserCurrentVersion(context.Context, string) (int, error)
-	CheckUserVersion(context.Context, string, int) bool
-	CheckUserExists(context.Context, string) (bool, error)
 	UpdateUserImageURL(context.Context, uuid.UUID, string) error
+	UpdateUserProfile(context.Context, uuid.UUID, models.UpdateUserDB) error
+	UpdateUserEmail(context.Context, uuid.UUID, string) error
+	UpdateUserPassword(context.Context, uuid.UUID, []byte) error
 }
 
-type AuthUsecase struct {
+type UserUsecase struct {
 	log          *logrus.Logger
-	token        ITokenator
+	token        auth.ITokenator
 	repo         IUserRepository
-	minioService minio.Client
+	minioService minio.Provider
 }
 
-func NewAuthUsecase(repo IUserRepository, token ITokenator, log *logrus.Logger, minioService minio.Client) *AuthUsecase {
-	return &AuthUsecase{
+func NewUserUsecase(repo IUserRepository, token auth.ITokenator, log *logrus.Logger, minioService minio.Provider) *UserUsecase {
+	return &UserUsecase{
 		repo:         repo,
 		token:        token,
-		log:          log,
 		minioService: minioService,
 	}
 }
 
-func (u *AuthUsecase) Register(ctx context.Context, user models.UserRegisterRequestDTO) (string, error) {
-	passwordHash, err := GeneratePasswordHash(user.Password)
-	if err != nil {
-		return "", err
-	}
-
-	existed, err := u.repo.CheckUserExists(ctx, user.Email)
-	if err != nil {
-		return "", err
-	}
-	if existed {
-		return "", errs.ErrUserAlreadyExists
-	}
-
-	userID := uuid.New()
-	userDB := models.UserDB{
-		ID:           userID,
-		Email:        user.Email,
-		Name:         user.Name,
-		Surname:      user.Surname,
-		PasswordHash: passwordHash,
-		UserVersion: models.UserVersionDB{
-			ID:        uuid.New(),
-			UserID:    userID,
-			Version:   1,
-			UpdatedAt: time.Now(),
-		},
-	}
-
-	if err = u.repo.CreateUser(ctx, userDB); err != nil {
-		return "", err
-	}
-
-	token, err := u.token.CreateJWT(userDB.ID.String(), userDB.UserVersion.Version)
-	if err != nil {
-		return "", err
-	}
-
-	return token, nil
-}
-
-func (u *AuthUsecase) Login(ctx context.Context, user models.UserLoginRequestDTO) (string, error) {
-	userDB, err := u.repo.GetUserByEmail(ctx, user.Email)
-	if err != nil {
-		return "", err
-	}
-
-	if err := bcrypt.CompareHashAndPassword(userDB.PasswordHash, []byte(user.Password)); err != nil {
-		return "", errs.ErrInvalidCredentials
-	}
-
-	token, err := u.token.CreateJWT(userDB.ID.String(), userDB.UserVersion.Version)
-	if err != nil {
-		return "", err
-	}
-
-	return token, nil
-}
-
-func (u *AuthUsecase) Logout(ctx context.Context) error {
-	userID, isExist := ctx.Value(cookie.UserIDKey).(string)
+func (u *UserUsecase) GetMe(ctx context.Context) (*dto.UserDTO, error) {
+	userIDStr, isExist := ctx.Value(domains.UserIDKey{}).(string)
 	if !isExist {
-		return errs.ErrUserNotFound
-	}
-
-	if err := u.repo.IncrementUserVersion(ctx, userID); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (u *AuthUsecase) GetMe(ctx context.Context) (*models.User, error) {
-	userIDStr, isExist := ctx.Value(cookie.UserIDKey).(string)
-	if !isExist {
-		return nil, errs.ErrUserNotFound
+		return nil, errs.ErrNotFound
 	}
 
 	userID, err := uuid.Parse(userIDStr)
 	if err != nil {
-		return nil, errs.ErrInvalidUserID
+		return nil, errs.ErrInvalidID
 	}
 
 	userRepo, err := u.repo.GetUserByID(ctx, userID)
@@ -137,27 +58,35 @@ func (u *AuthUsecase) GetMe(ctx context.Context) (*models.User, error) {
 	}
 
 	user := userRepo.ConvertToUser()
+
 	if user == nil {
-		return nil, errs.ErrUserNotFound
+		return nil, errs.ErrNotFound
 	}
 
-	return user, nil
+	return &dto.UserDTO{
+		ID:          user.ID,
+		Email:       user.Email,
+		Name:        user.Name,
+		Surname:     user.Surname,
+		ImageURL:    user.ImageURL,
+		PhoneNumber: user.PhoneNumber,
+	}, nil
 }
 
-func (u *AuthUsecase) UploadAvatar(ctx context.Context, fileData minio.FileDataType) (string, error) {
-	userIDStr, isExist := ctx.Value(cookie.UserIDKey).(string)
+func (u *UserUsecase) UploadAvatar(ctx context.Context, fileData minio.FileData) (string, error) {
+	userIDStr, isExist := ctx.Value(domains.UserIDKey{}).(string)
 	if !isExist {
-		return "", errs.ErrUserNotFound
+		return "", errs.ErrNotFound
 	}
 
 	userID, err := uuid.Parse(userIDStr)
 	if err != nil {
-		return "", errs.ErrInvalidUserID
+		return "", errs.ErrInvalidID
 	}
 
 	avatar, err := u.minioService.CreateOne(ctx, fileData)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("%s", err)
 	}
 
 	if err = u.repo.UpdateUserImageURL(ctx, userID, avatar.URL); err != nil {
@@ -167,7 +96,81 @@ func (u *AuthUsecase) UploadAvatar(ctx context.Context, fileData minio.FileDataT
 	return avatar.URL, nil
 }
 
-// GeneratePasswordHash Генерация хэша пароля
-func GeneratePasswordHash(password string) ([]byte, error) {
-	return bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
+func (u *UserUsecase) UpdateUserProfile(ctx context.Context, user dto.UpdateUserProfileRequestDTO) error {
+	userIDStr, isExist := ctx.Value(domains.UserIDKey{}).(string)
+	if !isExist {
+		return errs.ErrNotFound
+	}
+
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		return errs.ErrInvalidID
+	}
+
+	currentUser, err := u.repo.GetUserByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	userDB := models.UpdateUserDB{}
+
+	if user.Name.Valid && strings.TrimSpace(user.Name.String) != "" {
+		userDB.Name = user.Name.String
+	} else {
+		userDB.Name = currentUser.Name
+	}
+
+	if user.Surname.Valid && strings.TrimSpace(user.Surname.String) != "" {
+		userDB.Surname = user.Surname
+	} else {
+		userDB.Surname = currentUser.Surname
+	}
+
+	if user.PhoneNumber.Valid && strings.TrimSpace(user.PhoneNumber.String) != "" {
+		userDB.PhoneNumber = user.PhoneNumber
+	} else {
+		userDB.PhoneNumber = currentUser.PhoneNumber
+	}
+
+	return u.repo.UpdateUserProfile(ctx, userID, userDB)
+}
+
+func (u *UserUsecase) UpdateUserEmail(ctx context.Context, user dto.UpdateUserEmailDTO) error {
+	userID, err := helpers.GetUserIDFromContext(ctx)
+	if err != nil {
+		return errs.ErrInvalidID
+	}
+
+	userDB, err := u.repo.GetUserByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+	if err := bcrypt.CompareHashAndPassword(userDB.PasswordHash, []byte(user.Password)); err != nil {
+		return errs.ErrInvalidCredentials
+	}
+
+	return u.repo.UpdateUserEmail(ctx, userID, user.Email)
+}
+
+func (u *UserUsecase) UpdateUserPassword(ctx context.Context, user dto.UpdateUserPasswordDTO) error {
+	userID, err := helpers.GetUserIDFromContext(ctx)
+	if err != nil {
+		return errs.ErrInvalidID
+	}
+
+	userRepo, err := u.repo.GetUserByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	if err := bcrypt.CompareHashAndPassword(userRepo.PasswordHash, []byte(user.OldPassword)); err != nil {
+		return errs.ErrInvalidCredentials
+	}
+
+	passwordHash, err := auth.GeneratePasswordHash(user.NewPassword)
+	if err != nil {
+		return err
+	}
+
+	return u.repo.UpdateUserPassword(ctx, userID, passwordHash)
 }

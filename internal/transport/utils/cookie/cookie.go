@@ -1,30 +1,51 @@
 package cookie
 
 import (
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
+	"log"
 	"net/http"
 	"time"
-
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
 )
 
-type CookieKeys string
+type CookieProvider struct {
+	cfg *config.Config
+}
 
-const (
-	Token     CookieKeys = "token"
-	UserIDKey            = "userID"
-)
+func NewCookieProvider(cfg *config.Config) *CookieProvider {
+	if cfg == nil || cfg.JWTConfig == nil {
+		log.Println("Warning: nil config or JWTConfig provided to CookieProvider")
+	}
+	return &CookieProvider{cfg: cfg}
+}
 
-func Cookie(w http.ResponseWriter, token, name string) {
-	// Создаём cookie с переданными параметрами
-	SSCookie := &http.Cookie{
-		Name:     name,                                    // Имя куки
-		Value:    token,                                   // Значение токена
-		Path:     "/",                                     // Путь, для которого кука действительна
-		SameSite: http.SameSiteStrictMode,                 // Политика SameSite
-		HttpOnly: true,                                    // Доступность куки только для HTTP-запросов
-		Expires:  time.Now().UTC().Add(jwt.TokenLifeSpan), // Время жизни куки
+func (cp *CookieProvider) Set(w http.ResponseWriter, token, name string) {
+	if token == "" {
+		log.Println("Warning: empty token for cookie", name)
+		return
 	}
 
-	// Устанавливаем куку в ответ
-	http.SetCookie(w, SSCookie)
+	tokenLifeSpan := 24 * time.Hour
+	if cp.cfg != nil && cp.cfg.JWTConfig != nil {
+		tokenLifeSpan = cp.cfg.JWTConfig.TokenLifeSpan
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     name,
+		Value:    token,
+		Path:     "/",
+		SameSite: http.SameSiteStrictMode,
+		HttpOnly: true,
+		Expires:  time.Now().UTC().Add(tokenLifeSpan),
+	})
+}
+
+func (cp *CookieProvider) Unset(w http.ResponseWriter, name string) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     name,
+		Value:    "",
+		Path:     "/",
+		Expires:  time.Now().UTC().AddDate(0, 0, -1),
+		HttpOnly: true,
+		Secure:   true,
+	})
 }

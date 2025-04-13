@@ -1,18 +1,16 @@
-package tests_test
+package tests
 
 import (
 	"context"
 	"errors"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/mocks"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/product"
 	"testing"
 
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/product"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
-
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 )
 
 func TestProductUsecase_GetAllProducts(t *testing.T) {
@@ -20,43 +18,38 @@ func TestProductUsecase_GetAllProducts(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockRepo := mocks.NewMockIProductRepository(ctrl)
-	logger := logrus.New()
-	uc := product.NewProductUsecase(logger, mockRepo)
+	uc := product.NewProductUsecase(mockRepo)
 
-	t.Run("Success", func(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
 		expectedProducts := []*models.Product{
 			{
-				ID:   uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"),
+				ID:   uuid.New(),
 				Name: "Product 1",
 			},
 			{
-				ID:   uuid.MustParse("550e8400-e29b-41d4-a716-446655440002"),
+				ID:   uuid.New(),
 				Name: "Product 2",
 			},
 		}
 
 		mockRepo.EXPECT().
 			GetAllProducts(gomock.Any()).
-			Return(expectedProducts, nil).
-			Times(1)
+			Return(expectedProducts, nil)
 
 		products, err := uc.GetAllProducts(context.Background())
-
 		assert.NoError(t, err)
 		assert.Equal(t, expectedProducts, products)
 	})
 
-	t.Run("RepositoryError", func(t *testing.T) {
+	t.Run("repository error", func(t *testing.T) {
 		mockRepo.EXPECT().
 			GetAllProducts(gomock.Any()).
-			Return(nil, errors.New("infrastructure error")).
-			Times(1)
+			Return(nil, errors.New("repository error"))
 
 		products, err := uc.GetAllProducts(context.Background())
-
 		assert.Error(t, err)
 		assert.Nil(t, products)
-		assert.Contains(t, err.Error(), "infrastructure error")
+		assert.Contains(t, err.Error(), "ProductUsecase.GetAllProducts")
 	})
 }
 
@@ -65,107 +58,89 @@ func TestProductUsecase_GetProductByID(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockRepo := mocks.NewMockIProductRepository(ctrl)
-	logger := logrus.New()
-	uc := product.NewProductUsecase(logger, mockRepo)
+	uc := product.NewProductUsecase(mockRepo)
 
-	t.Run("Success", func(t *testing.T) {
-		testID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440001")
+	t.Run("success", func(t *testing.T) {
+		productID := uuid.New()
 		expectedProduct := &models.Product{
-			ID:          testID,
-			Name:        "Test Product",
-			Description: "Test Description",
-			Price:       1000,
-			Quantity:    5,
+			ID:   productID,
+			Name: "Test Product",
 		}
 
 		mockRepo.EXPECT().
-			GetProductByID(gomock.Any(), testID).
-			Return(expectedProduct, nil).
-			Times(1)
+			GetProductByID(gomock.Any(), productID).
+			Return(expectedProduct, nil)
 
-		product, err := uc.GetProductByID(context.Background(), testID)
-
+		product, err := uc.GetProductByID(context.Background(), productID)
 		assert.NoError(t, err)
 		assert.Equal(t, expectedProduct, product)
 	})
 
-	t.Run("NotFound", func(t *testing.T) {
-		testID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440999")
+	t.Run("not found", func(t *testing.T) {
+		productID := uuid.New()
 
 		mockRepo.EXPECT().
-			GetProductByID(gomock.Any(), testID).
-			Return(nil, errors.New("not found")).
-			Times(1)
+			GetProductByID(gomock.Any(), productID).
+			Return(nil, errors.New("not found"))
 
-		product, err := uc.GetProductByID(context.Background(), testID)
-
+		product, err := uc.GetProductByID(context.Background(), productID)
 		assert.Error(t, err)
 		assert.Nil(t, product)
-	})
-
-	t.Run("RepositoryError", func(t *testing.T) {
-		testID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440001")
-
-		mockRepo.EXPECT().
-			GetProductByID(gomock.Any(), testID).
-			Return(nil, errors.New("database error")).
-			Times(1)
-
-		product, err := uc.GetProductByID(context.Background(), testID)
-
-		assert.Error(t, err)
-		assert.Nil(t, product)
+		assert.Contains(t, err.Error(), "ProductUsecase.GetProductByID")
 	})
 }
 
-func TestProductUsecase_GetProductCover(t *testing.T) {
+func TestProductUsecase_GetProductsByCategory(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	mockRepo := mocks.NewMockIProductRepository(ctrl)
-	logger := logrus.New()
-	uc := product.NewProductUsecase(logger, mockRepo)
+	uc := product.NewProductUsecase(mockRepo)
 
-	t.Run("Success", func(t *testing.T) {
-		testID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440001")
-		expectedData := []byte{0xFF, 0xD8, 0xFF} // Пример JPEG данных
+	t.Run("success", func(t *testing.T) {
+		categoryID := uuid.New()
+		expectedProducts := []*models.Product{
+			{
+				ID:   uuid.New(),
+				Name: "Product 1",
+			},
+			{
+				ID:   uuid.New(),
+				Name: "Product 2",
+			},
+		}
 
 		mockRepo.EXPECT().
-			GetProductCoverPath(gomock.Any(), testID).
-			Return(expectedData, nil).
-			Times(1)
+			GetProductsByCategory(gomock.Any(), categoryID).
+			Return(expectedProducts, nil)
 
-		data, err := uc.GetProductCover(context.Background(), testID)
-
+		products, err := uc.GetProductsByCategory(context.Background(), categoryID)
 		assert.NoError(t, err)
-		assert.Equal(t, expectedData, data)
+		assert.Equal(t, expectedProducts, products)
 	})
 
-	t.Run("NotFound", func(t *testing.T) {
-		testID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440002")
+	t.Run("empty result", func(t *testing.T) {
+		categoryID := uuid.New()
 
 		mockRepo.EXPECT().
-			GetProductCoverPath(gomock.Any(), testID).
-			Return(nil, errors.New("file not found")).
-			Times(1)
+			GetProductsByCategory(gomock.Any(), categoryID).
+			Return([]*models.Product{}, nil)
 
-		data, err := uc.GetProductCover(context.Background(), testID)
-
-		assert.Error(t, err)
-		assert.Nil(t, data)
+		products, err := uc.GetProductsByCategory(context.Background(), categoryID)
+		assert.NoError(t, err)
+		assert.Empty(t, products)
 	})
 
-	t.Run("RepositoryError", func(t *testing.T) {
-		testID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440003")
+	t.Run("repository error", func(t *testing.T) {
+		categoryID := uuid.New()
 
 		mockRepo.EXPECT().
-			GetProductCoverPath(gomock.Any(), testID).
-			Return(nil, errors.New("storage error")).
-			Times(1)
+			GetProductsByCategory(gomock.Any(), categoryID).
+			Return(nil, errors.New("repository error"))
 
-		data, err := uc.GetProductCover(context.Background(), testID)
-
+		products, err := uc.GetProductsByCategory(context.Background(), categoryID)
 		assert.Error(t, err)
-		assert.Nil(t, data)
+		assert.Nil(t, products)
+		assert.Contains(t, err.Error(), "ProductUsecase.GetProductsByCategory")
 	})
 }

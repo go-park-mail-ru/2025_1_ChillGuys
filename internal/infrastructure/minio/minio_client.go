@@ -4,37 +4,40 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
+
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
 	"github.com/google/uuid"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
-	"sync"
-	"time"
+	"github.com/sirupsen/logrus"
 )
 
-//go:generate mockgen -source=minio_client.go -destination=../minio/mocks/minio_client_mock.go -package=mocks Client
-type Client interface {
-	CreateOne(context.Context, FileDataType) (*UploadResponse, error)
-	CreateMany(context.Context, map[string]FileDataType) ([]string, error)
-	GetOne(context.Context, string) (string, error)
-	GetMany(context.Context, []string) ([]string, error)
-	DeleteOne(context.Context, string) error
-	DeleteMany(context.Context, []string) error
+//go:generate mockgen -source=minio_client.go -destination=./mocks/minio_Provider_mock.go -package=mocks Provider
+type Provider interface {
+	CreateOne(context.Context, FileData) (*dto.UploadResponse, error)
+	// CreateMany(context.Context, map[string]FileData) ([]string, error)
+	// GetOne(context.Context, string) ([]byte, error)
+	// GetMany(context.Context, []string) ([]string, error)
+	// DeleteOne(context.Context, string) error
+	// DeleteMany(context.Context, []string) error
 }
 
-type minioClient struct {
+type minioProvider struct {
 	mc     *minio.Client
 	config *config.MinioConfig
+	log    *logrus.Logger
 }
 
-func NewMinioClient(config *config.MinioConfig) (Client, error) {
-	client, err := initMinio(config)
+func NewMinioProvider(config *config.MinioConfig, log *logrus.Logger) (Provider, error) {
+	Provider, err := initMinio(config)
 	if err != nil {
 		return nil, err
 	}
-	return &minioClient{
-		mc:     client,
+	return &minioProvider{
+		mc:     Provider,
 		config: config,
+		log:    log,
 	}, nil
 }
 
@@ -45,7 +48,7 @@ func initMinio(config *config.MinioConfig) (*minio.Client, error) {
 	ctx := context.Background()
 
 	// Подключение к Minio с использованием имени пользователя и пароля
-	client, err := minio.New(config.Endpoint, &minio.Options{
+	Provider, err := minio.New(config.Endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(config.RootUser, config.RootPassword, ""),
 		Secure: config.UseSSL,
 	})
@@ -54,44 +57,72 @@ func initMinio(config *config.MinioConfig) (*minio.Client, error) {
 	}
 
 	// Проверка наличия бакета и его создание, если не существует
-	exists, err := client.BucketExists(ctx, config.BucketName)
+	exists, err := Provider.BucketExists(ctx, config.BucketName)
 	if err != nil {
 		return nil, err
 	}
 	if !exists {
-		if err = client.MakeBucket(ctx, config.BucketName, minio.MakeBucketOptions{}); err != nil {
-			return nil, err
+		policy := `{
+			"Version": "2012-10-17",
+			"Statement": [
+				{
+					"Effect": "Allow",
+					"Principal": {"AWS": ["*"]},
+					"Action": ["s3:GetObject"],
+					"Resource": ["arn:aws:s3:::%s/*"]
+				}
+			]
+		}`
+		if err = Provider.SetBucketPolicy(ctx, config.BucketName, fmt.Sprintf(policy, config.BucketName)); err != nil {
+			return nil, fmt.Errorf("failed to set bucket policy: %v", err)
 		}
 	}
 
-	return client, nil
+	return Provider, nil
 }
 
 // CreateOne создает один объект в бакете Minio.
-// Метод принимает структуру fileData, которая содержит имя файла и его данные.
+// Метод принимает структуру FileDataType, которая содержит имя файла и его данные.
 // В случае успешной загрузки данных в бакет, метод возвращает nil, иначе возвращает ошибку.
 // Все операции выполняются в контексте задачи.
-func (m *minioClient) CreateOne(ctx context.Context, file FileDataType) (*UploadResponse, error) {
+func (m *minioProvider) CreateOne(ctx context.Context, file FileData) (*dto.UploadResponse, error) {
 	// Генерация уникального идентификатора для нового объекта.
 	objectID := uuid.New().String()
+	logFields := logrus.Fields{
+		"object_id": objectID,
+		"file_name": file.Name,
+		"size":      len(file.Data),
+	}
+
+	m.log.WithFields(logFields).Debug("attempting to upload file to MinIO")
 
 	// Создание потока данных для загрузки в бакет Minio.
 	reader := bytes.NewReader(file.Data)
 
 	// Загрузка данных в бакет Minio с использованием контекста для возможности отмены операции.
-	_, err := m.mc.PutObject(ctx, m.config.BucketName, objectID, reader, int64(len(file.Data)), minio.PutObjectOptions{})
+	uploadInfo, err := m.mc.PutObject(
+		ctx,
+		m.config.BucketName,
+		objectID,
+		reader,
+		int64(len(file.Data)),
+		minio.PutObjectOptions{ContentType: "image/jpeg"},
+	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create object %s: %v", file.FileName, err)
+		m.log.WithFields(logFields).WithError(err).Error("failed to upload file to MinIO")
+		return nil, fmt.Errorf("failed to create object %s: %v", file.Name, err)
 	}
 
-	// Получение URL для загруженного объекта
-	url, err := m.mc.PresignedGetObject(ctx, m.config.BucketName, objectID, time.Second*24*60*60, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate URL for object %s: %v", file.FileName, err)
-	}
+	// Добавляем информацию о загрузке в логи
+	logFields["upload_info"] = uploadInfo
+	m.log.WithFields(logFields).Debug("file upload details")
 
-	return &UploadResponse{
-		URL:      url.String(),
+	m.log.WithFields(logFields).Info("file successfully uploaded to MinIO")
+
+	url := fmt.Sprintf("%s%s", m.config.PublicURL, objectID)
+
+	return &dto.UploadResponse{
+		URL:      url,
 		ObjectID: objectID,
 	}, nil
 }
@@ -99,173 +130,257 @@ func (m *minioClient) CreateOne(ctx context.Context, file FileDataType) (*Upload
 // CreateMany создает несколько объектов в хранилище MinIO из переданных данных.
 // Если происходит ошибка при создании объекта, метод возвращает ошибку,
 // указывающую на неудачные объекты.
-func (m *minioClient) CreateMany(ctx context.Context, data map[string]FileDataType) ([]string, error) {
-	urls := make([]string, 0, len(data))
+// func (m *minioProvider) CreateMany(ctx context.Context, data map[string]FileData) ([]string, error) {
+// 	logFields := logrus.Fields{
+//         "total_files": len(data),
+//     }
 
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
+// 	ctx, cancel := context.WithCancel(ctx)
+// 	defer cancel()
 
-	// Создание канала для передачи URL-адресов с размером, равным количеству переданных данных.
-	urlCh := make(chan string, len(data))
+// 	// Создание канала для передачи URL-адресов с размером, равным количеству переданных данных.
+// 	urlCh := make(chan string, len(data))
+// 	errCh := make(chan error, len(data))
 
-	var wg sync.WaitGroup
+// 	var wg sync.WaitGroup
 
-	// Запуск горутин для создания каждого объекта.
-	for objectID, file := range data {
-		wg.Add(1)
-		go func(objectID string, file FileDataType) {
-			defer wg.Done()                                                                                                                           // Уменьшение счетчика WaitGroup после завершения горутины.
-			_, err := m.mc.PutObject(ctx, m.config.BucketName, objectID, bytes.NewReader(file.Data), int64(len(file.Data)), minio.PutObjectOptions{}) // Создание объекта в бакете MinIO.
-			if err != nil {
-				cancel()
-				return
-			}
+// 	// Запуск горутин для создания каждого объекта.
+// 	for objectID, file := range data {
+// 		wg.Add(1)
+// 		go func(objectID string, file FileData) {
+// 			defer wg.Done() // Уменьшение счетчика WaitGroup после завершения горутины.
 
-			// Получение URL для загруженного объекта
-			url, err := m.mc.PresignedGetObject(ctx, m.config.BucketName, objectID, time.Second*24*60*60, nil)
-			if err != nil {
-				cancel()
-				return
-			}
+// 			fileLogFields := logrus.Fields{
+// 				"object_id": objectID,
+// 				"file_name": file.Name,
+// 				"size":      len(file.Data),
+// 			}
 
-			urlCh <- url.String()
-		}(objectID, file)
-	}
+// 			uploadInfo, err := m.mc.PutObject(
+// 				ctx,
+// 				m.config.BucketName,
+// 				objectID,
+// 				bytes.NewReader(file.Data),
+// 				int64(len(file.Data)),
+// 				minio.PutObjectOptions{
+// 				ContentType: "image/jpeg",
+// 			})
+// 			if err != nil {
+// 				m.log.WithFields(fileLogFields).WithError(err).Error("failed to upload file")
+// 				errCh <- fmt.Errorf("failed to upload object %s: %v", objectID, err)
+// 				cancel()
+// 				return
+// 			}
 
-	// Ожидание завершения всех горутин и закрытие канала с URL-адресами.
-	go func() {
-		wg.Wait()    // Блокировка до тех пор, пока счетчик WaitGroup не станет равным 0.
-		close(urlCh) // Закрытие канала с URL-адресами после завершения всех горутин.
-	}()
+// 			// Логируем информацию о загрузке
+// 			fileLogFields["upload_info"] = uploadInfo
+// 			m.log.WithFields(fileLogFields).Debug("file upload details")
 
-	for url := range urlCh {
-		urls = append(urls, url)
-	}
+// 			// Получение URL для загруженного объекта
+// 			url, err := m.mc.PresignedGetObject(ctx, m.config.BucketName, objectID, time.Second*24*60*60, nil)
+// 			if err != nil {
+// 				m.log.WithFields(fileLogFields).WithError(err).Error("failed to generate presigned URL")
+// 				errCh <- fmt.Errorf("failed to generate URL for object %s: %v", objectID, err)
+// 				cancel()
+// 				return
+// 			}
 
-	return urls, nil
-}
+// 			m.log.WithFields(fileLogFields).Debug("file successfully uploaded")
+// 			urlCh <- url.String()
+// 		}(objectID, file)
+// 	}
+
+// 	// Ожидание завершения всех горутин и закрытие канала с URL-адресами.
+// 	go func() {
+// 		wg.Wait()    // Блокировка до тех пор, пока счетчик WaitGroup не станет равным 0.
+// 		close(urlCh) // Закрытие канала с URL-адресами после завершения всех горутин.
+// 		close(errCh)
+// 	}()
+
+// 	var urls []string
+//     for i := 0; i < len(data); i++ {
+//         select {
+//         case url := <-urlCh:
+//             urls = append(urls, url)
+//         case err := <-errCh:
+//             m.log.WithFields(logFields).WithError(err).Error("upload failed")
+//             return urls, err // Частичные результаты + ошибка
+//         }
+//     }
+
+//     m.log.WithFields(logFields).Info("all files successfully uploaded")
+// 	return urls, nil
+// }
 
 // GetOne получает один объект из бакета Minio по его идентификатору.
 // Он принимает строку `objectID` в качестве параметра и возвращает срез байт данных объекта и ошибку, если такая возникает.
-func (m *minioClient) GetOne(ctx context.Context, objectID string) (string, error) {
-	// Получение предварительно подписанного URL для доступа к объекту Minio.
-	url, err := m.mc.PresignedGetObject(ctx, m.config.BucketName, objectID, time.Second*24*60*60, nil)
-	if err != nil {
-		return "", fmt.Errorf("failed to retrieve URL for object %s: %v", objectID, err)
-	}
+// func (m *minioProvider) GetOne(ctx context.Context, objectID string) ([]byte, error) {
+// 	logFields := logrus.Fields{
+// 		"object_id": objectID,
+// 	}
 
-	return url.String(), nil
-}
+// 	m.log.WithFields(logFields).Debug("attempting to get file URL from MinIO")
+
+// 	reader, err := m.mc.GetObject(ctx, m.config.BucketName, objectID, minio.GetObjectOptions{})
+//     if err != nil {
+//         m.log.WithFields(logFields).WithError(err).Error("failed to get object from MinIO")
+//         return nil, fmt.Errorf("failed to get object: %v", err)
+//     }
+// 	defer reader.Close()
+// 	if err != nil {
+// 		m.log.Fatal(err)
+// 	}
+
+// 	data, err := io.ReadAll(reader)
+//     if err != nil {
+//         m.log.WithFields(logFields).WithError(err).Error("failed to read object data")
+//         return nil, fmt.Errorf("failed to read object data: %v", err)
+//     }
+// 	if len(data) == 0 {
+//         m.log.WithFields(logFields).Warn("object data is empty")
+//         return nil, fmt.Errorf("object data is empty")
+//     }
+
+//     m.log.WithFields(logFields).Debug("successfully retrieved file data")
+// 	return data, nil
+// }
 
 // GetMany получает несколько объектов из бакета Minio по их идентификаторам.
-func (m *minioClient) GetMany(ctx context.Context, objectIDs []string) ([]string, error) {
-	// Создание каналов для передачи URL-адресов объектов и ошибок
-	urlCh := make(chan string, len(objectIDs))
-	errCh := make(chan OperationError, len(objectIDs))
+// func (m *minioProvider) GetMany(ctx context.Context, objectIDs []string) ([]string, error) {
+// 	logFields := logrus.Fields{
+// 		"total_objects": len(objectIDs),
+// 	}
 
-	var wg sync.WaitGroup                // WaitGroup для ожидания завершения всех горутин
-	_, cancel := context.WithCancel(ctx) // Создание контекста с возможностью отмены операции
-	defer cancel()                       // Отложенный вызов функции отмены контекста при завершении функции GetMany
+// 	m.log.WithFields(logFields).Debug("attempting to get multiple file URLs from MinIO")
 
-	// Запуск горутин для получения URL-адресов каждого объекта.
-	for _, objectID := range objectIDs {
-		wg.Add(1)
-		go func(objectID string) {
-			defer wg.Done()
-			url, err := m.GetOne(ctx, objectID)
-			if err != nil {
-				errCh <- OperationError{ObjectID: objectID, Error: fmt.Errorf("failed to retrieve object %s: %v", objectID, err)}
-				cancel()
-				return
-			}
-			urlCh <- url
-		}(objectID)
-	}
+// 	// Создание каналов для передачи URL-адресов объектов и ошибок
+// 	urlCh := make(chan string, len(objectIDs))
+// 	errCh := make(chan OperationError, len(objectIDs))
 
-	// Закрытие каналов после завершения всех горутин.
-	go func() {
-		wg.Wait()    // Блокировка до тех пор, пока счетчик WaitGroup не станет равным 0
-		close(urlCh) // Закрытие канала с URL-адресами после завершения всех горутин
-		close(errCh) // Закрытие канала с ошибками после завершения всех горутин
-	}()
+// 	var wg sync.WaitGroup                // WaitGroup для ожидания завершения всех горутин
+// 	ctx, cancel := context.WithCancel(ctx) // Создание контекста с возможностью отмены операции
+// 	defer cancel()                       // Отложенный вызов функции отмены контекста при завершении функции GetMany
 
-	// Сбор URL-адресов объектов и ошибок из каналов.
-	var urls []string
-	var errs []error
-	for url := range urlCh {
-		urls = append(urls, url)
-	}
-	for opErr := range errCh {
-		errs = append(errs, opErr.Error)
-	}
+// 	// Запуск горутин для получения URL-адресов каждого объекта.
+// 	for _, objectID := range objectIDs {
+// 		wg.Add(1)
+// 		go func(objectID string) {
+// 			defer wg.Done()
+// 			fileLogFields := logrus.Fields{
+// 				"object_id": objectID,
+// 			}
 
-	if len(errs) > 0 {
-		return nil, fmt.Errorf("errors occurred while retrieving objects: %v", errs)
-	}
+// 			url, err := m.GetOne(ctx, objectID)
+// 			if err != nil {
+// 				m.log.WithFields(fileLogFields).WithError(err).Error("failed to get file URL")
+// 				errCh <- OperationError{ObjectID: objectID, Error: fmt.Errorf("failed to retrieve object %s: %v", objectID, err)}
+// 				cancel()
+// 				return
+// 			}
+// 			m.log.WithFields(fileLogFields).Debug("successfully retrieved file URL")
+// 			urlCh <- url
+// 		}(objectID)
+// 	}
 
-	return urls, nil
-}
+// 	// Закрытие каналов после завершения всех горутин.
+// 	go func() {
+// 		wg.Wait()    // Блокировка до тех пор, пока счетчик WaitGroup не станет равным 0
+// 		close(urlCh) // Закрытие канала с URL-адресами после завершения всех горутин
+// 		close(errCh) // Закрытие канала с ошибками после завершения всех горутин
+// 	}()
+
+// 	// Сбор URL-адресов объектов и ошибок из каналов.
+// 	var urls []string
+//     for i := 0; i < len(objectIDs); i++ {
+//         select {
+//         case url := <-urlCh:
+//             urls = append(urls, url)
+//         case err := <-errCh:
+//             m.log.WithFields(logFields).WithError(err.Error).Error("error occurred while getting URLs")
+//             return urls, err.Error // Возвращаем то, что успели собрать + ошибку
+//         }
+//     }
+
+// 	m.log.WithFields(logFields).Info("successfully retrieved all file URLs")
+// 	return urls, nil
+// }
 
 // DeleteOne удаляет один объект из бакета Minio по его идентификатору.
-func (m *minioClient) DeleteOne(ctx context.Context, objectID string) error {
-	// Удаление объекта из бакета Minio.
-	if err := m.mc.RemoveObject(ctx, m.config.BucketName, objectID, minio.RemoveObjectOptions{}); err != nil {
-		return err
-	}
-	return nil
-}
+// func (m *minioProvider) DeleteOne(ctx context.Context, objectID string) error {
+// 	logFields := logrus.Fields{
+// 		"object_id": objectID,
+// 	}
 
-// DeleteMany удаляет несколько объектов из бакета Minio по их идентификаторам с использованием горутин.
-func (m *minioClient) DeleteMany(ctx context.Context, objectIDs []string) error {
-	// Создание канала для передачи ошибок с размером, равным количеству объектов для удаления
-	errCh := make(chan OperationError, len(objectIDs))
-	var wg sync.WaitGroup
+// 	m.log.WithFields(logFields).Debug("attempting to delete file from MinIO")
 
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
+// 	// Удаление объекта из бакета Minio.
+// 	if err := m.mc.RemoveObject(ctx, m.config.BucketName, objectID, minio.RemoveObjectOptions{}); err != nil {
+// 		err = fmt.Errorf("failed to delete object %s: %w", objectID, err)
+// 		m.log.WithFields(logFields).WithError(err).Error("failed to delete file")
+// 		return err
+// 	}
 
-	// Запуск горутин для удаления каждого объекта.
-	for _, objectID := range objectIDs {
-		wg.Add(1)
-		go func(id string) {
-			defer wg.Done()
-			if err := m.mc.RemoveObject(ctx, m.config.BucketName, id, minio.RemoveObjectOptions{}); err != nil {
-				errCh <- OperationError{ObjectID: id, Error: fmt.Errorf("failed to delete object %s: %v", id, err)}
-				cancel()
-			}
-		}(objectID)
-	}
+// 	m.log.WithFields(logFields).Info("successfully deleted file")
+// 	return nil
+// }
 
-	// Ожидание завершения всех горутин и закрытие канала с ошибками.
-	go func() {
-		wg.Wait()
-		close(errCh)
-	}()
+// // DeleteMany удаляет несколько объектов из бакета Minio по их идентификаторам с использованием горутин.
+// func (m *minioProvider) DeleteMany(ctx context.Context, objectIDs []string) error {
+//     logFields := logrus.Fields{
+//         "total_objects": len(objectIDs),
+//     }
 
-	// Сбор ошибок из канала.
-	var errs []error
-	for opErr := range errCh {
-		errs = append(errs, opErr.Error)
-	}
+//     m.log.WithFields(logFields).Debug("attempting to delete multiple objects from MinIO")
 
-	if len(errs) > 0 {
-		return fmt.Errorf("errors occurred while deleting objects: %v", errs)
-	}
+//     ctx, cancel := context.WithCancel(ctx)
+//     defer cancel()
 
-	return nil // Возврат nil, если ошибок не возникло
-}
+//     errCh := make(chan error, 1) // Только первая ошибка
+//     var wg sync.WaitGroup
 
-type FileDataType struct {
-	FileName string
-	Data     []byte
+//     for _, objectID := range objectIDs {
+//         wg.Add(1)
+//         go func(id string) {
+//             defer wg.Done()
+
+//             select {
+//             case <-ctx.Done():
+//                 return
+//             default:
+//             }
+
+//             // Используем DeleteOne вместо прямого вызова RemoveObject
+//             if err := m.DeleteOne(ctx, id); err != nil {
+//                 select {
+//                 case errCh <- fmt.Errorf("failed to delete object %s: %w", id, err):
+//                     cancel()
+//                 default:
+//                 }
+//             }
+//         }(objectID)
+//     }
+
+//     go func() {
+//         wg.Wait()
+//         close(errCh)
+//     }()
+
+//     select {
+//     case err := <-errCh:
+//         m.log.WithFields(logFields).WithError(err).Error("errors occurred while deleting objects")
+//         return err
+//     default:
+//         m.log.WithFields(logFields).Info("all objects successfully deleted")
+//         return nil
+//     }
+// }
+
+type FileData struct {
+	Name string
+	Data []byte
 }
 
 type OperationError struct {
 	ObjectID string
 	Error    error
-}
-
-type UploadResponse struct {
-	URL      string `json:"url"`
-	ObjectID string `json:"object_id"`
 }

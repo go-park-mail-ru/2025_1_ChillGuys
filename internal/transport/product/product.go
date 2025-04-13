@@ -2,16 +2,19 @@ package product
 
 import (
 	"context"
-	"errors"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/minio"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/response"
+	"fmt"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/request"
 	"io"
 	"net/http"
-	"os"
+
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/minio"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/logctx"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/response"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
-	"github.com/sirupsen/logrus"
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 )
@@ -20,22 +23,19 @@ import (
 type IProductUsecase interface {
 	GetAllProducts(ctx context.Context) ([]*models.Product, error)
 	GetProductByID(ctx context.Context, id uuid.UUID) (*models.Product, error)
-	GetProductCover(ctx context.Context, id uuid.UUID) ([]byte, error)
 	GetProductsByCategory(ctx context.Context, id uuid.UUID) ([]*models.Product, error)
-	GetAllCategories(ctx context.Context)([]*models.Category, error)
+	GetProductsByIDs(ctx context.Context, ids []uuid.UUID) ([]*models.Product, error)
 }
 
-type ProductHandler struct {
+type ProductService struct {
 	u            IProductUsecase
-	log          *logrus.Logger
-	minioService minio.Client
+	minioService minio.Provider
 }
 
-func NewProductHandler(u IProductUsecase, log *logrus.Logger, mS minio.Client) *ProductHandler {
-	return &ProductHandler{
+func NewProductService(u IProductUsecase, ms minio.Provider) *ProductService {
+	return &ProductService{
 		u:            u,
-		log:          log,
-		minioService: mS,
+		minioService: ms,
 	}
 }
 
@@ -45,20 +45,23 @@ func NewProductHandler(u IProductUsecase, log *logrus.Logger, mS minio.Client) *
 //	@Description	Возвращает список всех продуктов
 //	@Tags			products
 //	@Produce		json
-//	@Success		200	{object}	[]models.Product		"Список продуктов"
-//	@Failure		500	{object}	response.ErrorResponse	"Ошибка сервера"
-//	@Router			/products/ [get]
-func (h *ProductHandler) GetAllProducts(w http.ResponseWriter, r *http.Request) {
+//	@Success		200	{object}	[]models.Product	"Список продуктов"
+//	@Failure		500	{object}	dto.ErrorResponse	"Ошибка сервера"
+//	@Router			/products [get]
+func (h *ProductService) GetAllProducts(w http.ResponseWriter, r *http.Request) {
+	const op = "ProductService.GetAllProducts"
+	logger := logctx.GetLogger(r.Context()).WithField("op", op)
+
 	products, err := h.u.GetAllProducts(r.Context())
 	if err != nil {
-		h.log.Warnf("Failed to get all products: %v", err)
-		response.SendErrorResponse(w, http.StatusInternalServerError, "Failed get all products")
+		logger.WithError(err).Error("get all products")
+		response.HandleDomainError(r.Context(), w, err, op)
 		return
 	}
 
-	productResponse := models.ConvertToProductsResponse(products)
+	productResponse := dto.ConvertToProductsResponse(products)
 
-	response.SendSuccessResponse(w, http.StatusOK, productResponse)
+	response.SendJSONResponse(r.Context(), w, http.StatusOK, productResponse)
 }
 
 // GetProductByID godoc
@@ -67,128 +70,74 @@ func (h *ProductHandler) GetAllProducts(w http.ResponseWriter, r *http.Request) 
 //	@Description	Возвращает продукт по его ID
 //	@Tags			products
 //	@Produce		json
-//	@Param			id	path		int						true	"ID продукта"
-//	@Success		200	{object}	models.Product			"Информация о продукте"
-//	@Failure		400	{object}	response.ErrorResponse	"Некорректный ID"
-//	@Failure		404	{object}	response.ErrorResponse	"Продукт не найден"
+//	@Param			id	path		string				true	"ID продукта"
+//	@Success		200	{object}	models.Product		"Информация о продукте"
+//	@Failure		400	{object}	dto.ErrorResponse	"Некорректный ID"
+//	@Failure		404	{object}	dto.ErrorResponse	"Продукт не найден"
 //	@Router			/products/{id} [get]
-func (h *ProductHandler) GetProductByID(w http.ResponseWriter, r *http.Request) {
+func (h *ProductService) GetProductByID(w http.ResponseWriter, r *http.Request) {
+	const op = "ProductService.GetProductByID"
+	logger := logctx.GetLogger(r.Context()).WithField("op", op)
+
 	vars := mux.Vars(r)
 	idStr := vars["id"]
 	id, err := uuid.Parse(idStr)
 	if err != nil {
-		h.log.Warnf("Invalid ID: %v", err)
-		response.SendErrorResponse(w, http.StatusBadRequest, "Invalid ID")
+		logger.WithError(err).WithField("product_id", idStr).Error("parse product ID")
+		response.HandleDomainError(r.Context(), w, errs.ErrInvalidID, op)
 		return
 	}
 
+	logger = logger.WithField("product_id", id)
 	product, err := h.u.GetProductByID(r.Context(), id)
 	if err != nil {
-		h.log.Warnf("Product not found (ID: %d): %v", id, err)
-		response.SendErrorResponse(w, http.StatusNotFound, "Product not found")
+		logger.WithError(err).Error("get product by ID")
+		response.HandleDomainError(r.Context(), w, err, op)
 		return
 	}
 
-	response.SendSuccessResponse(w, http.StatusOK, product)
+	response.SendJSONResponse(r.Context(), w, http.StatusOK, product)
 }
 
 // GetProductsByCategory godoc
-// 
-// @Summary Получить товары по категории
-// @Description Возвращает список всех одобренных товаров, принадлежащих указанной категории. 
+//
+//	@Summary		Получить товары по категории
+//	@Description	Возвращает список всех одобренных товаров, принадлежащих указанной категории.
+//
 // Товары сортируются по дате обновления (сначала новые).
-// @Tags Товары
-// @Produce json
-// @Param id path string true "UUID категории в формате строки"
-// @Success 200 {object} []models.Product "Успешный запрос. Возвращает массив товаров."
-// @Failure 400 {object} response.ErrorResponse "Неверный формат UUID категории"
-// @Failure 404 {object} response.ErrorResponse "Категория не найдена"
-// @Failure 500 {object} response.ErrorResponse "Внутренняя ошибка сервера"
-// @Router /api/v1/products/category/{id} [get]
-func (h *ProductHandler) GetProductsByCategory(w http.ResponseWriter, r *http.Request){
+//
+//	@Tags			products
+//	@Produce		json
+//	@Param			id	path		string				true	"UUID категории в формате строки"
+//	@Success		200	{object}	[]models.Product	"Успешный запрос. Возвращает массив товаров."
+//	@Failure		400	{object}	dto.ErrorResponse	"Неверный формат UUID категории"
+//	@Failure		404	{object}	dto.ErrorResponse	"Категория не найдена"
+//	@Failure		500	{object}	dto.ErrorResponse	"Внутренняя ошибка сервера"
+//	@Router			/api/v1/products/category/{id} [get]
+func (h *ProductService) GetProductsByCategory(w http.ResponseWriter, r *http.Request) {
+	const op = "ProductService.GetProductsByCategory"
+	logger := logctx.GetLogger(r.Context()).WithField("op", op)
+
 	vars := mux.Vars(r)
 	idStr := vars["id"]
 	id, err := uuid.Parse(idStr)
 	if err != nil {
-		h.log.Warnf("Invalid ID: %v", err)
-		response.SendErrorResponse(w, http.StatusBadRequest, "Invalid ID")
+		logger.WithError(err).WithField("category_id", idStr).Error("parse category ID")
+		response.HandleDomainError(r.Context(), w, errs.ErrInvalidID, op)
 		return
 	}
 
 	products, err := h.u.GetProductsByCategory(r.Context(), id)
 	if err != nil {
-		h.log.Warnf("Failed to get products by category: %v", err)
-		response.SendErrorResponse(w, http.StatusInternalServerError, "Failed get products by category")
+		logger.WithError(err).Error("get products by category")
+		response.HandleDomainError(r.Context(), w, err, op)
 		return
 	}
 
-	productResponse := models.ConvertToProductsResponse(products)
+	productResponse := dto.ConvertToProductsResponse(products)
 
-	response.SendSuccessResponse(w, http.StatusOK, productResponse)
+	response.SendJSONResponse(r.Context(), w, http.StatusOK, productResponse)
 }
-
-func (h *ProductHandler) GetAllCategories(w http.ResponseWriter, r *http.Request) {
-	categories, err := h.u.GetAllCategories(r.Context())
-	if err != nil {
-		h.log.Warnf("Failed to get all categories: %v", err)
-		response.SendErrorResponse(w, http.StatusInternalServerError, "Failed get all categories")
-		return
-	}
-
-	categoryResponse := models.ConvertToCategoriesResponse(categories)
-
-	response.SendSuccessResponse(w, http.StatusOK, categoryResponse)
-}
-
-// GetProductCover godoc
-//
-//	@Summary		Получить обложку продукта
-//	@Description	Возвращает обложку продукта по его ID
-//	@Tags			products
-//	@Produce		image/jpeg
-//	@Param			id	path		int						true	"ID продукта"
-//	@Success		200	{file}		[]byte					"Обложка продукта"
-//	@Failure		400	{object}	response.ErrorResponse	"Некорректный ID"
-//	@Failure		404	{object}	response.ErrorResponse	"Обложка не найдена"
-//	@Failure		500	{object}	response.ErrorResponse	"Ошибка сервера"
-//	@Router			/products/{id}/cover [get]
-func (h *ProductHandler) GetProductCover(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	idStr := vars["id"]
-	id, err := uuid.Parse(idStr)
-	if err != nil {
-		h.log.Warnf("Invalid ID: %v", err)
-		response.SendErrorResponse(w, http.StatusBadRequest, "Invalid ID")
-		return
-	}
-
-	fileData, err := h.u.GetProductCover(r.Context(), id)
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			h.log.Errorf("Cover file not found (ID: %d): %v", id, err)
-			response.SendErrorResponse(w, http.StatusNotFound, "Cover file not found")
-			return
-		}
-
-		h.log.Errorf("Failed to get cover file (ID: %d): %v", id, err)
-		response.SendErrorResponse(w, http.StatusInternalServerError, "Failed to get cover file")
-		return
-	}
-
-	w.Header().Set("Content-Type", "image/jpeg")
-
-	// Копируем содержимое файла в ответ
-	if _, err := w.Write(fileData); err != nil {
-		h.log.Errorf("Failed to send cover file (ID: %d): %v", id, err)
-		http.Error(w, "Failed to send cover file", http.StatusInternalServerError)
-		return
-	}
-}
-
-
-
-
-
 
 // FIXME: models.SuccessResponse не найден
 
@@ -199,24 +148,27 @@ func (h *ProductHandler) GetProductCover(w http.ResponseWriter, r *http.Request)
 //	@Tags			products
 //	@Accept			multipart/form-data
 //	@Produce		json
-//	@Param			file	formData	file					true	"Файл для загрузки"
-//	@Success		200		{object}	map[string]string		"Информация о загруженном файле"
-//	@Failure		400		{object}	response.ErrorResponse	"Ошибка в запросе"
-//	@Failure		500		{object}	response.ErrorResponse	"Ошибка сервера"
+//	@Param			file	formData	file				true	"Файл для загрузки"
+//	@Success		200		{object}	map[string]string	"Информация о загруженном файле"
+//	@Failure		400		{object}	dto.ErrorResponse	"Ошибка в запросе"
+//	@Failure		500		{object}	dto.ErrorResponse	"Ошибка сервера"
 //	@Router			/products/upload [post]
-func (h *ProductHandler) CreateOne(w http.ResponseWriter, r *http.Request) {
+func (h *ProductService) CreateOne(w http.ResponseWriter, r *http.Request) {
+	const op = "ProductService.CreateOne"
+	logger := logctx.GetLogger(r.Context()).WithField("op", op)
+
 	// Проверяем, что запрос содержит multipart/form-data
-	if err := r.ParseMultipartForm(10 << 20); err != nil { // Максимум 10MB файл
-		h.log.Warnf("Error parsing multipart form: %v", err)
-		response.SendErrorResponse(w, http.StatusBadRequest, "Failed to parse form data")
+	if err := r.ParseMultipartForm(10 << 20); err != nil {
+		logger.WithError(err).Error("parse multipart form")
+		response.HandleDomainError(r.Context(), w, errs.ErrParseRequestData, op)
 		return
 	}
 
 	// Получаем файл из формы
 	file, header, err := r.FormFile("file")
 	if err != nil {
-		h.log.Warnf("Error getting file from form: %v", err)
-		response.SendErrorResponse(w, http.StatusBadRequest, "No file uploaded")
+		logger.WithError(err).Error("get file from form")
+		response.HandleDomainError(r.Context(), w, fmt.Errorf("no file uploaded"), op)
 		return
 	}
 	defer file.Close()
@@ -224,72 +176,46 @@ func (h *ProductHandler) CreateOne(w http.ResponseWriter, r *http.Request) {
 	// Читаем содержимое файла
 	fileBytes, err := io.ReadAll(file)
 	if err != nil {
-		h.log.Errorf("Error reading file: %v", err)
-		response.SendErrorResponse(w, http.StatusInternalServerError, "Failed to read file")
+		logger.WithError(err).Error("read file content")
+		response.HandleDomainError(r.Context(), w, fmt.Errorf("failed to read file"), op)
 		return
 	}
 
 	// Создаем структуру для MinIO
-	fileData := minio.FileDataType{
-		FileName: header.Filename,
-		Data:     fileBytes,
+	fileData := minio.FileData{
+		Name: header.Filename,
+		Data: fileBytes,
 	}
 
 	// Загружаем файл в MinIO
 	productResponse, err := h.minioService.CreateOne(r.Context(), fileData)
 	if err != nil {
-		h.log.Errorf("Upload error: %v", err)
-		response.SendErrorResponse(w, http.StatusInternalServerError, "Upload failed")
+		logger.WithError(err).Error("upload file to minio")
+		response.HandleDomainError(r.Context(), w, err, op)
 		return
 	}
 
 	// Возвращаем успешный ответ с URL файла
-	response.SendSuccessResponse(w, http.StatusOK, productResponse)
+	response.SendJSONResponse(r.Context(), w, http.StatusOK, productResponse)
 }
 
-// FIXME: models.SuccessResponse не найден
-
-// GetOne godoc
-//
-//	@Summary		Получить файл по ID
-//	@Description	Возвращает URL для доступа к файлу в MinIO
-//	@Tags			files
-//	@Produce		json
-//	@Param			objectID	path		string					true	"ID объекта в MinIO"
-//	@Success		200			{object}	map[string]string		"Ссылка на файл"
-//	@Failure		400			{object}	response.ErrorResponse	"Неверный ID объекта"
-//	@Failure		404			{object}	response.ErrorResponse	"Файл не найден"
-//	@Failure		500			{object}	response.ErrorResponse	"Ошибка сервера"
-//	@Router			/files/{objectID} [get]
-func (h *ProductHandler) GetOne(w http.ResponseWriter, r *http.Request) {
-	// Получаем ID объекта из параметров URL
-	vars := mux.Vars(r)
-	objectID := vars["objectID"]
-
-	// Проверяем валидность UUID
-	if _, err := uuid.Parse(objectID); err != nil {
-		h.log.Warnf("Invalid object ID format: %s", objectID)
-		response.SendErrorResponse(w, http.StatusBadRequest, "Invalid object ID format")
+func (p *ProductService) GetProductsByIDs(w http.ResponseWriter, r *http.Request) {
+	var req dto.GetProductsByIDRequest
+	if err := request.ParseData(r, &req); err != nil {
+		response.SendJSONError(r.Context(), w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	// Получаем URL файла из MinIO
-	url, err := h.minioService.GetOne(r.Context(), objectID)
+	if len(req.ProductIDs) == 0 {
+		response.SendJSONError(r.Context(), w, http.StatusBadRequest, "at least one product ID is required")
+		return
+	}
+
+	products, err := p.u.GetProductsByIDs(r.Context(), req.ProductIDs)
 	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			h.log.Warnf("File not found (ID: %s): %v", objectID, err)
-			response.SendErrorResponse(w, http.StatusNotFound, "File not found")
-			return
-		}
-
-		h.log.Errorf("Failed to get file (ID: %s): %v", objectID, err)
-		response.SendErrorResponse(w, http.StatusInternalServerError, "Failed to get file")
+		response.HandleDomainError(r.Context(), w, err, "failed to get products by IDs")
 		return
 	}
 
-	// Формируем успешный ответ
-	response.SendSuccessResponse(w, http.StatusOK, map[string]string{
-		"url":       url,
-		"object_id": objectID,
-	})
+	response.SendJSONResponse(r.Context(), w, http.StatusOK, dto.ConvertToProductsResponse(products))
 }

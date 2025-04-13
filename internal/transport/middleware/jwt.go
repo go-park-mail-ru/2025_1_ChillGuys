@@ -2,24 +2,36 @@ package middleware
 
 import (
 	"context"
-	"fmt"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/cookie"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/domains"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/response"
+	"github.com/sirupsen/logrus"
 	"net/http"
 	"time"
-
-	"github.com/sirupsen/logrus"
-
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
 )
 
 // JWTMiddleware проверяет наличие и валидность JWT-токена в куках
 func JWTMiddleware(tokenator *jwt.Tokenator, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		cookieValue, err := r.Cookie(string(cookie.Token))
+		ctx := r.Context()
+
+		// Получаем request_id из контекста
+		reqID := ctx.Value(domains.ReqIDKey{})
+		if reqID == nil {
+			reqID = "unknown"
+		}
+
+		// Логирование с request_id и remote_addr
+		requestLogger := logrus.WithFields(logrus.Fields{
+			"request_id":  reqID,
+			"remote_addr": r.RemoteAddr,
+			"path":        r.URL.Path,
+		})
+
+		cookieValue, err := r.Cookie(string(domains.TokenCookieName))
 		if err != nil {
-			logrus.Warn("Missing or invalid token cookie")
-			response.SendErrorResponse(w, http.StatusUnauthorized, "Unauthorized")
+			requestLogger.Warn("Missing or invalid token cookie")
+			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 
@@ -28,34 +40,44 @@ func JWTMiddleware(tokenator *jwt.Tokenator, next http.Handler) http.Handler {
 
 		// Если токен пустой, возвращаем ошибку
 		if tokenString == "" {
-			logrus.Warn("Empty token")
-			response.SendErrorResponse(w, http.StatusUnauthorized, "Unauthorized")
+			requestLogger.WithFields(logrus.Fields{
+				"method": r.Method,
+				"path":   r.URL.Path,
+				"ip":     r.RemoteAddr,
+			}).Warn("Empty token")
+			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 
 		// Вызываем ParseJWT через экземпляр Tokenator
 		claims, err := tokenator.ParseJWT(tokenString)
 		if err != nil {
-			logrus.Errorf("Invalid token: %v", err)
-			response.SendErrorResponse(w, http.StatusUnauthorized, fmt.Sprintf("Invalid token: %v", err))
+			requestLogger.WithFields(logrus.Fields{
+				"method": r.Method,
+				"path":   r.URL.Path,
+				"ip":     r.RemoteAddr,
+				"error":  err.Error(),
+			}).Error("Invalid token")
+
+			response.SendJSONError(ctx, w, http.StatusUnauthorized, "Invalid token")
 			return
 		}
 
 		// Проверяем, не истёк ли токен
 		if claims.ExpiresAt < time.Now().Unix() {
-			logrus.Warn("Token expired")
-			response.SendErrorResponse(w, http.StatusUnauthorized, "Token expired")
+			requestLogger.Warn("Token expired")
+			response.SendJSONError(ctx, w, http.StatusUnauthorized, "Token expired")
 			return
 		}
-
-		ctx := r.Context()
 
 		if !tokenator.VC.CheckUserVersion(ctx, claims.UserID, claims.Version) {
-			response.SendErrorResponse(w, http.StatusUnauthorized, "Token is invalid or expired")
+			requestLogger.Warn("Token is invalid or expired")
+			response.SendJSONError(ctx, w, http.StatusUnauthorized, "Token is invalid or expired")
 			return
 		}
 
-		ctx = context.WithValue(ctx, cookie.UserIDKey, claims.UserID)
+		// Передаем userID в контекст
+		ctx = context.WithValue(ctx, domains.UserIDKey{}, claims.UserID)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

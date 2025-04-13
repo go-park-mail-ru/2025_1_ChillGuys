@@ -3,52 +3,42 @@ package middleware
 import (
 	"context"
 	"fmt"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/domains"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/logctx"
 	"math/rand"
 	"net/http"
+	"time"
 
 	"github.com/sirupsen/logrus"
 )
 
-type ContextKey string
-
-const ReqIDKey ContextKey = "ReqId"
-
-type LoggerMiddleware struct {
-	logger *logrus.Logger
-}
-
-func NewLoggerMiddleware(logger *logrus.Logger) *LoggerMiddleware {
-	return &LoggerMiddleware{
-		logger: logger,
-	}
-}
-
-func (m *LoggerMiddleware) LogRequest(next http.Handler) http.Handler {
+func LogRequest(logger *logrus.Logger, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Генерируем уникальный ID запроса
-		reqId := fmt.Sprintf("%016x", rand.Int())[:10]
+		rand.Seed(time.Now().UnixNano())
+		reqID := fmt.Sprintf("%016x", rand.Int())[:10]
 
-		// Добавляем ID в контекст
-		ctx := context.WithValue(r.Context(), ReqIDKey, reqId)
-		r = r.WithContext(ctx)
+		ctx := context.WithValue(r.Context(), domains.ReqIDKey{}, reqID)
 
-		// Создаем логгер с полями для этого запроса
-		requestLogger := m.logger.WithFields(logrus.Fields{
-			"request_id":  reqId,
+		middlewareLogger := logger.WithFields(logrus.Fields{
+			"request_id":  reqID,
 			"method":      r.Method,
 			"remote_addr": r.RemoteAddr,
 			"path":        r.URL.Path,
 		})
 
-		// Cохраняем логгер в контекст для использования в обработчиках
-		ctx = context.WithValue(ctx, ContextKey("logger"), requestLogger)
-		r = r.WithContext(ctx)
+		// Логгер для передачи в контекст (только request_id)
+		contextLogger := logrus.NewEntry(logger).WithField("request_id", reqID) // Важно: создаём новый Entry
+		ctx = logctx.WithLogger(ctx, contextLogger)
 
-		requestLogger.Info("request started")
+		middlewareLogger.Info("request started")
 
-		// Передаем запрос дальше
-		next.ServeHTTP(w, r)
+		startTime := time.Now()
 
-		requestLogger.Info("request completed")
+		defer func() {
+			duration := time.Since(startTime)
+			middlewareLogger.WithField("duration", duration).Info("request completed")
+		}()
+
+		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
