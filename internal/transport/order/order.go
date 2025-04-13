@@ -11,16 +11,16 @@ import (
 	"net/http"
 )
 
-type OrderHandler struct {
+type OrderService struct {
 	u   order.IOrderUsecase
 	log *logrus.Logger
 }
 
-func NewOrderHandler(
+func NewOrderService(
 	u order.IOrderUsecase,
 	log *logrus.Logger,
-) *OrderHandler {
-	return &OrderHandler{
+) *OrderService {
+	return &OrderService{
 		u:   u,
 		log: log,
 	}
@@ -33,10 +33,10 @@ func NewOrderHandler(
 //	@Produce		json
 //	@Param			input	body		models.CreateOrderDTO	true	"Данные для создания заказа"
 //	@Success		200		{}			"Order successfully created"
-//	@Failure		400		{object}	response.ErrorResponse	"Некорректный запрос"
-//	@Failure		401		{object}	response.ErrorResponse	"Пользователь не найден в контексте"
-//	@Failure		404		{object}	response.ErrorResponse	"Ошибка при создании заказа"
-//	@Failure		500		{object}	response.ErrorResponse	"Внутренняя ошибка сервера"
+//	@Failure		400		{object}	dto.ErrorResponse	"Некорректный запрос"
+//	@Failure		401		{object}	dto.ErrorResponse	"Пользователь не найден в контексте"
+//	@Failure		404		{object}	dto.ErrorResponse	"Ошибка при создании заказа"
+//	@Failure		500		{object}	dto.ErrorResponse	"Внутренняя ошибка сервера"
 //	@Router			/order [post]
 
 func (o *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {

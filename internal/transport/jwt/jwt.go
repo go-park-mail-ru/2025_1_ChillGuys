@@ -12,7 +12,7 @@ import (
 )
 
 type VersionChecker interface {
-	CheckUserVersion(ctx context.Context, userID string, version int) bool
+	CheckVersion(ctx context.Context, userID string, version int) bool
 }
 
 // JWTClaims структура для данных токена

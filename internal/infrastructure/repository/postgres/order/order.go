@@ -4,11 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
+
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -36,20 +37,19 @@ type IOrderRepository interface {
 
 type OrderRepository struct {
 	db  *sql.DB
-	log *logrus.Logger
 }
 
-func NewOrderRepository(db *sql.DB, log *logrus.Logger) *OrderRepository {
+func NewOrderRepository(db *sql.DB) *OrderRepository {
 	return &OrderRepository{
 		db:  db,
-		log: log,
 	}
 }
 
 func (r *OrderRepository) CreateOrder(ctx context.Context, in dto.CreateOrderRepoReq) error {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
-		return err
+		logger.WithError(err).Error("failed to begin transaction")
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
 	if _, err = tx.ExecContext(ctx, queryCreateOrder,
@@ -61,13 +61,15 @@ func (r *OrderRepository) CreateOrder(ctx context.Context, in dto.CreateOrderRep
 		in.Order.AddressID,
 	); err != nil {
 		tx.Rollback()
-		return err
+		logger.WithError(err).Error("create order")
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
 	for productID, updatedQuantity := range in.UpdatedQuantities {
 		if err = r.UpdateProductQuantity(ctx, productID, updatedQuantity); err != nil {
 			tx.Rollback()
-			return err
+			logger.WithError(err).WithField("product_id", productID).Error("update product quantity")
+			return fmt.Errorf("%s: %w", op, err)
 		}
 	}
 
@@ -76,14 +78,23 @@ func (r *OrderRepository) CreateOrder(ctx context.Context, in dto.CreateOrderRep
 			item.ID, in.Order.ID, item.ProductID, item.Price, item.Quantity,
 		); err != nil {
 			tx.Rollback()
-			return err
+			logger.WithError(err).WithField("product_id", item.ProductID).Error("add order item")
+			return fmt.Errorf("%s: %w", op, err)
 		}
 	}
 
-	return tx.Commit()
+	if err = tx.Commit(); err != nil {
+		logger.WithError(err).Error("commit transaction")
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	return nil
 }
 
 func (r *OrderRepository) ProductPrice(ctx context.Context, ProductID uuid.UUID) (*models.Product, error) {
+	const op = "OrderRepository.ProductPrice"
+	logger := logctx.GetLogger(ctx).WithField("op", op)
+
 	var product models.Product
 	var productStatusString string
 
@@ -95,12 +106,14 @@ func (r *OrderRepository) ProductPrice(ctx context.Context, ProductID uuid.UUID)
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errs.NewNotFoundError("product not found")
 		}
-		return nil, err
+		logger.WithError(err).WithField("product_id", ProductID).Error("get product price")
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	productStatus, err := models.ParseProductStatus(productStatusString)
 	if err != nil {
-		return nil, err
+		logger.WithError(err).WithField("status", productStatusString).Error("parse product status")
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	product.Status = productStatus
 
@@ -108,9 +121,13 @@ func (r *OrderRepository) ProductPrice(ctx context.Context, ProductID uuid.UUID)
 }
 
 func (r *OrderRepository) ProductDiscounts(ctx context.Context, productID uuid.UUID) ([]models.ProductDiscount, error) {
+	const op = "OrderRepository.ProductDiscounts"
+	logger := logctx.GetLogger(ctx).WithField("op", op)
+
 	rows, err := r.db.QueryContext(ctx, queryGetProductDiscount, productID)
 	if err != nil {
-		return nil, err
+		logger.WithError(err).WithField("product_id", productID).Error("query product discounts")
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	defer rows.Close()
 
@@ -122,31 +139,39 @@ func (r *OrderRepository) ProductDiscounts(ctx context.Context, productID uuid.U
 			&discount.DiscountStartDate,
 			&discount.DiscountEndDate,
 		); err != nil {
-			return nil, err
+			logger.WithError(err).Error("scan discount row")
+			return nil, fmt.Errorf("%s: %w", op, err)
 		}
 		discounts = append(discounts, discount)
 	}
 
 	if err = rows.Err(); err != nil {
-		return nil, err
+		logger.WithError(err).Error("rows iteration error")
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	if len(discounts) == 0 {
 		return nil, errs.NewNotFoundError("product discounts not found")
 	}
 
+
 	return discounts, nil
 }
 
 func (r *OrderRepository) UpdateProductQuantity(ctx context.Context, productID uuid.UUID, quantity uint) error {
+	const op = "OrderRepository.UpdateProductQuantity"
+	logger := logctx.GetLogger(ctx).WithField("op", op)
+	
 	res, err := r.db.ExecContext(ctx, queryUpdateProductQuantity, quantity, productID)
 	if err != nil {
-		return err
+		logger.WithError(err).WithField("product_id", productID).Error("update product quantity")
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
 	rowsAffected, err := res.RowsAffected()
 	if err != nil {
-		return err
+		logger.WithError(err).Error("get rows affected")
+		return fmt.Errorf("%s: %w", op, err)
 	}
 	if rowsAffected == 0 {
 		return errs.NewNotFoundError("product not found for quantity update")

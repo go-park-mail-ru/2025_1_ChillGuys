@@ -70,7 +70,7 @@ func JWTMiddleware(tokenator *jwt.Tokenator, next http.Handler) http.Handler {
 			return
 		}
 
-		if !tokenator.VC.CheckUserVersion(ctx, claims.UserID, claims.Version) {
+		if !tokenator.VC.CheckVersion(ctx, claims.UserID, claims.Version) {
 			requestLogger.Warn("Token is invalid or expired")
 			response.SendJSONError(ctx, w, http.StatusUnauthorized, "Token is invalid or expired")
 			return

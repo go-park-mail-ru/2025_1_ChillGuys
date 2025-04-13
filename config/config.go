@@ -66,6 +66,7 @@ type MinioConfig struct {
 	RootUser     string
 	RootPassword string
 	UseSSL       bool
+	PublicURL 	 string
 }
 
 func newMinioConfig() (*MinioConfig, error) {
@@ -75,10 +76,12 @@ func newMinioConfig() (*MinioConfig, error) {
 	port, portExists := os.LookupEnv("PORT")
 	bucketName, bucketExists := os.LookupEnv("MINIO_BUCKET_NAME")
 	useSSL, err := getEnvAsBool("MINIO_USE_SSL")
+	publicURL, publicURLExists := os.LookupEnv("MINIO_PUBLIC_URL")
+
 	if err != nil {
 		return nil, err
 	}
-	if !endpointExists || !userExists || !passwordExists || !portExists || !bucketExists {
+	if !endpointExists || !userExists || !passwordExists || !portExists || !bucketExists || !publicURLExists{
 		return nil, errors.New("incomplete MinIO configuration: missing required environment variables")
 	}
 	return &MinioConfig{
@@ -88,6 +91,7 @@ func newMinioConfig() (*MinioConfig, error) {
 		RootUser:     rootUser,
 		RootPassword: rootPassword,
 		UseSSL:       useSSL,
+		PublicURL: publicURL,
 	}, nil
 }
 

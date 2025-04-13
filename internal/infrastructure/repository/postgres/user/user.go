@@ -7,7 +7,6 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -50,19 +49,18 @@ const (
 
 type UserRepository struct {
 	db  *sql.DB
-	log *logrus.Logger
 }
 
-func NewUserRepository(db *sql.DB, log *logrus.Logger) *UserRepository {
+func NewUserRepository(db *sql.DB) *UserRepository {
 	return &UserRepository{
 		db:  db,
-		log: log,
 	}
 }
 
 func (r *UserRepository) UpdateUserImageURL(ctx context.Context, userID uuid.UUID, imageURL string) error {
 	res, err := r.db.ExecContext(ctx, queryUpdateUserImageURL, imageURL, userID)
 	if err != nil {
+		logger.WithError(err).Error("begin transaction")
 		return err
 	}
 
@@ -121,6 +119,7 @@ func (r *UserRepository) GetUserByEmail(ctx context.Context, email string) (*mod
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errs.NewNotFoundError("user with given email not found")
 		}
+		logger.WithError(err).Error("get user by email")
 		return nil, err
 	}
 
@@ -150,7 +149,7 @@ func (r *UserRepository) GetUserByID(ctx context.Context, id uuid.UUID) (*models
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errs.NewNotFoundError("user with given id not found")
 		}
-
+		logger.WithError(err).Error("get user by ID")
 		return nil, err
 	}
 

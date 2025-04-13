@@ -13,14 +13,20 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/guregu/null"
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
 func TestUserUsecase_GetMe(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+	mockRepo := mocks.NewMockIUserRepository(ctrl)
+	mockToken := mocks.NewMockITokenator(ctrl)
+	
+	// Since Minio is not critical for auth tests, we can pass nil
+	uc := user.NewAuthUsecase(mockRepo, mockToken, nil)
+	
+	return mockRepo, mockToken, uc
+}
 
 	mockRepo := user2.NewMockIUserRepository(ctrl)
 	mockToken := user2.NewMockITokenator(ctrl)
@@ -52,62 +58,47 @@ func TestUserUsecase_GetMe(t *testing.T) {
 		ctx := context.WithValue(context.Background(), domains.UserIDKey{}, testUserID.String())
 
 		mockRepo.EXPECT().
-			GetUserByID(gomock.Any(), testUserID).
-			Return(testUserDB, nil).
-			Times(1)
+			GetByID(gomock.Any(), userID).
+			Return(userDB, nil)
 
 		user, err := uc.GetMe(ctx)
-
 		assert.NoError(t, err)
-		assert.Equal(t, testUserDB.Email, user.Email)
-		assert.Equal(t, testUserDB.Name, user.Name)
-		assert.Equal(t, testUserDB.Surname, user.Surname)
+		assert.Equal(t, userDB.ConvertToUser(), user)
 	})
 
-	t.Run("UserNotFoundInContext", func(t *testing.T) {
-		user, err := uc.GetMe(context.Background())
+	t.Run("no user in context", func(t *testing.T) {
+		_, _, uc := setupTest(t)
 
-		assert.Error(t, err)
-		assert.Equal(t, errs.ErrNotFound, err)
-		assert.Nil(t, user)
+		_, err := uc.GetMe(context.Background())
+		assert.ErrorIs(t, err, errs.ErrNotFound)
 	})
 
 	t.Run("InvalidUserID", func(t *testing.T) {
 		ctx := context.WithValue(context.Background(), domains.UserIDKey{}, "invalid-uuid")
 
-		user, err := uc.GetMe(ctx)
-
-		assert.Error(t, err)
-		assert.Equal(t, errs.ErrInvalidID, err)
-		assert.Nil(t, user)
+		_, err := uc.GetMe(ctx)
+		assert.ErrorIs(t, err, errs.ErrInvalidID)
 	})
 
 	t.Run("GetUserByIDError", func(t *testing.T) {
 		ctx := context.WithValue(context.Background(), domains.UserIDKey{}, testUserID.String())
 
 		mockRepo.EXPECT().
-			GetUserByID(gomock.Any(), testUserID).
-			Return(nil, errors.New("db error")).
-			Times(1)
+			GetByID(gomock.Any(), userID).
+			Return(nil, errs.ErrNotFound)
 
-		user, err := uc.GetMe(ctx)
-
-		assert.Error(t, err)
-		assert.Nil(t, user)
+		_, err := uc.GetMe(ctx)
+		assert.ErrorIs(t, err, errs.ErrNotFound)
 	})
 
 	t.Run("UserNotFoundInDB", func(t *testing.T) {
 		ctx := context.WithValue(context.Background(), domains.UserIDKey{}, testUserID.String())
 
 		mockRepo.EXPECT().
-			GetUserByID(gomock.Any(), testUserID).
-			Return(nil, nil).
-			Times(1)
+			GetByID(gomock.Any(), userID).
+			Return(nil, errors.New("db error"))
 
-		user, err := uc.GetMe(ctx)
-
+		_, err := uc.GetMe(ctx)
 		assert.Error(t, err)
-		assert.Equal(t, errs.ErrNotFound, err)
-		assert.Nil(t, user)
 	})
 }

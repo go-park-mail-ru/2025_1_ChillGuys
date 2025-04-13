@@ -9,7 +9,6 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/auth"
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 	"strings"
 )
@@ -28,14 +27,13 @@ type UserUsecase struct {
 	log          *logrus.Logger
 	token        auth.ITokenator
 	repo         IUserRepository
-	minioService minio.Client
+	minioService minio.Provider
 }
 
 func NewUserUsecase(repo IUserRepository, token auth.ITokenator, log *logrus.Logger, minioService minio.Client) *UserUsecase {
 	return &UserUsecase{
 		repo:         repo,
 		token:        token,
-		log:          log,
 		minioService: minioService,
 	}
 }
@@ -85,7 +83,8 @@ func (u *UserUsecase) UploadAvatar(ctx context.Context, fileData minio.FileDataT
 
 	avatar, err := u.minioService.CreateOne(ctx, fileData)
 	if err != nil {
-		return "", err
+		logger.WithError(err).Error("failed to get user by email")
+		return "", fmt.Errorf("%s: %w", op, err)
 	}
 
 	if err = u.repo.UpdateUserImageURL(ctx, userID, avatar.URL); err != nil {
@@ -98,7 +97,8 @@ func (u *UserUsecase) UploadAvatar(ctx context.Context, fileData minio.FileDataT
 func (u *UserUsecase) UpdateUserProfile(ctx context.Context, user dto.UpdateUserProfileRequestDTO) error {
 	userIDStr, isExist := ctx.Value(domains.UserIDKey{}).(string)
 	if !isExist {
-		return errs.ErrNotFound
+		logger.Error("user ID not found in context")
+		return fmt.Errorf("%s: %w", op, errs.ErrNotFound)
 	}
 
 	userID, err := uuid.Parse(userIDStr)
@@ -140,7 +140,7 @@ func (u *UserUsecase) UpdateUserEmail(ctx context.Context, user dto.UpdateUserEm
 		return errs.ErrNotFound
 	}
 
-	userID, err := uuid.Parse(userIDStr)
+	userID, err := helpers.GetUserIDFromContext(ctx)
 	if err != nil {
 		return errs.ErrInvalidID
 	}
@@ -162,7 +162,7 @@ func (u *UserUsecase) UpdateUserPassword(ctx context.Context, user dto.UpdateUse
 		return errs.ErrNotFound
 	}
 
-	userID, err := uuid.Parse(userIDStr)
+	userID, err := helpers.GetUserIDFromContext(ctx)
 	if err != nil {
 		return errs.ErrInvalidID
 	}
