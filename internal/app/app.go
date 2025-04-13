@@ -107,7 +107,7 @@ func NewApp(conf *config.Config) (*App, error) {
 	apiRouter := router.PathPrefix("/api").Subrouter()
 	apiRouter = apiRouter.PathPrefix("/v1").Subrouter()
 
-	router.PathPrefix("/").HandlerFunc(OptionsRequest).Methods(http.MethodOptions)
+	apiRouter.PathPrefix("/").HandlerFunc(OptionsRequest).Methods(http.MethodOptions)
 
 	apiRouter.Use(func(next http.Handler) http.Handler {
 		return middleware.CORSMiddleware(next, conf.ServerConfig)

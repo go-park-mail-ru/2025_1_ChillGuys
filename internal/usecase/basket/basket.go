@@ -16,7 +16,7 @@ type IBasketRepository interface{
 	Get(ctx context.Context, userID uuid.UUID) ([]*models.BasketItem, error)
 	Add(ctx context.Context, userID uuid.UUID, productID uuid.UUID) (*models.BasketItem, error)
 	Delete(ctx context.Context, userID uuid.UUID, productID uuid.UUID) error
-	UpdateQuantity(ctx context.Context, userID uuid.UUID, productID uuid.UUID, quantity int) (*models.BasketItem, int, error)
+	UpdateQuantity(ctx context.Context, userID uuid.UUID, productID uuid.UUID, quantity int) (*models.BasketItem, error)
 	Clear(ctx context.Context, userID uuid.UUID) error
 }
 
@@ -98,35 +98,35 @@ func (u *BasketUsecase)Delete(ctx context.Context, productID uuid.UUID)(error){
 	return nil
 }
 
-func (u *BasketUsecase)UpdateQuantity(ctx context.Context, productID uuid.UUID, quantity int)(*models.BasketItem, int, error){
+func (u *BasketUsecase)UpdateQuantity(ctx context.Context, productID uuid.UUID, quantity int)(*models.BasketItem, error){
 	const op = "BasketUsecase.UpdateQuantity"
     logger := logctx.GetLogger(ctx).WithField("op", op)
 
     if quantity <= 0 {
         logger.WithField("quantity", quantity).Error("invalid quantity")
-        return nil, -1, fmt.Errorf("%s: %w", op, errs.NewBusinessLogicError("invalid quantity"))
+        return nil, fmt.Errorf("%s: %w", op, errs.NewBusinessLogicError("invalid quantity"))
     }
 
 	if productID == uuid.Nil {
         logger.Error("invalid product ID")
-        return nil, -1, fmt.Errorf("%s: %w", op, errs.ErrInvalidID)
+        return nil, fmt.Errorf("%s: %w", op, errs.ErrInvalidID)
     }
 
 	userID, err := helpers.GetUserIDFromContext(ctx)
     if err != nil {
         logger.WithError(err).Error("get user ID from context")
-        return nil, -1, fmt.Errorf("%s: %w", op, err)
+        return nil, fmt.Errorf("%s: %w", op, err)
     }
 
 	logger.WithField("user_id", userID).WithField("product_id", productID)
 
-	item, rem ,err := u.repo.UpdateQuantity(ctx, userID, productID, quantity)
+	item, err := u.repo.UpdateQuantity(ctx, userID, productID, quantity)
     if err != nil {
         logger.WithError(err).Error("update product quantity")
-        return nil, -1, fmt.Errorf("%s: %w", op, err)
+        return nil, fmt.Errorf("%s: %w", op, err)
     }
 
-	return item, rem, nil
+	return item, nil
 }
 
 func (u *BasketUsecase)Clear(ctx context.Context,)(error){

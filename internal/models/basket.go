@@ -16,6 +16,7 @@ type BasketItem struct {
 	Price		   float64    `json:"product_price"`
 	ProductImage   string     `json:"product_image"`
 	PriceDiscount  float64    `json:"price_discount"`
+	QuantityRemain int  	  `json:"remain_quantity"`
 }
 
 type Basket struct {

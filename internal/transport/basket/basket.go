@@ -19,7 +19,7 @@ type IBasketUsecase interface{
 	Get(ctx context.Context)([]*models.BasketItem, error)
 	Add(ctx context.Context, productID uuid.UUID)(*models.BasketItem, error)
 	Delete(ctx context.Context, productID uuid.UUID)(error)
-	UpdateQuantity(ctx context.Context, productID uuid.UUID, quantity int)(*models.BasketItem, int, error)
+	UpdateQuantity(ctx context.Context, productID uuid.UUID, quantity int)(*models.BasketItem, error)
 	Clear(ctx context.Context)(error)
 }
 
@@ -175,14 +175,14 @@ func (h *BasketService) UpdateQuantity(w http.ResponseWriter, r *http.Request) {
         "quantity":   req.Quantity,
     })
 
-	item, rem, err := h.u.UpdateQuantity(r.Context(), productID, req.Quantity)
+	item, err := h.u.UpdateQuantity(r.Context(), productID, req.Quantity)
 	if err != nil {
         logger.WithError(err).Error("update product quantity")
         response.HandleDomainError(r.Context(), w, err, op)
         return
     }
 
-	resp := dto.ConvertToQuantityResponse(item, rem)
+	resp := dto.ConvertToQuantityResponse(item)
 
 	response.SendJSONResponse(r.Context(), w, http.StatusOK, resp)
 }

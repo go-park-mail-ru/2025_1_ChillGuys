@@ -7,13 +7,11 @@ type UpdateQuantityRequest struct {
 }
 
 type UpdateQuantityResponse struct {
-	QuantityRemain 		int 				`json:"remain_quantity"`
 	Item 				*models.BasketItem  `json:"item"`
 }
 
-func ConvertToQuantityResponse(item *models.BasketItem, quantity int) UpdateQuantityResponse {
+func ConvertToQuantityResponse(item *models.BasketItem) UpdateQuantityResponse {
 	return UpdateQuantityResponse{
-		QuantityRemain: quantity,
 		Item: item,
 	}
 }
