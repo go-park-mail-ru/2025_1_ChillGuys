@@ -24,7 +24,7 @@ type IAuthUsecase interface {
 type AuthHandler struct {
 	authService  IAuthUsecase
 	log          *logrus.Logger
-	minioService minio.Client
+	minioService minio.Provider
 	config       config.Config
 }
 

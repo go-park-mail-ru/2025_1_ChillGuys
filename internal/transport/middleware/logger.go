@@ -17,7 +17,7 @@ func LogRequest(logger *logrus.Logger, next http.Handler) http.Handler {
 		rand.Seed(time.Now().UnixNano())
 		reqID := fmt.Sprintf("%016x", rand.Int())[:10]
 
-		ctx := context.WithValue(r.Context(), domains.ReqIDKey, reqID)
+		ctx := context.WithValue(r.Context(), domains.ReqIDKey{}, reqID)
 
 		middlewareLogger := logger.WithFields(logrus.Fields{
 			"request_id":  reqID,

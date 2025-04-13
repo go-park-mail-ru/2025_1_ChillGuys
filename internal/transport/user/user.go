@@ -2,13 +2,8 @@ package user
 
 import (
 	"context"
-	"fmt"
-	"io"
-	"net/http"
-
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/minio"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/request"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/response"
@@ -21,7 +16,7 @@ import (
 //go:generate mockgen -source=user.go -destination=../../usecase/mocks/user_usecase_mock.go -package=mocks IUserUsecase
 type IUserUsecase interface {
 	GetMe(context.Context) (*dto.UserDTO, error)
-	UploadAvatar(context.Context, minio.FileDataType) (string, error)
+	UploadAvatar(context.Context, minio.FileData) (string, error)
 	UpdateUserProfile(context.Context, dto.UpdateUserProfileRequestDTO) error
 	UpdateUserEmail(ctx context.Context, user dto.UpdateUserEmailDTO) error
 	UpdateUserPassword(context.Context, dto.UpdateUserPasswordDTO) error
@@ -30,14 +25,14 @@ type IUserUsecase interface {
 type UserHandler struct {
 	userService  IUserUsecase
 	log          *logrus.Logger
-	minioService minio.Client
+	minioService minio.Provider
 	config       config.Config
 }
 
 func NewUserHandler(
 	u IUserUsecase,
 	log *logrus.Logger,
-	ms minio.Client,
+	ms minio.Provider,
 	cfg *config.Config,
 ) *UserHandler {
 	return &UserHandler{
@@ -102,9 +97,9 @@ func (h *UserHandler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fileData := minio.FileDataType{
-		FileName: header.Filename,
-		Data:     fileBytes,
+	fileData := minio.FileData{
+		Name: header.Filename,
+		Data: fileBytes,
 	}
 
 	avatarURL, err := h.userService.UploadAvatar(r.Context(), fileData)

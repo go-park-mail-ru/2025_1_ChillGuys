@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	"github.com/google/uuid"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
@@ -15,7 +15,7 @@ import (
 
 //go:generate mockgen -source=minio_client.go -destination=./mocks/minio_Provider_mock.go -package=mocks Provider
 type Provider interface {
-	CreateOne(context.Context, FileData) (*UploadResponse, error)
+	CreateOne(context.Context, FileData) (*dto.UploadResponse, error)
 	// CreateMany(context.Context, map[string]FileData) ([]string, error)
 	// GetOne(context.Context, string) ([]byte, error)
 	// GetMany(context.Context, []string) ([]string, error)
@@ -85,7 +85,7 @@ func initMinio(config *config.MinioConfig) (*minio.Client, error) {
 // Метод принимает структуру FileDataType, которая содержит имя файла и его данные.
 // В случае успешной загрузки данных в бакет, метод возвращает nil, иначе возвращает ошибку.
 // Все операции выполняются в контексте задачи.
-func (m *minioProvider) CreateOne(ctx context.Context, file FileData) (*UploadResponse, error) {
+func (m *minioProvider) CreateOne(ctx context.Context, file FileData) (*dto.UploadResponse, error) {
 	// Генерация уникального идентификатора для нового объекта.
 	objectID := uuid.New().String()
 	logFields := logrus.Fields{
@@ -101,11 +101,11 @@ func (m *minioProvider) CreateOne(ctx context.Context, file FileData) (*UploadRe
 
 	// Загрузка данных в бакет Minio с использованием контекста для возможности отмены операции.
 	uploadInfo, err := m.mc.PutObject(
-		ctx, 
-		m.config.BucketName, 
-		objectID, 
-		reader, 
-		int64(len(file.Data)), 
+		ctx,
+		m.config.BucketName,
+		objectID,
+		reader,
+		int64(len(file.Data)),
 		minio.PutObjectOptions{ContentType: "image/jpeg"},
 	)
 	if err != nil {
@@ -117,15 +117,14 @@ func (m *minioProvider) CreateOne(ctx context.Context, file FileData) (*UploadRe
 	logFields["upload_info"] = uploadInfo
 	m.log.WithFields(logFields).Debug("file upload details")
 
-
 	m.log.WithFields(logFields).Info("file successfully uploaded to MinIO")
 
 	url := fmt.Sprintf("%s%s", m.config.PublicURL, objectID)
 
-    return &UploadResponse{
-        URL:      url,
-        ObjectID: objectID,
-    }, nil
+	return &dto.UploadResponse{
+		URL:      url,
+		ObjectID: objectID,
+	}, nil
 }
 
 // CreateMany создает несколько объектов в хранилище MinIO из переданных данных.
@@ -343,7 +342,7 @@ func (m *minioProvider) CreateOne(ctx context.Context, file FileData) (*UploadRe
 //         wg.Add(1)
 //         go func(id string) {
 //             defer wg.Done()
-            
+
 //             select {
 //             case <-ctx.Done():
 //                 return
@@ -378,7 +377,7 @@ func (m *minioProvider) CreateOne(ctx context.Context, file FileData) (*UploadRe
 
 type FileData struct {
 	Name string
-	Data     []byte
+	Data []byte
 }
 
 type OperationError struct {

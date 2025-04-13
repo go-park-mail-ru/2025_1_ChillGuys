@@ -17,9 +17,9 @@ const (
 
 // Константы статусов товара
 const (
-	ProductPending  ProductStatus = "pending"  // Ожидает
-	ProductRejected ProductStatus = "rejected" // Отказано
-	ProductApproved ProductStatus = "approved" // Одобрено
+	ProductPending  ProductStatus = iota // Ожидает
+	ProductRejected                      // Отказано
+	ProductApproved                      // Одобрено
 )
 
 // ProductStatus представляет статус товара
@@ -70,29 +70,29 @@ func ParseProductStatus(status string) (ProductStatus, error) {
 
 // Scan реализует интерфейс sql.Scanner для чтения из БД
 func (s *ProductStatus) Scan(value interface{}) error {
-    if value == nil {
-        *s = ProductPending
-        return nil
-    }
+	if value == nil {
+		*s = ProductPending
+		return nil
+	}
 
-    var statusStr string
-    
-    // Обрабатываем разные типы, которые могут прийти из БД
-    switch v := value.(type) {
-    case string:
-        statusStr = v
-    case []byte:
-        statusStr = string(v)
-    default:
-        return fmt.Errorf("failed to scan ProductStatus: unsupported type %T", value)
-    }
+	var statusStr string
 
-    status, err := ParseProductStatus(statusStr)
-    if err != nil {
-        return err
-    }
-    *s = status
-    return nil
+	// Обрабатываем разные типы, которые могут прийти из БД
+	switch v := value.(type) {
+	case string:
+		statusStr = v
+	case []byte:
+		statusStr = string(v)
+	default:
+		return fmt.Errorf("failed to scan ProductStatus: unsupported type %T", value)
+	}
+
+	status, err := ParseProductStatus(statusStr)
+	if err != nil {
+		return err
+	}
+	*s = status
+	return nil
 }
 
 // Value реализует интерфейс driver.Valuer для записи в БД
@@ -101,12 +101,12 @@ func (s ProductStatus) Value() (driver.Value, error) {
 }
 
 func (p Product) MarshalJSON() ([]byte, error) {
-    type Alias Product
-    return json.Marshal(&struct {
-        Status string `json:"status"`
-        *Alias
-    }{
-        Status: p.Status.String(),
-        Alias:  (*Alias)(&p),
-    })
+	type Alias Product
+	return json.Marshal(&struct {
+		Status string `json:"status"`
+		*Alias
+	}{
+		Status: p.Status.String(),
+		Alias:  (*Alias)(&p),
+	})
 }

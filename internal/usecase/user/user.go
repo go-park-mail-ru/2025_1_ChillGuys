@@ -2,13 +2,16 @@ package user
 
 import (
 	"context"
+	"fmt"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/minio"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/domains"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/auth"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/helpers"
 	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 	"strings"
 )
@@ -30,7 +33,7 @@ type UserUsecase struct {
 	minioService minio.Provider
 }
 
-func NewUserUsecase(repo IUserRepository, token auth.ITokenator, log *logrus.Logger, minioService minio.Client) *UserUsecase {
+func NewUserUsecase(repo IUserRepository, token auth.ITokenator, log *logrus.Logger, minioService minio.Provider) *UserUsecase {
 	return &UserUsecase{
 		repo:         repo,
 		token:        token,
@@ -70,7 +73,7 @@ func (u *UserUsecase) GetMe(ctx context.Context) (*dto.UserDTO, error) {
 	}, nil
 }
 
-func (u *UserUsecase) UploadAvatar(ctx context.Context, fileData minio.FileDataType) (string, error) {
+func (u *UserUsecase) UploadAvatar(ctx context.Context, fileData minio.FileData) (string, error) {
 	userIDStr, isExist := ctx.Value(domains.UserIDKey{}).(string)
 	if !isExist {
 		return "", errs.ErrNotFound
@@ -83,8 +86,7 @@ func (u *UserUsecase) UploadAvatar(ctx context.Context, fileData minio.FileDataT
 
 	avatar, err := u.minioService.CreateOne(ctx, fileData)
 	if err != nil {
-		logger.WithError(err).Error("failed to get user by email")
-		return "", fmt.Errorf("%s: %w", op, err)
+		return "", fmt.Errorf("%s", err)
 	}
 
 	if err = u.repo.UpdateUserImageURL(ctx, userID, avatar.URL); err != nil {
@@ -97,8 +99,7 @@ func (u *UserUsecase) UploadAvatar(ctx context.Context, fileData minio.FileDataT
 func (u *UserUsecase) UpdateUserProfile(ctx context.Context, user dto.UpdateUserProfileRequestDTO) error {
 	userIDStr, isExist := ctx.Value(domains.UserIDKey{}).(string)
 	if !isExist {
-		logger.Error("user ID not found in context")
-		return fmt.Errorf("%s: %w", op, errs.ErrNotFound)
+		return errs.ErrNotFound
 	}
 
 	userID, err := uuid.Parse(userIDStr)
@@ -135,11 +136,6 @@ func (u *UserUsecase) UpdateUserProfile(ctx context.Context, user dto.UpdateUser
 }
 
 func (u *UserUsecase) UpdateUserEmail(ctx context.Context, user dto.UpdateUserEmailDTO) error {
-	userIDStr, isExist := ctx.Value(domains.UserIDKey{}).(string)
-	if !isExist {
-		return errs.ErrNotFound
-	}
-
 	userID, err := helpers.GetUserIDFromContext(ctx)
 	if err != nil {
 		return errs.ErrInvalidID
@@ -157,11 +153,6 @@ func (u *UserUsecase) UpdateUserEmail(ctx context.Context, user dto.UpdateUserEm
 }
 
 func (u *UserUsecase) UpdateUserPassword(ctx context.Context, user dto.UpdateUserPasswordDTO) error {
-	userIDStr, isExist := ctx.Value(domains.UserIDKey{}).(string)
-	if !isExist {
-		return errs.ErrNotFound
-	}
-
 	userID, err := helpers.GetUserIDFromContext(ctx)
 	if err != nil {
 		return errs.ErrInvalidID

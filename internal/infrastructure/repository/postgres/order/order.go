@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/logctx"
+
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
@@ -36,20 +38,19 @@ type IOrderRepository interface {
 }
 
 type OrderRepository struct {
-	db  *sql.DB
+	db *sql.DB
 }
 
 func NewOrderRepository(db *sql.DB) *OrderRepository {
 	return &OrderRepository{
-		db:  db,
+		db: db,
 	}
 }
 
 func (r *OrderRepository) CreateOrder(ctx context.Context, in dto.CreateOrderRepoReq) error {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
-		logger.WithError(err).Error("failed to begin transaction")
-		return fmt.Errorf("%s: %w", op, err)
+		return fmt.Errorf("%s", err)
 	}
 
 	if _, err = tx.ExecContext(ctx, queryCreateOrder,
@@ -61,15 +62,13 @@ func (r *OrderRepository) CreateOrder(ctx context.Context, in dto.CreateOrderRep
 		in.Order.AddressID,
 	); err != nil {
 		tx.Rollback()
-		logger.WithError(err).Error("create order")
-		return fmt.Errorf("%s: %w", op, err)
+		return fmt.Errorf("%s", err)
 	}
 
 	for productID, updatedQuantity := range in.UpdatedQuantities {
 		if err = r.UpdateProductQuantity(ctx, productID, updatedQuantity); err != nil {
 			tx.Rollback()
-			logger.WithError(err).WithField("product_id", productID).Error("update product quantity")
-			return fmt.Errorf("%s: %w", op, err)
+			return fmt.Errorf("%s", err)
 		}
 	}
 
@@ -78,14 +77,12 @@ func (r *OrderRepository) CreateOrder(ctx context.Context, in dto.CreateOrderRep
 			item.ID, in.Order.ID, item.ProductID, item.Price, item.Quantity,
 		); err != nil {
 			tx.Rollback()
-			logger.WithError(err).WithField("product_id", item.ProductID).Error("add order item")
-			return fmt.Errorf("%s: %w", op, err)
+			return fmt.Errorf("%s", err)
 		}
 	}
 
 	if err = tx.Commit(); err != nil {
-		logger.WithError(err).Error("commit transaction")
-		return fmt.Errorf("%s: %w", op, err)
+		return fmt.Errorf("%s", err)
 	}
 
 	return nil
@@ -154,14 +151,13 @@ func (r *OrderRepository) ProductDiscounts(ctx context.Context, productID uuid.U
 		return nil, errs.NewNotFoundError("product discounts not found")
 	}
 
-
 	return discounts, nil
 }
 
 func (r *OrderRepository) UpdateProductQuantity(ctx context.Context, productID uuid.UUID, quantity uint) error {
 	const op = "OrderRepository.UpdateProductQuantity"
 	logger := logctx.GetLogger(ctx).WithField("op", op)
-	
+
 	res, err := r.db.ExecContext(ctx, queryUpdateProductQuantity, quantity, productID)
 	if err != nil {
 		logger.WithError(err).WithField("product_id", productID).Error("update product quantity")

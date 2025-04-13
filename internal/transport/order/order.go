@@ -39,7 +39,7 @@ func NewOrderService(
 //	@Failure		500		{object}	dto.ErrorResponse	"Внутренняя ошибка сервера"
 //	@Router			/order [post]
 
-func (o *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
+func (o *OrderService) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	userIDStr, isExist := r.Context().Value(domains.UserIDKey{}).(string)
 	if !isExist {
 		response.SendJSONError(r.Context(), w, http.StatusUnauthorized, "user not found in context")
@@ -67,7 +67,7 @@ func (o *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	response.SendJSONResponse(r.Context(), w, http.StatusOK, nil)
 }
 
-func (o *OrderHandler) GetOrders(w http.ResponseWriter, r *http.Request) {
+func (o *OrderService) GetOrders(w http.ResponseWriter, r *http.Request) {
 	userIDStr, isExist := r.Context().Value(domains.UserIDKey{}).(string)
 	if !isExist {
 		response.SendJSONError(r.Context(), w, http.StatusUnauthorized, "user id not found in context")

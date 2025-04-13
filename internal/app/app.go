@@ -1,7 +1,6 @@
 package app
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	"net/http"
@@ -12,8 +11,8 @@ import (
 	addressrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/address"
 	authrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/auth"
 	basketrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/basket"
-	orderrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/order"
 	categoryrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/category"
+	orderrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/order"
 	productrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/product"
 	userrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/user"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/address"
@@ -46,7 +45,7 @@ type App struct {
 	// Дополнительно можно добавить другие компоненты, если потребуется.
 }
 
-func OptionsRequest(w http.ResponseWriter, r *http.Request){
+func OptionsRequest(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -74,18 +73,18 @@ func NewApp(conf *config.Config) (*App, error) {
 	}
 
 	// Инициализация репозиториев и use-case-ов.
-	authRepository := authrepo.NewAuthRepository(db, logger)
-	tokenator := jwt.NewTokenator(authRepository, conf.JWTConfig)
-	authUsecase := authus.NewAuthUsecase(authRepository, tokenator, logger)
+	authRepo := authrepo.NewAuthRepository(db, logger)
+	tokenator := jwt.NewTokenator(authRepo, conf.JWTConfig)
+	authUsecase := authus.NewAuthUsecase(authRepo, tokenator, logger)
 	authHandler := auth.NewAuthHandler(authUsecase, logger, conf)
 
-	userRepository := userrepo.NewUserRepository(db, logger)
+	userRepository := userrepo.NewUserRepository(db)
 	userUsecase := userus.NewUserUsecase(userRepository, tokenator, logger, minioClient)
-	userHandler := user.NewUserHandler(userUsecase, logger, minioClient, conf)
+	userService := user.NewUserHandler(userUsecase, logger, minioClient, conf)
 
 	addressRepo := addressrepo.NewAddressRepository(db, logger)
 	addressUsecase := addressus.NewAddressUsecase(addressRepo, logger)
-	addressHandler := address.NewAddressHandler(addressUsecase, logger)
+	addressService := address.NewAddressHandler(addressUsecase, logger)
 
 	productRepo := productrepo.NewProductRepository(db)
 	productUsecase := product.NewProductUsecase(productRepo)
@@ -180,11 +179,11 @@ func NewApp(conf *config.Config) (*App, error) {
 			Methods(http.MethodGet)
 		userRouter.Handle("/upload-avatar", middleware.JWTMiddleware(tokenator, http.HandlerFunc(userService.UploadAvatar))).
 			Methods(http.MethodPost)
-		userRouter.Handle("/update-profile", middleware.JWTMiddleware(tokenator, http.HandlerFunc(userHandler.UpdateUserProfile))).
+		userRouter.Handle("/update-profile", middleware.JWTMiddleware(tokenator, http.HandlerFunc(userService.UpdateUserProfile))).
 			Methods(http.MethodPost)
-		userRouter.Handle("/update-email", middleware.JWTMiddleware(tokenator, http.HandlerFunc(userHandler.UpdateUserEmail))).
+		userRouter.Handle("/update-email", middleware.JWTMiddleware(tokenator, http.HandlerFunc(userService.UpdateUserEmail))).
 			Methods(http.MethodPost)
-		userRouter.Handle("/update-password", middleware.JWTMiddleware(tokenator, http.HandlerFunc(userHandler.UpdateUserPassword))).
+		userRouter.Handle("/update-password", middleware.JWTMiddleware(tokenator, http.HandlerFunc(userService.UpdateUserPassword))).
 			Methods(http.MethodPost)
 	}
 
@@ -192,11 +191,11 @@ func NewApp(conf *config.Config) (*App, error) {
 	{
 		orderRouter.Handle("/", middleware.JWTMiddleware(
 			tokenator,
-			http.HandlerFunc(orderHandler.CreateOrder),
+			http.HandlerFunc(orderService.CreateOrder),
 		)).Methods(http.MethodPost)
 		orderRouter.Handle("/", middleware.JWTMiddleware(
 			tokenator,
-			http.HandlerFunc(orderHandler.GetOrders),
+			http.HandlerFunc(orderService.GetOrders),
 		)).Methods(http.MethodGet)
 	}
 
@@ -204,13 +203,13 @@ func NewApp(conf *config.Config) (*App, error) {
 	{
 		addressRouter.Handle("/", middleware.JWTMiddleware(
 			tokenator,
-			http.HandlerFunc(addressHandler.CreateAddress),
+			http.HandlerFunc(addressService.CreateAddress),
 		)).Methods(http.MethodPost)
 		addressRouter.Handle("/", middleware.JWTMiddleware(
 			tokenator,
-			http.HandlerFunc(addressHandler.GetAddress),
+			http.HandlerFunc(addressService.GetAddress),
 		)).Methods(http.MethodGet)
-		addressRouter.HandleFunc("/pickup-points", addressHandler.GetPickupPoints).Methods(http.MethodGet)
+		addressRouter.HandleFunc("/pickup-points", addressService.GetPickupPoints).Methods(http.MethodGet)
 	}
 
 	app := &App{
