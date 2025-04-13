@@ -3,6 +3,7 @@ package product
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/google/uuid"
 
@@ -74,15 +75,64 @@ func (u *ProductUsecase) GetProductsByIDs(ctx context.Context, ids []uuid.UUID) 
 		return []*models.Product{}, nil
 	}
 
-	var products []*models.Product
-	for _, id := range ids {
-		product, err := u.repo.GetProductByID(ctx, id)
-		if err != nil {
-			logger.WithError(err).WithField("product_id", id).Warn("failed to get product by ID")
-			continue
-		}
-		products = append(products, product)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	mu := &sync.Mutex{}
+	var wg sync.WaitGroup
+	errCh := make(chan error, 1)
+
+	products := make([]*models.Product, len(ids))
+	for i, id := range ids {
+		wg.Add(1)
+		go func(idx int, productID uuid.UUID) {
+			defer wg.Done()
+
+			if ctx.Err() != nil {
+				return
+			}
+
+			product, err := u.repo.GetProductByID(ctx, productID)
+			if err != nil {
+				logger.WithError(err).WithField("product_id", productID).Warn("failed to get product by ID")
+				trySendError(err, errCh, cancel)
+				return
+			}
+
+			mu.Lock()
+			products[idx] = product
+			mu.Unlock()
+		}(i, id)
 	}
 
-	return products, nil
+	// Горутина для закрытия канала после завершения всех операций
+	go func() {
+		wg.Wait()
+		close(errCh)
+	}()
+
+	// Возвращаем первую ошибку (если есть)
+	if err := <-errCh; err != nil {
+		return nil, err
+	}
+
+	// Фильтруем nil значения (продукты, которые не удалось получить)
+	filteredProducts := make([]*models.Product, 0, len(products))
+	for _, p := range products {
+		if p != nil {
+			filteredProducts = append(filteredProducts, p)
+		}
+	}
+
+	return filteredProducts, nil
+}
+
+// trySendError Вспомогательная функция для безопасной отправки ошибки
+func trySendError(err error, errCh chan<- error, cancel context.CancelFunc) {
+	select {
+	case errCh <- err:
+		cancel()
+	default:
+		// Если ошибка уже есть - игнорируем (сохраняем первую)
+	}
 }
