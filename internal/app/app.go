@@ -119,7 +119,7 @@ func NewApp(conf *config.Config) (*App, error) {
 	// Маршруты для продуктов.
 	productsRouter := apiRouter.PathPrefix("/products").Subrouter()
 	{
-		productsRouter.HandleFunc("/batch", ProductService.GetProductsByIDs).Methods(http.MethodGet)
+		productsRouter.HandleFunc("/batch", ProductService.GetProductsByIDs).Methods(http.MethodPost)
 		productsRouter.HandleFunc("", ProductService.GetAllProducts).Methods(http.MethodGet)
 		productsRouter.HandleFunc("/{id}", ProductService.GetProductByID).Methods(http.MethodGet)
 		productsRouter.HandleFunc("/category/{id}", ProductService.GetProductsByCategory).Methods(http.MethodGet)
