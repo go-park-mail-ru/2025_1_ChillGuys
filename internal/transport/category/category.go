@@ -26,13 +26,14 @@ func NewCategoryService(u ICategoryUsecase) *CategoryService {
 }
 
 // GetAllCategories godoc
+//
 //	@Summary		Получить все категории
 //	@Description	Возвращает список всех доступных категорий товаров
 //	@Tags			categories
 //	@Produce		json
 //	@Success		200	{array}		dto.CategoryResponse
 //	@Failure		500	{object}	object
-//	@Router			/api/v1/categories [get]
+//	@Router			/categories [get]
 func (h *CategoryService) GetAllCategories(w http.ResponseWriter, r *http.Request) {
 	const op = "CategoryService.GetAllCategories"
 	logger := logctx.GetLogger(r.Context()).WithField("op", op)

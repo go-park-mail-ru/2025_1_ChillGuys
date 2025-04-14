@@ -1,6 +1,13 @@
 basePath: /api/v1
 definitions:
-  dto.AddressDTO:
+  dto.AddressListResponse:
+    properties:
+      addresses:
+        items:
+          $ref: '#/definitions/dto.GetAddressResDTO'
+        type: array
+    type: object
+  dto.AddressReqDTO:
     properties:
       addressString:
         type: string
@@ -8,19 +15,27 @@ definitions:
         type: string
       coordinate:
         type: string
-      id:
-        type: string
       label:
         type: string
       region:
         type: string
     type: object
-  dto.AddressListResponse:
+  dto.BriefProduct:
     properties:
-      addresses:
-        items:
-          $ref: '#/definitions/dto.GetAddressResDTO'
-        type: array
+      discount_price:
+        type: number
+      id:
+        type: string
+      image:
+        type: string
+      name:
+        type: string
+      price:
+        type: number
+      rating:
+        type: integer
+      reviews_count:
+        type: integer
     type: object
   dto.CategoryResponse:
     properties:
@@ -104,6 +119,15 @@ definitions:
         items:
           $ref: '#/definitions/dto.GetPointAddressResDTO'
         type: array
+    type: object
+  dto.ProductsResponse:
+    properties:
+      products:
+        items:
+          $ref: '#/definitions/dto.BriefProduct'
+        type: array
+      total:
+        type: integer
     type: object
   dto.UserLoginRequestDTO:
     properties:
@@ -243,14 +267,14 @@ definitions:
     - ProductPending
     - ProductRejected
     - ProductApproved
-host: 90.156.217.63:8081
+host: localhost:8083
 info:
   contact: {}
   description: API for ChillGuys marketplace
   title: ChillGuys API
   version: "1.0"
 paths:
-  /api/v1/address:
+  /addresses:
     get:
       description: Возвращает все адреса текущего пользователя
       produces:
@@ -272,6 +296,8 @@ paths:
           description: Ошибка сервера при получении адресов
           schema:
             type: object
+      security:
+      - TokenAuth: []
       summary: Получение списка адресов пользователя
       tags:
       - address
@@ -285,7 +311,7 @@ paths:
         name: address
         required: true
         schema:
-          $ref: '#/definitions/dto.AddressDTO'
+          $ref: '#/definitions/dto.AddressReqDTO'
       produces:
       - application/json
       responses:
@@ -303,10 +329,12 @@ paths:
           description: Ошибка сервера при создании адреса
           schema:
             type: object
+      security:
+      - TokenAuth: []
       summary: Создание нового адреса
       tags:
       - address
-  /api/v1/address/pickup-points:
+  /addresses/pickup-points:
     get:
       description: Возвращает все доступные пункты выдачи
       produces:
@@ -323,7 +351,7 @@ paths:
       summary: Получение списка пунктов выдачи
       tags:
       - address
-  /api/v1/auth/login:
+  /auth/login:
     post:
       consumes:
       - application/json
@@ -359,7 +387,7 @@ paths:
       summary: Авторизация пользователя
       tags:
       - auth
-  /api/v1/auth/logout:
+  /auth/logout:
     post:
       description: Завершает сеанс пользователя и удаляет JWT-токен из cookies
       produces:
@@ -380,10 +408,12 @@ paths:
           description: Внутренняя ошибка сервера
           schema:
             type: object
+      security:
+      - TokenAuth: []
       summary: Выход из системы
       tags:
       - auth
-  /api/v1/auth/register:
+  /auth/register:
     post:
       consumes:
       - application/json
@@ -419,7 +449,7 @@ paths:
       summary: Регистрация пользователя
       tags:
       - auth
-  /api/v1/categories:
+  /categories:
     get:
       description: Возвращает список всех доступных категорий товаров
       produces:
@@ -438,7 +468,7 @@ paths:
       summary: Получить все категории
       tags:
       - categories
-  /api/v1/orders:
+  /orders:
     get:
       description: Возвращает список всех заказов текущего пользователя
       produces:
@@ -460,10 +490,12 @@ paths:
           description: Внутренняя ошибка сервера
           schema:
             type: object
+      security:
+      - TokenAuth: []
       summary: Получить список заказов
       tags:
       - order
-  /api/v1/products:
+  /products:
     get:
       description: Возвращает список всех доступных продуктов
       produces:
@@ -482,7 +514,7 @@ paths:
       summary: Получить все продукты
       tags:
       - products
-  /api/v1/products/{id}:
+  /products/{id}:
     get:
       description: Возвращает детальную информацию о продукте по его ID
       parameters:
@@ -509,7 +541,7 @@ paths:
       summary: Получить продукт по ID
       tags:
       - products
-  /api/v1/products/category/{id}:
+  /products/category/{id}:
     get:
       description: Возвращает список товаров указанной категории, отсортированных
         по дате обновления (новые сначала)
@@ -543,7 +575,7 @@ paths:
       summary: Получить товары по категории
       tags:
       - products
-  /api/v1/products/list:
+  /products/list:
     post:
       consumes:
       - application/json
@@ -562,7 +594,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.Product'
+              $ref: '#/definitions/dto.ProductsResponse'
             type: array
         "400":
           description: Некорректные данные
@@ -575,7 +607,7 @@ paths:
       summary: Получить товары по списку ID
       tags:
       - products
-  /api/v1/products/upload:
+  /products/upload:
     post:
       consumes:
       - multipart/form-data
@@ -607,8 +639,6 @@ paths:
       tags:
       - products
 securityDefinitions:
-  BasicAuth:
-    type: basic
   TokenAuth:
     in: cookie
     name: token

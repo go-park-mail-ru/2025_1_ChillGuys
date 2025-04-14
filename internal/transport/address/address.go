@@ -33,12 +33,13 @@ func NewAddressHandler(
 //	@Tags			address
 //	@Accept			json
 //	@Produce		json
-//	@Param			address	body	dto.AddressDTO	true	"Данные адреса"
+//	@Param			address	body	dto.AddressReqDTO	true	"Данные адреса"
 //	@Success		201		"Адрес успешно создан"
 //	@Failure		400		{object}	object	"Неверный формат данных или ID пользователя"
 //	@Failure		401		{object}	object	"Пользователь не авторизован"
 //	@Failure		500		{object}	object	"Ошибка сервера при создании адреса"
-//	@Router			/api/v1/address [post]
+//	@Security		TokenAuth
+//	@Router			/addresses [post]
 func (h *AddressHandler) CreateAddress(w http.ResponseWriter, r *http.Request) {
 	var createAddressReq dto.AddressDTO
 	if err := request.ParseData(r, &createAddressReq); err != nil {
@@ -76,7 +77,8 @@ func (h *AddressHandler) CreateAddress(w http.ResponseWriter, r *http.Request) {
 //	@Failure		400	{object}	object					"Неверный формат ID пользователя"
 //	@Failure		401	{object}	object					"Пользователь не авторизован"
 //	@Failure		500	{object}	object					"Ошибка сервера при получении адресов"
-//	@Router			/api/v1/address [get]
+//	@Security		TokenAuth
+//	@Router			/addresses [get]
 func (h *AddressHandler) GetAddress(w http.ResponseWriter, r *http.Request) {
 	userIDStr, isExist := r.Context().Value(domains.UserIDKey{}).(string)
 	if !isExist {
@@ -113,7 +115,7 @@ func (h *AddressHandler) GetAddress(w http.ResponseWriter, r *http.Request) {
 //	@Produce		json
 //	@Success		200	{object}	dto.PickupPointListResponse	"Успешный запрос"
 //	@Failure		500	{object}	object						"Ошибка сервера при получении пунктов выдачи"
-//	@Router			/api/v1/address/pickup-points [get]
+//	@Router			/addresses/pickup-points [get]
 func (h *AddressHandler) GetPickupPoints(w http.ResponseWriter, r *http.Request) {
 	points, err := h.addressService.GetPickupPoints(r.Context())
 	if err != nil {

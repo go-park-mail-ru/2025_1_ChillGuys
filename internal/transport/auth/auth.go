@@ -53,7 +53,7 @@ func NewAuthHandler(
 //	@Failure		400			{object}	object		"Ошибка валидации данных"
 //	@Failure		401			{object}	object		"Неверные email или пароль"
 //	@Failure		500			{object}	object		"Внутренняя ошибка сервера"
-//	@Router			/api/v1/auth/login [post]
+//	@Router			/auth/login [post]
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var loginReq dto.UserLoginRequestDTO
 	if err := request.ParseData(r, &loginReq); err != nil {
@@ -94,7 +94,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 //	@Failure		400			{object}	object		"Некорректные данные"
 //	@Failure		409			{object}	object		"Пользователь уже существует"
 //	@Failure		500			{object}	object		"Внутренняя ошибка сервера"
-//	@Router			/api/v1/auth/register [post]
+//	@Router			/auth/register [post]
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var registerReq dto.UserRegisterRequestDTO
 	if err := request.ParseData(r, &registerReq); err != nil {
@@ -133,7 +133,8 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 //	@Header			200	{string}	Set-Cookie	"Очищает JWT-токен (устанавливает пустое значение с истекшим сроком)"
 //	@Failure		401	{object}	object		"Пользователь не авторизован"
 //	@Failure		500	{object}	object		"Внутренняя ошибка сервера"
-//	@Router			/api/v1/auth/logout [post]
+//	@Security		TokenAuth
+//	@Router			/auth/logout [post]
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	if err := h.authService.Logout(r.Context()); err != nil {
 		response.HandleDomainError(r.Context(), w, err, "failed to logout")

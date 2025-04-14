@@ -38,7 +38,8 @@ func NewOrderService(
 //	@Failure		401			{object}	object	"Пользователь не авторизован"
 //	@Failure		404			{object}	object	"Ошибка при создании заказа"
 //	@Failure		500			{object}	object	"Внутренняя ошибка сервера"
-//	@Router			/api/v1/orders [post]
+//	@Security		TokenAuth
+//	@Router			/orders [post]
 
 func (o *OrderService) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	userIDStr, isExist := r.Context().Value(domains.UserIDKey{}).(string)
@@ -78,7 +79,8 @@ func (o *OrderService) CreateOrder(w http.ResponseWriter, r *http.Request) {
 //	@Failure		400	{object}	object					"Некорректный ID пользователя"
 //	@Failure		401	{object}	object					"Пользователь не авторизован"
 //	@Failure		500	{object}	object					"Внутренняя ошибка сервера"
-//	@Router			/api/v1/orders [get]
+//	@Security		TokenAuth
+//	@Router			/orders [get]
 func (o *OrderService) GetOrders(w http.ResponseWriter, r *http.Request) {
 	userIDStr, isExist := r.Context().Value(domains.UserIDKey{}).(string)
 	if !isExist {

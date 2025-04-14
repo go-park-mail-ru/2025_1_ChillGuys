@@ -200,7 +200,7 @@ func (u *OrderUsecase) GetUserOrders(ctx context.Context, userID uuid.UUID) (*[]
 			innerWg := sync.WaitGroup{}
 			var (
 				address  *models.AddressDB
-				products []models.OrderPreviewProductDTO
+				products []dto.OrderPreviewProductDTO
 			)
 
 			innerWg.Add(2)
@@ -217,7 +217,7 @@ func (u *OrderUsecase) GetUserOrders(ctx context.Context, userID uuid.UUID) (*[]
 				}
 
 				// Получаем изображения продуктов
-				productsData := make([]models.OrderPreviewProductDTO, len(*productIDs))
+				productsData := make([]dto.OrderPreviewProductDTO, len(*productIDs))
 				imgMu := &sync.Mutex{}
 				imageWg := sync.WaitGroup{}
 				for i, productData := range *productIDs {
@@ -234,14 +234,14 @@ func (u *OrderUsecase) GetUserOrders(ctx context.Context, userID uuid.UUID) (*[]
 						imgMu.Lock()
 						if imgErr != nil {
 							// Ошибка получения изображения, значит будем отдавать nil
-							productsData[i] = models.OrderPreviewProductDTO{
+							productsData[i] = dto.OrderPreviewProductDTO{
 								ProductImageURL: null.String{},
 								ProductQuantity: productData.Quantity,
 							}
 							return
 						}
 
-						productsData[i] = models.OrderPreviewProductDTO{
+						productsData[i] = dto.OrderPreviewProductDTO{
 							ProductImageURL: null.StringFrom(productImg),
 							ProductQuantity: productData.Quantity,
 						}

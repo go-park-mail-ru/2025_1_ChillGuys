@@ -15,8 +15,13 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/api/v1/address": {
+        "/addresses": {
             "get": {
+                "security": [
+                    {
+                        "TokenAuth": []
+                    }
+                ],
                 "description": "Возвращает все адреса текущего пользователя",
                 "produces": [
                     "application/json"
@@ -53,6 +58,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "TokenAuth": []
+                    }
+                ],
                 "description": "Создает новый адрес для текущего пользователя",
                 "consumes": [
                     "application/json"
@@ -71,7 +81,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.AddressDTO"
+                            "$ref": "#/definitions/dto.AddressReqDTO"
                         }
                     }
                 ],
@@ -100,7 +110,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/address/pickup-points": {
+        "/addresses/pickup-points": {
             "get": {
                 "description": "Возвращает все доступные пункты выдачи",
                 "produces": [
@@ -126,7 +136,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/auth/login": {
+        "/auth/login": {
             "post": {
                 "description": "Авторизует пользователя и устанавливает JWT-токен в cookies",
                 "consumes": [
@@ -181,8 +191,13 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/auth/logout": {
+        "/auth/logout": {
             "post": {
+                "security": [
+                    {
+                        "TokenAuth": []
+                    }
+                ],
                 "description": "Завершает сеанс пользователя и удаляет JWT-токен из cookies",
                 "produces": [
                     "application/json"
@@ -216,7 +231,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/auth/register": {
+        "/auth/register": {
             "post": {
                 "description": "Создает нового пользователя и устанавливает JWT-токен в cookies",
                 "consumes": [
@@ -271,7 +286,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/categories": {
+        "/categories": {
             "get": {
                 "description": "Возвращает список всех доступных категорий товаров",
                 "produces": [
@@ -300,8 +315,13 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/orders": {
+        "/orders": {
             "get": {
+                "security": [
+                    {
+                        "TokenAuth": []
+                    }
+                ],
                 "description": "Возвращает список всех заказов текущего пользователя",
                 "produces": [
                     "application/json"
@@ -338,7 +358,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/products": {
+        "/products": {
             "get": {
                 "description": "Возвращает список всех доступных продуктов",
                 "produces": [
@@ -367,7 +387,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/products/category/{id}": {
+        "/products/category/{id}": {
             "get": {
                 "description": "Возвращает список товаров указанной категории, отсортированных по дате обновления (новые сначала)",
                 "produces": [
@@ -417,7 +437,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/products/list": {
+        "/products/list": {
             "post": {
                 "description": "Возвращает список товаров по переданным идентификаторам",
                 "consumes": [
@@ -447,7 +467,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.Product"
+                                "$ref": "#/definitions/dto.ProductsResponse"
                             }
                         }
                     },
@@ -466,7 +486,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/products/upload": {
+        "/products/upload": {
             "post": {
                 "description": "Загружает изображение товара в хранилище MinIO",
                 "consumes": [
@@ -513,7 +533,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/products/{id}": {
+        "/products/{id}": {
             "get": {
                 "description": "Возвращает детальную информацию о продукте по его ID",
                 "produces": [
@@ -556,7 +576,18 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "dto.AddressDTO": {
+        "dto.AddressListResponse": {
+            "type": "object",
+            "properties": {
+                "addresses": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.GetAddressResDTO"
+                    }
+                }
+            }
+        },
+        "dto.AddressReqDTO": {
             "type": "object",
             "properties": {
                 "addressString": {
@@ -568,9 +599,6 @@ const docTemplate = `{
                 "coordinate": {
                     "type": "string"
                 },
-                "id": {
-                    "type": "string"
-                },
                 "label": {
                     "type": "string"
                 },
@@ -579,14 +607,29 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.AddressListResponse": {
+        "dto.BriefProduct": {
             "type": "object",
             "properties": {
-                "addresses": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/dto.GetAddressResDTO"
-                    }
+                "discount_price": {
+                    "type": "number"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "image": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "price": {
+                    "type": "number"
+                },
+                "rating": {
+                    "type": "integer"
+                },
+                "reviews_count": {
+                    "type": "integer"
                 }
             }
         },
@@ -715,6 +758,20 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/dto.GetPointAddressResDTO"
                     }
+                }
+            }
+        },
+        "dto.ProductsResponse": {
+            "type": "object",
+            "properties": {
+                "products": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.BriefProduct"
+                    }
+                },
+                "total": {
+                    "type": "integer"
                 }
             }
         },
@@ -901,9 +958,6 @@ const docTemplate = `{
         }
     },
     "securityDefinitions": {
-        "BasicAuth": {
-            "type": "basic"
-        },
         "TokenAuth": {
             "type": "apiKey",
             "name": "token",
@@ -915,7 +969,7 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "90.156.217.63:8081",
+	Host:             "localhost:8083",
 	BasePath:         "/api/v1",
 	Schemes:          []string{},
 	Title:            "ChillGuys API",

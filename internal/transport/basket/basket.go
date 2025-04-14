@@ -42,7 +42,8 @@ func NewBasketService(u IBasketUsecase) *BasketService {
 //	@Failure		401	{object}	object
 //	@Failure		404	{object}	object
 //	@Failure		500	{object}	object
-//	@Router			/api/v1/basket [get]
+//	@Security		TokenAuth
+//	@Router			/basket [get]
 
 func (h *BasketService) Get(w http.ResponseWriter, r *http.Request) {
 	const op = "BasketService.Get"
@@ -72,7 +73,8 @@ func (h *BasketService) Get(w http.ResponseWriter, r *http.Request) {
 //	@Failure		401	{object}	object
 //	@Failure		404	{object}	object
 //	@Failure		500	{object}	object
-//	@Router			/api/v1/basket/{id} [post]
+//	@Security		TokenAuth
+//	@Router			/basket/{id} [post]
 
 func (h *BasketService) Add(w http.ResponseWriter, r *http.Request) {
 	const op = "BasketService.Add"
@@ -107,7 +109,8 @@ func (h *BasketService) Add(w http.ResponseWriter, r *http.Request) {
 //	@Failure		401	{object}	object
 //	@Failure		404	{object}	object
 //	@Failure		500	{object}	object
-//	@Router			/api/v1/basket/{id} [delete]
+//	@Security		TokenAuth
+//	@Router			/basket/{id} [delete]
 
 func (h *BasketService) Delete(w http.ResponseWriter, r *http.Request) {
 	const op = "BasketService.Delete"
@@ -144,7 +147,8 @@ func (h *BasketService) Delete(w http.ResponseWriter, r *http.Request) {
 //	@Failure		401		{object}	object
 //	@Failure		404		{object}	object
 //	@Failure		500		{object}	object
-//	@Router			/api/v1/basket/{id} [patch]
+//	@Security		TokenAuth
+//	@Router			/basket/{id} [patch]
 
 func (h *BasketService) UpdateQuantity(w http.ResponseWriter, r *http.Request) {
 	const op = "BasketService.UpdateQuantity"
@@ -190,7 +194,8 @@ func (h *BasketService) UpdateQuantity(w http.ResponseWriter, r *http.Request) {
 //	@Success		204
 //	@Failure		401	{object}	object
 //	@Failure		500	{object}	object
-//	@Router			/api/v1/basket [delete]
+//	@Security		TokenAuth
+//	@Router			/basket [delete]
 
 func (h *BasketService) Clear(w http.ResponseWriter, r *http.Request) {
 	const op = "BasketService.Clear"

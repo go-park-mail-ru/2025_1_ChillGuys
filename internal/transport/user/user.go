@@ -51,7 +51,7 @@ func NewUserHandler(
 //	@Failure		400	{string}	string		"Некорректный запрос"
 //	@Failure		401	{string}	string		"Пользователь не авторизован"
 //	@Failure		500	{string}	string		"Внутренняя ошибка сервера"
-//	@Router			/api/v1/users/me [get]
+//	@Router			/users/me [get]
 
 func (h *UserHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 	user, err := h.userService.GetMe(r.Context())
@@ -72,7 +72,7 @@ func (h *UserHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 //	@Success		200		{object}	map[string]string	"URL загруженного аватара"
 //	@Failure		400		{string}	string				"Ошибка загрузки или обработки формы"
 //	@Failure		500		{string}	string				"Внутренняя ошибка сервера"
-//	@Router			/api/v1/users/avatar [post]
+//	@Router			/users/avatar [post]
 
 func (h *UserHandler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseMultipartForm(h.config.ServerConfig.MaxMultipartMemory); err != nil {
@@ -123,7 +123,8 @@ func (h *UserHandler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 //	@Success		200		{string}	string							"Профиль успешно обновлён"
 //	@Failure		400		{string}	string							"Невалидные данные"
 //	@Failure		500		{string}	string							"Ошибка при обновлении профиля"
-//	@Router			/api/v1/users//update-profile [post]
+//	@Security		TokenAuth
+//	@Router			/users/update-profile [post]
 
 func (h *UserHandler) UpdateUserProfile(w http.ResponseWriter, r *http.Request) {
 	var updateReq dto.UpdateUserProfileRequestDTO
@@ -156,7 +157,8 @@ func (h *UserHandler) UpdateUserProfile(w http.ResponseWriter, r *http.Request) 
 //	@Success		200		{string}	string					"Email успешно обновлён"
 //	@Failure		400		{string}	string					"Невалидные данные"
 //	@Failure		500		{string}	string					"Ошибка при обновлении email"
-//	@Router			/api/v1/users/update-email [post]
+//	@Security		TokenAuth
+//	@Router			/users/update-email [post]
 
 func (h *UserHandler) UpdateUserEmail(w http.ResponseWriter, r *http.Request) {
 	var updateReq dto.UpdateUserEmailDTO
@@ -189,7 +191,8 @@ func (h *UserHandler) UpdateUserEmail(w http.ResponseWriter, r *http.Request) {
 //	@Success		200		{string}	string						"Пароль успешно обновлён"
 //	@Failure		400		{string}	string						"Невалидные данные"
 //	@Failure		500		{string}	string						"Ошибка при обновлении пароля"
-//	@Router			/api/v1/users/update-password [post]
+//	@Security		TokenAuth
+//	@Router			/users/update-password [post]
 
 func (h *UserHandler) UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
 	var updateReq dto.UpdateUserPasswordDTO
