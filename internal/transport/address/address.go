@@ -13,7 +13,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"net/http"
 	"net/url"
-	"strings"
 )
 
 type GeoapifyResponse struct {
@@ -48,6 +47,7 @@ func NewAddressHandler(
 		geoapifyAPIKey: geoapifyAPIKey,
 	}
 }
+
 func (h *AddressHandler) CreateAddress(w http.ResponseWriter, r *http.Request) {
 	var createAddressReq dto.AddressDTO
 	if err := request.ParseData(r, &createAddressReq); err != nil {
@@ -55,15 +55,13 @@ func (h *AddressHandler) CreateAddress(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !createAddressReq.City.Valid || createAddressReq.City.String == "" {
-		response.SendJSONError(r.Context(), w, http.StatusBadRequest, "city is required")
-		return
-	}
+	// Проверяем только addressString
 	if !createAddressReq.AddressString.Valid || createAddressReq.AddressString.String == "" {
 		response.SendJSONError(r.Context(), w, http.StatusBadRequest, "address string is required")
 		return
 	}
 
+	// Остальной код остается без изменений
 	userIDStr, ok := r.Context().Value(domains.UserIDKey{}).(string)
 	if !ok {
 		response.SendJSONError(r.Context(), w, http.StatusUnauthorized, "auth not found in context")
@@ -88,6 +86,7 @@ func (h *AddressHandler) CreateAddress(w http.ResponseWriter, r *http.Request) {
 		if feature.Properties.ResultType == "building" && feature.Properties.Rank.Importance > 0.2 {
 			if bestMatch == nil || feature.Properties.Rank.Importance > bestMatch.Properties.Rank.Importance {
 				bestMatch = &feature
+				break
 			}
 		}
 	}
@@ -106,19 +105,11 @@ func (h *AddressHandler) CreateAddress(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AddressHandler) geocodeAddress(ctx context.Context, address dto.AddressDTO) (*GeoapifyResponse, error) {
-	addrParts := []string{}
-	if address.AddressString.Valid {
-		addrParts = append(addrParts, address.AddressString.String)
-	}
-	if address.City.Valid {
-		addrParts = append(addrParts, address.City.String)
-	}
-	if address.Region.Valid {
-		addrParts = append(addrParts, address.Region.String)
+	if !address.AddressString.Valid || address.AddressString.String == "" {
+		return nil, fmt.Errorf("address string is empty")
 	}
 
-	addressText := strings.Join(addrParts, ", ")
-	encodedAddress := url.QueryEscape(addressText)
+	encodedAddress := url.QueryEscape(address.AddressString.String)
 
 	apiURL := fmt.Sprintf("https://api.geoapify.com/v1/geocode/search?text=%s&apiKey=%s",
 		encodedAddress,
@@ -142,7 +133,7 @@ func (h *AddressHandler) geocodeAddress(ctx context.Context, address dto.Address
 	}
 
 	var geoResponse GeoapifyResponse
-	if err := json.NewDecoder(resp.Body).Decode(&geoResponse); err != nil {
+	if err = json.NewDecoder(resp.Body).Decode(&geoResponse); err != nil {
 		return nil, fmt.Errorf("failed to decode Geoapify response: %w", err)
 	}
 
