@@ -42,7 +42,6 @@ type App struct {
 	logger *logrus.Logger
 	db     *sql.DB
 	router *mux.Router
-	// Дополнительно можно добавить другие компоненты, если потребуется.
 }
 
 func OptionsRequest(w http.ResponseWriter, r *http.Request) {
@@ -119,7 +118,11 @@ func NewApp(conf *config.Config) (*App, error) {
 	// Маршруты для продуктов.
 	productsRouter := apiRouter.PathPrefix("/products").Subrouter()
 	{
-		productsRouter.HandleFunc("/batch", ProductService.GetProductsByIDs).Methods(http.MethodPost)
+		productsRouter.Handle("/batch",
+			middleware.CSRFMiddleware(tokenator,
+				middleware.JWTMiddleware(tokenator, http.HandlerFunc(ProductService.GetProductsByIDs)),
+				conf.CSRFConfig,
+			)).Methods(http.MethodPost)
 		productsRouter.HandleFunc("", ProductService.GetAllProducts).Methods(http.MethodGet)
 		productsRouter.HandleFunc("/{id}", ProductService.GetProductByID).Methods(http.MethodGet)
 		productsRouter.HandleFunc("/category/{id}", ProductService.GetProductsByCategory).Methods(http.MethodGet)
@@ -138,25 +141,29 @@ func NewApp(conf *config.Config) (*App, error) {
 			http.HandlerFunc(basketService.Get)),
 		).Methods(http.MethodGet)
 
-		basketRouter.Handle("/{id}", middleware.JWTMiddleware(
-			tokenator,
-			http.HandlerFunc(basketService.Add)),
-		).Methods(http.MethodPost)
+		basketRouter.Handle("/{id}",
+			middleware.CSRFMiddleware(tokenator,
+				middleware.JWTMiddleware(tokenator, http.HandlerFunc(basketService.Add)),
+				conf.CSRFConfig,
+			)).Methods(http.MethodPost)
 
-		basketRouter.Handle("/{id}", middleware.JWTMiddleware(
-			tokenator,
-			http.HandlerFunc(basketService.Delete)),
-		).Methods(http.MethodDelete)
+		basketRouter.Handle("/{id}",
+			middleware.CSRFMiddleware(tokenator,
+				middleware.JWTMiddleware(tokenator, http.HandlerFunc(basketService.Delete)),
+				conf.CSRFConfig,
+			)).Methods(http.MethodDelete)
 
-		basketRouter.Handle("/{id}", middleware.JWTMiddleware(
-			tokenator,
-			http.HandlerFunc(basketService.UpdateQuantity)),
-		).Methods(http.MethodPatch)
+		basketRouter.Handle("/{id}",
+			middleware.CSRFMiddleware(tokenator,
+				middleware.JWTMiddleware(tokenator, http.HandlerFunc(basketService.UpdateQuantity)),
+				conf.CSRFConfig,
+			)).Methods(http.MethodPatch)
 
-		basketRouter.Handle("", middleware.JWTMiddleware(
-			tokenator,
-			http.HandlerFunc(basketService.Clear)),
-		).Methods(http.MethodDelete)
+		basketRouter.Handle("",
+			middleware.CSRFMiddleware(tokenator,
+				middleware.JWTMiddleware(tokenator, http.HandlerFunc(basketService.Clear)),
+				conf.CSRFConfig,
+			)).Methods(http.MethodDelete)
 	}
 
 	productCoverRouter := apiRouter.PathPrefix("/cover").Subrouter()
@@ -169,8 +176,11 @@ func NewApp(conf *config.Config) (*App, error) {
 	{
 		authRouter.HandleFunc("/login", authHandler.Login).Methods(http.MethodPost)
 		authRouter.HandleFunc("/register", authHandler.Register).Methods(http.MethodPost)
-		authRouter.Handle("/logout", middleware.JWTMiddleware(tokenator, http.HandlerFunc(authHandler.Logout))).
-			Methods(http.MethodPost)
+		authRouter.Handle("/logout",
+			middleware.CSRFMiddleware(tokenator,
+				middleware.JWTMiddleware(tokenator, http.HandlerFunc(authHandler.Logout)),
+				conf.CSRFConfig,
+			)).Methods(http.MethodPost)
 	}
 
 	// Маршруты для работы с пользователями.
@@ -178,22 +188,35 @@ func NewApp(conf *config.Config) (*App, error) {
 	{
 		userRouter.Handle("/me", middleware.JWTMiddleware(tokenator, http.HandlerFunc(userService.GetMe))).
 			Methods(http.MethodGet)
-		userRouter.Handle("/upload-avatar", middleware.JWTMiddleware(tokenator, http.HandlerFunc(userService.UploadAvatar))).
-			Methods(http.MethodPost)
-		userRouter.Handle("/update-profile", middleware.JWTMiddleware(tokenator, http.HandlerFunc(userService.UpdateUserProfile))).
-			Methods(http.MethodPost)
-		userRouter.Handle("/update-email", middleware.JWTMiddleware(tokenator, http.HandlerFunc(userService.UpdateUserEmail))).
-			Methods(http.MethodPost)
-		userRouter.Handle("/update-password", middleware.JWTMiddleware(tokenator, http.HandlerFunc(userService.UpdateUserPassword))).
-			Methods(http.MethodPost)
+		userRouter.Handle("/upload-avatar",
+			middleware.CSRFMiddleware(tokenator,
+				middleware.JWTMiddleware(tokenator, http.HandlerFunc(userService.UploadAvatar)),
+				conf.CSRFConfig,
+			)).Methods(http.MethodPost)
+		userRouter.Handle("/update-profile",
+			middleware.CSRFMiddleware(tokenator,
+				middleware.JWTMiddleware(tokenator, http.HandlerFunc(userService.UpdateUserProfile)),
+				conf.CSRFConfig,
+			)).Methods(http.MethodPost)
+		userRouter.Handle("/update-email",
+			middleware.CSRFMiddleware(tokenator,
+				middleware.JWTMiddleware(tokenator, http.HandlerFunc(userService.UpdateUserEmail)),
+				conf.CSRFConfig,
+			)).Methods(http.MethodPost)
+		userRouter.Handle("/update-password",
+			middleware.CSRFMiddleware(tokenator,
+				middleware.JWTMiddleware(tokenator, http.HandlerFunc(userService.UpdateUserPassword)),
+				conf.CSRFConfig,
+			)).Methods(http.MethodPost)
 	}
 
 	orderRouter := apiRouter.PathPrefix("/orders").Subrouter()
 	{
-		orderRouter.Handle("", middleware.JWTMiddleware(
-			tokenator,
-			http.HandlerFunc(orderService.CreateOrder),
-		)).Methods(http.MethodPost)
+		orderRouter.Handle("",
+			middleware.CSRFMiddleware(tokenator,
+				middleware.JWTMiddleware(tokenator, http.HandlerFunc(orderService.CreateOrder)),
+				conf.CSRFConfig,
+			)).Methods(http.MethodPost)
 		orderRouter.Handle("", middleware.JWTMiddleware(
 			tokenator,
 			http.HandlerFunc(orderService.GetOrders),
@@ -202,10 +225,11 @@ func NewApp(conf *config.Config) (*App, error) {
 
 	addressRouter := apiRouter.PathPrefix("/addresses").Subrouter()
 	{
-		addressRouter.Handle("", middleware.JWTMiddleware(
-			tokenator,
-			http.HandlerFunc(addressService.CreateAddress),
-		)).Methods(http.MethodPost)
+		addressRouter.Handle("",
+			middleware.CSRFMiddleware(tokenator,
+				middleware.JWTMiddleware(tokenator, http.HandlerFunc(addressService.CreateAddress)),
+				conf.CSRFConfig,
+			)).Methods(http.MethodPost)
 		addressRouter.Handle("", middleware.JWTMiddleware(
 			tokenator,
 			http.HandlerFunc(addressService.GetAddress),

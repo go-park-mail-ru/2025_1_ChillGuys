@@ -17,6 +17,7 @@ type Config struct {
 	ServerConfig     *ServerConfig
 	JWTConfig        *JWTConfig
 	MigrationsConfig *MigrationsConfig
+	CSRFConfig       *CSRFConfig
 }
 
 // NewConfig загружает переменные окружения и инициализирует все компоненты конфига.
@@ -50,12 +51,18 @@ func NewConfig() (*Config, error) {
 		return nil, err
 	}
 
+	csrfConfig, err := newCSRFConfig()
+	if err != nil {
+		return nil, err
+	}
+
 	return &Config{
 		MinioConfig:      minioConf,
 		DBConfig:         dbConfig,
 		ServerConfig:     serverConfig,
 		JWTConfig:        jwtConfig,
 		MigrationsConfig: migrationsConfig,
+		CSRFConfig:       csrfConfig,
 	}, nil
 }
 
@@ -66,7 +73,7 @@ type MinioConfig struct {
 	RootUser     string
 	RootPassword string
 	UseSSL       bool
-	PublicURL 	 string
+	PublicURL    string
 }
 
 func newMinioConfig() (*MinioConfig, error) {
@@ -81,7 +88,7 @@ func newMinioConfig() (*MinioConfig, error) {
 	if err != nil {
 		return nil, err
 	}
-	if !endpointExists || !userExists || !passwordExists || !portExists || !bucketExists || !publicURLExists{
+	if !endpointExists || !userExists || !passwordExists || !portExists || !bucketExists || !publicURLExists {
 		return nil, errors.New("incomplete MinIO configuration: missing required environment variables")
 	}
 	return &MinioConfig{
@@ -91,7 +98,7 @@ func newMinioConfig() (*MinioConfig, error) {
 		RootUser:     rootUser,
 		RootPassword: rootPassword,
 		UseSSL:       useSSL,
-		PublicURL: publicURL,
+		PublicURL:    publicURL,
 	}, nil
 }
 
@@ -241,6 +248,31 @@ func newMigrationsConfig() (*MigrationsConfig, error) {
 	}
 	return &MigrationsConfig{
 		Path: path,
+	}, nil
+}
+
+type CSRFConfig struct {
+	SecretKey    string
+	TokenExpiry  time.Duration
+	CookieName   string
+	SecureCookie bool
+}
+
+func newCSRFConfig() (*CSRFConfig, error) {
+	secretKey, exists := os.LookupEnv("CSRF_SECRET_KEY")
+	if !exists {
+		return nil, errors.New("CSRF_SECRET_KEY is not set")
+	}
+
+	tokenExpiry := getEnvAsDuration("CSRF_TOKEN_EXPIRY", 24*time.Hour)
+	cookieName := getEnvWithDefault("CSRF_COOKIE_NAME", "_csrf")
+	secureCookie := getEnvWithDefault("CSRF_SECURE_COOKIE", "true") == "true"
+
+	return &CSRFConfig{
+		SecretKey:    secretKey,
+		TokenExpiry:  tokenExpiry,
+		CookieName:   cookieName,
+		SecureCookie: secureCookie,
 	}, nil
 }
 

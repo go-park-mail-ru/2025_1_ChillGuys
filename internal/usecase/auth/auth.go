@@ -45,18 +45,18 @@ func NewAuthUsecase(repo IAuthRepository, token ITokenator, log *logrus.Logger) 
 	}
 }
 
-func (u *AuthUsecase) Register(ctx context.Context, user dto.UserRegisterRequestDTO) (string, error) {
+func (u *AuthUsecase) Register(ctx context.Context, user dto.UserRegisterRequestDTO) (string, uuid.UUID, error) {
 	passwordHash, err := GeneratePasswordHash(user.Password)
 	if err != nil {
-		return "", err
+		return "", uuid.Nil, err
 	}
 
 	existed, err := u.repo.CheckUserExists(ctx, user.Email)
 	if err != nil {
-		return "", err
+		return "", uuid.Nil, err
 	}
 	if existed {
-		return "", errs.ErrAlreadyExists
+		return "", uuid.Nil, errs.ErrAlreadyExists
 	}
 
 	userID := uuid.New()
@@ -75,32 +75,32 @@ func (u *AuthUsecase) Register(ctx context.Context, user dto.UserRegisterRequest
 	}
 
 	if err = u.repo.CreateUser(ctx, userDB); err != nil {
-		return "", err
+		return "", uuid.Nil, err
 	}
 
 	token, err := u.token.CreateJWT(userDB.ID.String(), userDB.UserVersion.Version)
 	if err != nil {
-		return "", err
+		return "", uuid.Nil, err
 	}
 
-	return token, nil
+	return token, userDB.ID, nil
 }
 
-func (u *AuthUsecase) Login(ctx context.Context, user dto.UserLoginRequestDTO) (string, error) {
+func (u *AuthUsecase) Login(ctx context.Context, user dto.UserLoginRequestDTO) (string, uuid.UUID, error) {
 	userDB, err := u.repo.GetUserByEmail(ctx, user.Email)
 	if err != nil {
-		return "", err
+		return "", uuid.Nil, err
 	}
 	if err := bcrypt.CompareHashAndPassword(userDB.PasswordHash, []byte(user.Password)); err != nil {
-		return "", errs.ErrInvalidCredentials
+		return "", uuid.Nil, errs.ErrInvalidCredentials
 	}
 
 	token, err := u.token.CreateJWT(userDB.ID.String(), userDB.UserVersion.Version)
 	if err != nil {
-		return "", err
+		return "", uuid.Nil, err
 	}
 
-	return token, nil
+	return token, userDB.ID, nil
 }
 
 func (u *AuthUsecase) Logout(ctx context.Context) error {
