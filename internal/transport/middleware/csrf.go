@@ -21,13 +21,11 @@ const (
 
 func CSRFMiddleware(tokenator *jwt.Tokenator, next http.Handler, cfg *config.CSRFConfig) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Пропускаем безопасные методы
 		if r.Method == http.MethodGet || r.Method == http.MethodHead || r.Method == http.MethodOptions {
 			next.ServeHTTP(w, r)
 			return
 		}
 
-		// Получаем JWT из куки
 		jwtCookie, err := r.Cookie(string(domains.TokenCookieName))
 		if err != nil {
 			http.Error(w, "JWT token required", http.StatusForbidden)
@@ -35,40 +33,24 @@ func CSRFMiddleware(tokenator *jwt.Tokenator, next http.Handler, cfg *config.CSR
 		}
 		jwtToken := jwtCookie.Value
 
-		// Парсим JWT токен
 		claims, err := tokenator.ParseJWT(jwtToken)
 		if err != nil {
 			http.Error(w, "Invalid JWT token", http.StatusForbidden)
 			return
 		}
 
-		// Проверка, не истёк ли JWT токен
-		if claims.ExpiresAt < time.Now().Unix() {
-			http.Error(w, "JWT token expired", http.StatusForbidden)
-			return
-		}
-
-		// Проверка версии
-		if !tokenator.VC.CheckUserVersion(r.Context(), claims.UserID, claims.Version) {
-			http.Error(w, "JWT token invalid or expired", http.StatusForbidden)
-			return
-		}
-
-		// Получаем CSRF токен из заголовка
-		token := r.Header.Get(CSRFTokenHeader)
-		if token == "" {
-			http.Error(w, "CSRF token missing", http.StatusForbidden)
-			return
-		}
-
-		// Парсим userID из строки в uuid.UUID
 		userID, err := uuid.Parse(claims.UserID)
 		if err != nil {
 			http.Error(w, "Invalid user ID in token", http.StatusForbidden)
 			return
 		}
 
-		// Проверка CSRF токена
+		token := r.Header.Get(CSRFTokenHeader)
+		if token == "" {
+			http.Error(w, "CSRF token missing", http.StatusForbidden)
+			return
+		}
+
 		valid, err := CheckCSRFToken(jwtToken, userID, token, cfg.SecretKey)
 		if err != nil || !valid {
 			http.Error(w, "Invalid CSRF token", http.StatusForbidden)
@@ -79,38 +61,38 @@ func CSRFMiddleware(tokenator *jwt.Tokenator, next http.Handler, cfg *config.CSR
 	})
 }
 
-func CheckCSRFToken(SID string, UID uuid.UUID, inputToken string, secretKey string) (bool, error) {
-	tokenData := strings.Split(inputToken, ":")
-	if len(tokenData) != 2 {
-		return false, fmt.Errorf("bad token data")
+func CheckCSRFToken(tokenJWT string, userID uuid.UUID, tokenCSRF string, secretKey string) (bool, error) {
+	csrfData := strings.Split(tokenCSRF, ":")
+	if len(csrfData) != 2 {
+		return false, fmt.Errorf("bad tokenJWT data")
 	}
 
-	tokenExp, err := strconv.ParseInt(tokenData[1], 10, 64)
+	csrfExp, err := strconv.ParseInt(csrfData[1], 10, 64)
 	if err != nil {
-		return false, fmt.Errorf("bad token time")
+		return false, fmt.Errorf("bad tokenJWT time")
 	}
 
-	if tokenExp < time.Now().Unix() {
-		return false, fmt.Errorf("token expired")
+	if csrfExp < time.Now().Unix() {
+		return false, fmt.Errorf("tokenJWT expired")
 	}
 
 	h := hmac.New(sha256.New, []byte(secretKey))
-	data := fmt.Sprintf("%s:%s:%d", SID, UID.String(), tokenExp)
+	data := fmt.Sprintf("%s:%s:%d", tokenJWT, userID.String(), csrfExp)
 	h.Write([]byte(data))
 	expectedMAC := h.Sum(nil)
-	messageMAC, err := hex.DecodeString(tokenData[0])
+	messageMAC, err := hex.DecodeString(csrfData[0])
 	if err != nil {
-		return false, fmt.Errorf("cannot hex decode token")
+		return false, fmt.Errorf("cannot hex decode tokenJWT")
 	}
 
 	return hmac.Equal(messageMAC, expectedMAC), nil
 }
 
-func GenerateCSRFToken(SID string, UID uuid.UUID, secretKey string, tokenExpiry time.Duration) (string, error) {
+func GenerateCSRFToken(tokenJWT string, userID uuid.UUID, secretKey string, tokenExpiry time.Duration) (string, error) {
 	expiry := time.Now().Add(tokenExpiry).Unix()
 
 	h := hmac.New(sha256.New, []byte(secretKey))
-	data := fmt.Sprintf("%s:%s:%d", SID, UID.String(), expiry)
+	data := fmt.Sprintf("%s:%s:%d", tokenJWT, userID.String(), expiry)
 	h.Write([]byte(data))
 	mac := hex.EncodeToString(h.Sum(nil))
 
