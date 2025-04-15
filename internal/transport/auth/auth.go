@@ -6,18 +6,20 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/minio"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/domains"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/cookie"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/request"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/response"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/validator"
+	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"net/http"
 )
 
 //go:generate mockgen -source=auth.go -destination=../../usecase/mocks/auth_usecase_mock.go -package=mocks IAuthUsecase
 type IAuthUsecase interface {
-	Register(context.Context, dto.UserRegisterRequestDTO) (string, error)
-	Login(context.Context, dto.UserLoginRequestDTO) (string, error)
+	Register(context.Context, dto.UserRegisterRequestDTO) (string, uuid.UUID, error)
+	Login(context.Context, dto.UserLoginRequestDTO) (string, uuid.UUID, error)
 	Logout(context.Context) error
 }
 
@@ -40,18 +42,18 @@ func NewAuthHandler(
 	}
 }
 
-//	@Summary		Login auth
-//	@Description	Авторизация пользователя
-//	@Tags			auth
-//	@Accept			json
-//	@Produce		json
-//	@Param			request	body		models.UserLoginRequestDTO	true	"User credentials"
-//	@success		200		{}			-							"No Content"
-//	@Header			200		{string}	Set-Set						"Устанавливает JWT-токен в куки"
-//	@Failure		400		{object}	response.ErrorResponse		"Ошибка валидации"
-//	@Failure		401		{object}	response.ErrorResponse		"Неверные email или пароль"
-//	@Failure		500		{object}	response.ErrorResponse		"Внутренняя ошибка сервера"
-//	@Router			/auth/login [post]
+// @Summary		Login auth
+// @Description	Авторизация пользователя
+// @Tags			auth
+// @Accept			json
+// @Produce		json
+// @Param			request	body		models.UserLoginRequestDTO	true	"User credentials"
+// @success		200		{}			-							"No Content"
+// @Header			200		{string}	Set-Set						"Устанавливает JWT-токен в куки"
+// @Failure		400		{object}	response.ErrorResponse		"Ошибка валидации"
+// @Failure		401		{object}	response.ErrorResponse		"Неверные email или пароль"
+// @Failure		500		{object}	response.ErrorResponse		"Внутренняя ошибка сервера"
+// @Router			/auth/login [post]
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var loginReq dto.UserLoginRequestDTO
@@ -67,15 +69,30 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := h.authService.Login(r.Context(), loginReq)
+	token, userID, err := h.authService.Login(r.Context(), loginReq)
 	if err != nil {
 		response.HandleDomainError(r.Context(), w, err, "failed to login user")
 		return
 	}
+	
+	// Генерируем CSRF токен
+	csrfToken, err := middleware.GenerateCSRFToken(
+		token, // Используем JWT токен как sessionID
+		userID,
+		h.config.CSRFConfig.SecretKey,
+		h.config.CSRFConfig.TokenExpiry,
+	)
+	if err != nil {
+		response.SendJSONError(r.Context(), w, http.StatusInternalServerError, "failed to generate CSRF token")
+		return
+	}
 
+	// Устанавливаем JWT в куки
 	cookieProvider := cookie.NewCookieProvider(&h.config)
-
 	cookieProvider.Set(w, token, domains.TokenCookieName)
+
+	// Устанавливаем CSRF токен в заголовок
+	w.Header().Set("X-CSRF-Token", csrfToken)
 
 	response.SendJSONResponse(r.Context(), w, http.StatusOK, nil)
 }
@@ -106,16 +123,30 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Вызов usecase для регистрации
-	token, err := h.authService.Register(r.Context(), registerReq)
+	token, userID, err := h.authService.Register(r.Context(), registerReq)
 	if err != nil {
 		response.HandleDomainError(r.Context(), w, err, "failed to register user")
 		return
 	}
 
-	cookieProvider := cookie.NewCookieProvider(&h.config)
+	// Генерируем CSRF токен
+	csrfToken, err := middleware.GenerateCSRFToken(
+		token, // Используем JWT токен как sessionID
+		userID,
+		h.config.CSRFConfig.SecretKey,
+		h.config.CSRFConfig.TokenExpiry,
+	)
+	if err != nil {
+		response.SendJSONError(r.Context(), w, http.StatusInternalServerError, "failed to generate CSRF token")
+		return
+	}
 
+	// Устанавливаем JWT в куки
+	cookieProvider := cookie.NewCookieProvider(&h.config)
 	cookieProvider.Set(w, token, domains.TokenCookieName)
+
+	// Устанавливаем CSRF токен в заголовок
+	w.Header().Set("X-CSRF-Token", csrfToken)
 
 	response.SendJSONResponse(r.Context(), w, http.StatusOK, nil)
 }
