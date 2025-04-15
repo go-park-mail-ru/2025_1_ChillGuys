@@ -17,6 +17,7 @@ type Config struct {
 	ServerConfig     *ServerConfig
 	JWTConfig        *JWTConfig
 	MigrationsConfig *MigrationsConfig
+	GeoapifyConfig   *GeoapifyConfig
 }
 
 // NewConfig загружает переменные окружения и инициализирует все компоненты конфига.
@@ -50,12 +51,18 @@ func NewConfig() (*Config, error) {
 		return nil, err
 	}
 
+	geoapifyConfig, err := newGeoapifyConfig()
+	if err != nil {
+		return nil, err
+	}
+
 	return &Config{
 		MinioConfig:      minioConf,
 		DBConfig:         dbConfig,
 		ServerConfig:     serverConfig,
 		JWTConfig:        jwtConfig,
 		MigrationsConfig: migrationsConfig,
+		GeoapifyConfig:   geoapifyConfig,
 	}, nil
 }
 
@@ -66,7 +73,7 @@ type MinioConfig struct {
 	RootUser     string
 	RootPassword string
 	UseSSL       bool
-	PublicURL 	 string
+	PublicURL    string
 }
 
 func newMinioConfig() (*MinioConfig, error) {
@@ -81,7 +88,7 @@ func newMinioConfig() (*MinioConfig, error) {
 	if err != nil {
 		return nil, err
 	}
-	if !endpointExists || !userExists || !passwordExists || !portExists || !bucketExists || !publicURLExists{
+	if !endpointExists || !userExists || !passwordExists || !portExists || !bucketExists || !publicURLExists {
 		return nil, errors.New("incomplete MinIO configuration: missing required environment variables")
 	}
 	return &MinioConfig{
@@ -91,7 +98,7 @@ func newMinioConfig() (*MinioConfig, error) {
 		RootUser:     rootUser,
 		RootPassword: rootPassword,
 		UseSSL:       useSSL,
-		PublicURL: publicURL,
+		PublicURL:    publicURL,
 	}, nil
 }
 
@@ -241,6 +248,20 @@ func newMigrationsConfig() (*MigrationsConfig, error) {
 	}
 	return &MigrationsConfig{
 		Path: path,
+	}, nil
+}
+
+type GeoapifyConfig struct {
+	APIKey string
+}
+
+func newGeoapifyConfig() (*GeoapifyConfig, error) {
+	apiKey, exists := os.LookupEnv("GEOAPIFY_API_KEY")
+	if !exists {
+		return nil, errors.New("GEOAPIFY_API_KEY is not set")
+	}
+	return &GeoapifyConfig{
+		APIKey: apiKey,
 	}, nil
 }
 

@@ -84,7 +84,7 @@ func NewApp(conf *config.Config) (*App, error) {
 
 	addressRepo := addressrepo.NewAddressRepository(db, logger)
 	addressUsecase := addressus.NewAddressUsecase(addressRepo, logger)
-	addressService := address.NewAddressHandler(addressUsecase, logger)
+	addressService := address.NewAddressHandler(addressUsecase, logger, conf.GeoapifyConfig.APIKey)
 
 	productRepo := productrepo.NewProductRepository(db)
 	productUsecase := product.NewProductUsecase(productRepo)
