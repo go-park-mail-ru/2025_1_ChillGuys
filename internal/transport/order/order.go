@@ -1,28 +1,27 @@
 package order
 
 import (
+	"net/http"
+
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/domains"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/logctx"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/request"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/response"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/order"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
-	"net/http"
 )
 
 type OrderService struct {
 	u   order.IOrderUsecase
-	log *logrus.Logger
 }
 
 func NewOrderService(
 	u order.IOrderUsecase,
-	log *logrus.Logger,
 ) *OrderService {
 	return &OrderService{
 		u:   u,
-		log: log,
 	}
 }
 
@@ -43,27 +42,38 @@ func NewOrderService(
 //	@Security		TokenAuth
 //	@Router			/orders [post]
 func (o *OrderService) CreateOrder(w http.ResponseWriter, r *http.Request) {
+	const op = "OrderService.CreateOrder"
+	logger := logctx.GetLogger(r.Context()).WithField("op", op)
+	
 	userIDStr, isExist := r.Context().Value(domains.UserIDKey{}).(string)
 	if !isExist {
+		logger.Error("user not found in context")
 		response.SendJSONError(r.Context(), w, http.StatusUnauthorized, "user not found in context")
 		return
 	}
 
 	userID, err := uuid.Parse(userIDStr)
 	if err != nil {
+		logger.WithError(err).WithField("user_id", userIDStr).Error("invalid user id format")
 		response.SendJSONError(r.Context(), w, http.StatusBadRequest, "invalid user id format")
 		return
 	}
 
 	var createOrderReq dto.CreateOrderDTO
 	if err := request.ParseData(r, &createOrderReq); err != nil {
+		logger.WithError(err).Error("parse request data")
 		response.SendJSONError(r.Context(), w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	createOrderReq.UserID = userID
+	logger = logger.WithFields(logrus.Fields{
+		"user_id": userID,
+		"order":   createOrderReq,
+	})
 	if err = o.u.CreateOrder(r.Context(), createOrderReq); err != nil {
-		response.HandleDomainError(r.Context(), w, err, "failed to create order")
+		logger.WithError(err).Error("create order")
+		response.HandleDomainError(r.Context(), w, err, op)
 		return
 	}
 
@@ -83,21 +93,28 @@ func (o *OrderService) CreateOrder(w http.ResponseWriter, r *http.Request) {
 //	@Security		TokenAuth
 //	@Router			/orders [get]
 func (o *OrderService) GetOrders(w http.ResponseWriter, r *http.Request) {
+	const op = "OrderService.GetOrders"
+	logger := logctx.GetLogger(r.Context()).WithField("op", op)
+
 	userIDStr, isExist := r.Context().Value(domains.UserIDKey{}).(string)
 	if !isExist {
+		logger.Error("user id not found in context")
 		response.SendJSONError(r.Context(), w, http.StatusUnauthorized, "user id not found in context")
 		return
 	}
 
 	userID, err := uuid.Parse(userIDStr)
 	if err != nil {
+		logger.WithError(err).WithField("user_id", userIDStr).Error("invalid user id format")
 		response.SendJSONError(r.Context(), w, http.StatusBadRequest, "invalid user id format")
 		return
 	}
 
+	logger = logger.WithField("user_id", userID)
 	orders, err := o.u.GetUserOrders(r.Context(), userID)
 	if err != nil {
-		response.HandleDomainError(r.Context(), w, err, "failed to get orders")
+		logger.WithError(err).Error("get user orders")
+		response.HandleDomainError(r.Context(), w, err, op)
 		return
 	}
 

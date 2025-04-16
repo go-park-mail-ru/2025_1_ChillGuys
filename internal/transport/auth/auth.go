@@ -2,18 +2,19 @@ package auth
 
 import (
 	"context"
+	"net/http"
+
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/minio"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/domains"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/logctx"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/cookie"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/request"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/response"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/validator"
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
-	"net/http"
 )
 
 //go:generate mockgen -source=auth.go -destination=../../usecase/mocks/auth_usecase_mock.go -package=mocks IAuthUsecase
@@ -25,19 +26,16 @@ type IAuthUsecase interface {
 
 type AuthHandler struct {
 	authService  IAuthUsecase
-	log          *logrus.Logger
 	minioService minio.Provider
 	config       config.Config
 }
 
 func NewAuthHandler(
 	u IAuthUsecase,
-	log *logrus.Logger,
 	cfg *config.Config,
 ) *AuthHandler {
 	return &AuthHandler{
 		authService: u,
-		log:         log,
 		config:      *cfg,
 	}
 }
@@ -57,8 +55,12 @@ func NewAuthHandler(
 //	@Failure		500		{object}	object					"Внутренняя ошибка сервера"
 //	@Router			/auth/login [post]
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
+	const op = "AuthHandler.Login"
+	logger := logctx.GetLogger(r.Context()).WithField("op", op)
+	
 	var loginReq dto.UserLoginRequestDTO
 	if err := request.ParseData(r, &loginReq); err != nil {
+		logger.WithError(err).Error("parse login request")
 		response.SendJSONError(r.Context(), w, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -66,13 +68,15 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	validator.SanitizeUserLoginRequest(&loginReq)
 
 	if err := validator.ValidateLoginCreds(loginReq); err != nil {
+		logger.WithError(err).Error("validate login credentials")
 		response.SendJSONError(r.Context(), w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	token, userID, err := h.authService.Login(r.Context(), loginReq)
 	if err != nil {
-		response.HandleDomainError(r.Context(), w, err, "failed to login user")
+		logger.WithError(err).Error("login failed")
+		response.HandleDomainError(r.Context(), w, err, op)
 		return
 	}
 
@@ -84,6 +88,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		h.config.CSRFConfig.TokenExpiry,
 	)
 	if err != nil {
+		logger.WithError(err).Error("generate CSRF token")
 		response.SendJSONError(r.Context(), w, http.StatusInternalServerError, "failed to generate CSRF token")
 		return
 	}
@@ -113,8 +118,12 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 //	@Failure		500			{object}	object						"Внутренняя ошибка сервера"
 //	@Router			/auth/register [post]
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
+	const op = "AuthHandler.Register"
+	logger := logctx.GetLogger(r.Context()).WithField("op", op)
+	
 	var registerReq dto.UserRegisterRequestDTO
 	if err := request.ParseData(r, &registerReq); err != nil {
+		logger.WithError(err).Error("parse register request")
 		response.SendJSONError(r.Context(), w, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -122,13 +131,15 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	validator.SanitizeUserRegistrationRequest(&registerReq)
 
 	if err := validator.ValidateRegistrationCreds(registerReq); err != nil {
+		logger.WithError(err).Error("validate registration credentials")
 		response.SendJSONError(r.Context(), w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	token, userID, err := h.authService.Register(r.Context(), registerReq)
 	if err != nil {
-		response.HandleDomainError(r.Context(), w, err, "failed to register user")
+		logger.WithError(err).Error("register user failed")
+		response.HandleDomainError(r.Context(), w, err, op)
 		return
 	}
 
@@ -140,6 +151,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		h.config.CSRFConfig.TokenExpiry,
 	)
 	if err != nil {
+		logger.WithError(err).Error("generate CSRF token")
 		response.SendJSONError(r.Context(), w, http.StatusInternalServerError, "failed to generate CSRF token")
 		return
 	}
@@ -168,8 +180,12 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 //	@Security		TokenAuth
 //	@Router			/auth/logout [post]
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	const op = "AuthHandler.Logout"
+	logger := logctx.GetLogger(r.Context()).WithField("op", op)
+
 	if err := h.authService.Logout(r.Context()); err != nil {
-		response.HandleDomainError(r.Context(), w, err, "failed to logout")
+		logger.WithError(err).Error("logout failed")
+		response.HandleDomainError(r.Context(), w, err, op)
 		return
 	}
 

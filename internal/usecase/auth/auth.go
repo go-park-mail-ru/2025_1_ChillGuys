@@ -2,13 +2,16 @@ package auth
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"time"
+
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/domains"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
-	"time"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/logctx"
 
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
@@ -32,31 +35,35 @@ type IAuthRepository interface {
 }
 
 type AuthUsecase struct {
-	log   *logrus.Logger
 	token ITokenator
 	repo  IAuthRepository
 }
 
-func NewAuthUsecase(repo IAuthRepository, token ITokenator, log *logrus.Logger) *AuthUsecase {
+func NewAuthUsecase(repo IAuthRepository, token ITokenator) *AuthUsecase {
 	return &AuthUsecase{
 		repo:  repo,
 		token: token,
-		log:   log,
 	}
 }
 
 func (u *AuthUsecase) Register(ctx context.Context, user dto.UserRegisterRequestDTO) (string, uuid.UUID, error) {
+	const op = "AuthUsecase.Register"
+	logger := logctx.GetLogger(ctx).WithField("op", op).WithField("email", user.Email)
+	
 	passwordHash, err := GeneratePasswordHash(user.Password)
 	if err != nil {
-		return "", uuid.Nil, err
+		logger.WithError(err).Error("generate password hash")
+		return "", uuid.Nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	existed, err := u.repo.CheckUserExists(ctx, user.Email)
 	if err != nil {
-		return "", uuid.Nil, err
+		logger.WithError(err).Error("check user existence")
+		return "", uuid.Nil, fmt.Errorf("%s: %w", op, err)
 	}
 	if existed {
-		return "", uuid.Nil, errs.ErrAlreadyExists
+		logger.Warn("user already exists")
+		return "", uuid.Nil, fmt.Errorf("%s: %w", op, errs.ErrAlreadyExists)
 	}
 
 	userID := uuid.New()
@@ -75,42 +82,61 @@ func (u *AuthUsecase) Register(ctx context.Context, user dto.UserRegisterRequest
 	}
 
 	if err = u.repo.CreateUser(ctx, userDB); err != nil {
-		return "", uuid.Nil, err
+		logger.WithError(err).Error("create user in repository")
+		return "", uuid.Nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	token, err := u.token.CreateJWT(userDB.ID.String(), userDB.UserVersion.Version)
 	if err != nil {
-		return "", uuid.Nil, err
+		logger.WithError(err).Error("create JWT token")
+		return "", uuid.Nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	return token, userDB.ID, nil
 }
 
 func (u *AuthUsecase) Login(ctx context.Context, user dto.UserLoginRequestDTO) (string, uuid.UUID, error) {
+	const op = "AuthUsecase.Login"
+	logger := logctx.GetLogger(ctx).WithField("op", op).WithField("email", user.Email)
+
 	userDB, err := u.repo.GetUserByEmail(ctx, user.Email)
 	if err != nil {
-		return "", uuid.Nil, err
+		if errors.Is(err, errs.ErrNotFound) {
+			logger.Warn("user not found")
+		} else {
+			logger.WithError(err).Error("get user by email")
+		}
+		return "", uuid.Nil, fmt.Errorf("%s: %w", op, err)
 	}
+
 	if err := bcrypt.CompareHashAndPassword(userDB.PasswordHash, []byte(user.Password)); err != nil {
-		return "", uuid.Nil, errs.ErrInvalidCredentials
+		logger.Warn("invalid credentials")
+		return "", uuid.Nil, fmt.Errorf("%s: %w", op, errs.ErrInvalidCredentials)
 	}
 
 	token, err := u.token.CreateJWT(userDB.ID.String(), userDB.UserVersion.Version)
 	if err != nil {
-		return "", uuid.Nil, err
+		logger.WithError(err).Error("create JWT token")
+		return "", uuid.Nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	return token, userDB.ID, nil
 }
 
 func (u *AuthUsecase) Logout(ctx context.Context) error {
+	const op = "AuthUsecase.Logout"
+	logger := logctx.GetLogger(ctx).WithField("op", op)
+
 	userID, isExist := ctx.Value(domains.UserIDKey{}).(string)
 	if !isExist {
-		return errs.ErrNotFound
+		logger.Warn("user ID not found in context")
+		return fmt.Errorf("%s: %w", op, errs.ErrNotFound)
 	}
 
+	logger = logger.WithField("user_id", userID)
 	if err := u.repo.IncrementUserVersion(ctx, userID); err != nil {
-		return err
+		logger.WithError(err).Error("increment user version")
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
 	return nil
