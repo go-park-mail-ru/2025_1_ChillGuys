@@ -1,10 +1,12 @@
 package tests
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
@@ -125,87 +127,86 @@ func TestBasketService_Add(t *testing.T) {
 	})
 }
 
-//func TestBasketService_UpdateQuantity(t *testing.T) {
-//	mockUsecase, service := setupTestBasket(t)
-//	productID := uuid.New()
-//
-//t.Run("success", func(t *testing.T) {
-//    quantity := 3
-//    remaining := 5
-//    expectedItem := &models.BasketItem{
-//        ID:        uuid.New(),
-//        ProductID: productID,
-//        Quantity:  quantity,
-//        Price:     12.5,
-//    }
-//
-//    // Мокируем вызов usecase
-//    mockUsecase.EXPECT().
-//        UpdateQuantity(gomock.Any(), productID, quantity).
-//        Return(expectedItem, remaining, nil)
-//
-//    // Подготавливаем запрос
-//    requestBody := dto.UpdateQuantityRequest{Quantity: quantity}
-//    body, _ := json.Marshal(requestBody)
-//
-//    req := httptest.NewRequest("PATCH", "/api/v1/basket/"+productID.String(), bytes.NewReader(body))
-//    req.Header.Set("Content-Type", "application/json")
-//    w := httptest.NewRecorder()
-//
-//    // Устанавливаем переменные маршрута
-//    req = mux.SetURLVars(req, map[string]string{"id": productID.String()})
-//
-//    // Вызываем обработчик
-//    service.UpdateQuantity(w, req)
-//
-//    // Проверяем результат
-//    resp := w.Result()
-//    assert.Equal(t, http.StatusOK, resp.StatusCode)
-//
-//    // Декодируем ответ и проверяем его
-//    var responseData dto.UpdateQuantityResponse
-//    err := json.NewDecoder(resp.Body).Decode(&responseData)
-//    assert.NoError(t, err)
-//
-//    // Проверяем, что ответ соответствует ожиданиям
-//    expectedResponse := dto.ConvertToQuantityResponse(expectedItem, remaining)
-//    assert.Equal(t, expectedResponse, responseData)
-//})
+func TestBasketService_UpdateQuantity(t *testing.T) {
+	mockUsecase, service := setupTestBasket(t)
+	productID := uuid.New()
 
-//t.Run("invalid request body", func(t *testing.T) {
-//	req := httptest.NewRequest("PATCH", "/api/v1/basket/"+productID.String(), strings.NewReader("{invalid json}"))
-//	req.Header.Set("Content-Type", "application/json")
-//	w := httptest.NewRecorder()
-//
-//	req = mux.SetURLVars(req, map[string]string{"id": productID.String()})
-//
-//	service.UpdateQuantity(w, req)
-//
-//	resp := w.Result()
-//	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
-//})
-//
-//t.Run("usecase error", func(t *testing.T) {
-//    quantity := 2
-//    mockUsecase.EXPECT().
-//        UpdateQuantity(gomock.Any(), productID, quantity).
-//        Return(nil, 0, errs.NewNotFoundError("product not found"))
-//
-//    requestBody := dto.UpdateQuantityRequest{Quantity: quantity}
-//    body, _ := json.Marshal(requestBody)
-//
-//    req := httptest.NewRequest("PATCH", "/api/v1/basket/"+productID.String(), bytes.NewReader(body))
-//    req.Header.Set("Content-Type", "application/json")
-//    w := httptest.NewRecorder()
-//
-//    req = mux.SetURLVars(req, map[string]string{"id": productID.String()})
-//
-//    service.UpdateQuantity(w, req)
-//
-//    resp := w.Result()
-//    assert.Equal(t, http.StatusNotFound, resp.StatusCode)
-//})
-//}
+	t.Run("success", func(t *testing.T) {
+		quantity := 3
+		expectedItem := &models.BasketItem{
+			ID:        uuid.New(),
+			ProductID: productID,
+			Quantity:  quantity,
+			Price:     12.5,
+		}
+
+		// Мокируем вызов usecase
+		mockUsecase.EXPECT().
+			UpdateQuantity(gomock.Any(), productID, quantity).
+			Return(expectedItem, nil)
+
+		// Подготавливаем запрос
+		requestBody := dto.UpdateQuantityRequest{Quantity: quantity}
+		body, _ := json.Marshal(requestBody)
+
+		req := httptest.NewRequest("PATCH", "/api/v1/basket/"+productID.String(), bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+
+		// Устанавливаем переменные маршрута
+		req = mux.SetURLVars(req, map[string]string{"id": productID.String()})
+
+		// Вызываем обработчик
+		service.UpdateQuantity(w, req)
+
+		// Проверяем результат
+		resp := w.Result()
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+		// Декодируем ответ и проверяем его
+		var responseData dto.UpdateQuantityResponse
+		err := json.NewDecoder(resp.Body).Decode(&responseData)
+		assert.NoError(t, err)
+
+		// Проверяем, что ответ соответствует ожиданиям
+		expectedResponse := dto.ConvertToQuantityResponse(expectedItem)
+		assert.Equal(t, expectedResponse, responseData)
+	})
+
+	t.Run("invalid request body", func(t *testing.T) {
+		req := httptest.NewRequest("PATCH", "/api/v1/basket/"+productID.String(), strings.NewReader("{invalid json}"))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+
+		req = mux.SetURLVars(req, map[string]string{"id": productID.String()})
+
+		service.UpdateQuantity(w, req)
+
+		resp := w.Result()
+		assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
+	})
+
+	t.Run("usecase error", func(t *testing.T) {
+		quantity := 2
+		mockUsecase.EXPECT().
+			UpdateQuantity(gomock.Any(), productID, quantity).
+			Return(nil, errs.NewNotFoundError("product not found")) // ✅ теперь 2 аргумента
+
+		requestBody := dto.UpdateQuantityRequest{Quantity: quantity}
+		body, _ := json.Marshal(requestBody)
+
+		req := httptest.NewRequest("PATCH", "/api/v1/basket/"+productID.String(), bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+
+		req = mux.SetURLVars(req, map[string]string{"id": productID.String()})
+
+		service.UpdateQuantity(w, req)
+
+		resp := w.Result()
+		assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
+	})
+}
 
 func TestConvertToBasketResponse(t *testing.T) {
 	t.Run("with discount prices", func(t *testing.T) {

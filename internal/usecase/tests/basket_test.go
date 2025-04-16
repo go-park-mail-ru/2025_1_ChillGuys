@@ -148,61 +148,59 @@ func TestBasketUsecase_Delete(t *testing.T) {
 	})
 }
 
-//func TestBasketUsecase_UpdateQuantity(t *testing.T) {
-//	userID := uuid.New()
-//	productID := uuid.New()
-//	quantity := 2
-//	ctx := ContextWithUserID(context.Background(), userID)
+func TestBasketUsecase_UpdateQuantity(t *testing.T) {
+	userID := uuid.New()
+	productID := uuid.New()
+	quantity := 2
+	ctx := ContextWithUserID(context.Background(), userID)
 
-//t.Run("success", func(t *testing.T) {
-//	mockRepo, uc := setupTestBasket(t)
-//	expectedItem := &models.BasketItem{
-//		ID:        uuid.New(),
-//		BasketID:  uuid.New(),
-//		ProductID: productID,
-//		Quantity:  quantity,
-//	}
-//	remaining := 5
-//
-//	mockRepo.EXPECT().
-//		UpdateQuantity(gomock.Any(), userID, productID, quantity).
-//		Return(expectedItem, remaining, nil)
-//
-//	item, rem, err := uc.UpdateQuantity(ctx, productID, quantity)
-//	assert.NoError(t, err)
-//	assert.Equal(t, expectedItem, item)
-//	assert.Equal(t, remaining, rem)
-//})
+	t.Run("success", func(t *testing.T) {
+		mockRepo, uc := setupTestBasket(t)
+		expectedItem := &models.BasketItem{
+			ID:        uuid.New(),
+			BasketID:  uuid.New(),
+			ProductID: productID,
+			Quantity:  quantity,
+		}
 
-//t.Run("invalid quantity", func(t *testing.T) {
-//	_, uc := setupTestBasket(t)
-//	_, _, err := uc.UpdateQuantity(ctx, productID, 0)
-//	assert.Error(t, err)
-//})
-//
-//t.Run("invalid product id", func(t *testing.T) {
-//	_, uc := setupTestBasket(t)
-//	_, _, err := uc.UpdateQuantity(ctx, uuid.Nil, quantity)
-//	assert.ErrorIs(t, err, errs.ErrInvalidID)
-//})
-//
-//t.Run("no user in context", func(t *testing.T) {
-//	_, uc := setupTestBasket(t)
-//	_, _, err := uc.UpdateQuantity(context.Background(), productID, quantity)
-//	assert.Error(t, err)
-//	assert.Contains(t, err.Error(), "user not found")
-//})
+		mockRepo.EXPECT().
+			UpdateQuantity(gomock.Any(), userID, productID, quantity).
+			Return(expectedItem, nil) // Возвращаем только два значения: item и error
 
-//	t.Run("repository error", func(t *testing.T) {
-//		mockRepo, uc := setupTestBasket(t)
-//		mockRepo.EXPECT().
-//			UpdateQuantity(gomock.Any(), userID, productID, quantity).
-//			Return(nil, -1, errors.New("db error"))
-//
-//		_, _, err := uc.UpdateQuantity(ctx, productID, quantity)
-//		assert.Error(t, err)
-//	})
-//}
+		item, err := uc.UpdateQuantity(ctx, productID, quantity) // Исправлено на два возвращаемых значения
+		assert.NoError(t, err)
+		assert.Equal(t, expectedItem, item)
+	})
+
+	t.Run("invalid quantity", func(t *testing.T) {
+		_, uc := setupTestBasket(t)
+		_, err := uc.UpdateQuantity(ctx, productID, 0) // Исправлено на два возвращаемых значения
+		assert.Error(t, err)
+	})
+
+	t.Run("invalid product id", func(t *testing.T) {
+		_, uc := setupTestBasket(t)
+		_, err := uc.UpdateQuantity(ctx, uuid.Nil, quantity) // Исправлено на два возвращаемых значения
+		assert.ErrorIs(t, err, errs.ErrInvalidID)
+	})
+
+	t.Run("no user in context", func(t *testing.T) {
+		_, uc := setupTestBasket(t)
+		_, err := uc.UpdateQuantity(context.Background(), productID, quantity) // Исправлено на два возвращаемых значения
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "user not found")
+	})
+
+	t.Run("repository error", func(t *testing.T) {
+		mockRepo, uc := setupTestBasket(t)
+		mockRepo.EXPECT().
+			UpdateQuantity(gomock.Any(), userID, productID, quantity).
+			Return(nil, errors.New("db error")) // Возвращаем только item и error
+
+		_, err := uc.UpdateQuantity(ctx, productID, quantity) // Исправлено на два возвращаемых значения
+		assert.Error(t, err)
+	})
+}
 
 func TestBasketUsecase_Clear(t *testing.T) {
 	userID := uuid.New()
