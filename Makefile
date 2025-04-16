@@ -8,7 +8,7 @@ run:
 
 test:
 	mkdir -p coverage
-	go test -v $$(go list ./... | grep -v '/mocks') -coverprofile=coverage/cover.out
+	go test -v $$(go list ./... | grep -Ev '/(mocks|docs|cmd|db|config|internal/app)') -coverprofile=coverage/cover.out
 
 coverage: test
 	go tool cover -html=coverage/cover.out -o coverage/cover.html
@@ -30,6 +30,7 @@ run-build:
 clean:
 	rm -rf bin/
 
+
 .PHONY: docker-build docker-push
 
 # Сборка Docker-образа
@@ -40,6 +41,9 @@ docker-build:
 docker-push: docker-build
 	docker login
 	docker push $(DOCKER_USERNAME)/$(IMAGE_NAME):$(TAG)
+
+migrations:
+	go run ./cmd/migrations/main.go
 
 .PHONY: swag
 

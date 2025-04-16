@@ -10,8 +10,11 @@ COPY . .
 # Скачиваем зависимости
 RUN go mod download
 
-# Собираем приложение
+# Собираем основное приложение
 RUN CGO_ENABLED=0 GOOS=linux go build -o /app/bin/main ./cmd/app/main.go
+
+# Собираем приложение для миграций
+RUN CGO_ENABLED=0 GOOS=linux go build -o /app/bin/migrate ./cmd/migrations/main.go
 
 # Этап 2: Создание финального образа
 FROM alpine:3.18
@@ -19,17 +22,18 @@ FROM alpine:3.18
 # Устанавливаем рабочую директорию
 WORKDIR /app
 
-# Копируем собранный бинарник из этапа сборки
+# Копируем собранные бинарники из этапа сборки
 COPY --from=builder /app/bin/main .
+COPY --from=builder /app/bin/migrate .
 
-# Копируем папку с картинками 
-COPY --from=builder /app/media/ ./media
+# Копируем папку с миграциями
+COPY --from=builder /app/db/migrations ./db/migrations
+
+# Копируем папку с медиафайлами
+COPY --from=builder /app/media ./media
 
 # Копируем .env файл
 COPY --from=builder /app/.env .
 
 # Открываем порт для приложения
 EXPOSE 8080
-
-# Команда для запуска приложения
-CMD ["./main"]

@@ -1,22 +1,18 @@
 package jwt
 
 import (
+	"context"
 	"errors"
 	"fmt"
-	"os"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
 	"time"
 
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
 	"github.com/golang-jwt/jwt/v4"
-
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
-)
-
-const (
-	TokenLifeSpan = time.Hour * 24
 )
 
 type VersionChecker interface {
-	CheckUserVersion(userID string, version int) bool
+	CheckUserVersion(ctx context.Context, userID string, version int) bool
 }
 
 // JWTClaims структура для данных токена
@@ -29,22 +25,24 @@ type JWTClaims struct {
 
 // Tokenator структура для создания и парсинга токенов
 type Tokenator struct {
-	sign string
-	VC   VersionChecker
+	sign          string
+	tokenLifeSpan time.Duration
+	VC            VersionChecker
 }
 
 // NewTokenator создает новый экземпляр Tokenator
-func NewTokenator(vc VersionChecker) *Tokenator {
+func NewTokenator(vc VersionChecker, conf *config.JWTConfig) *Tokenator {
 	return &Tokenator{
-		sign: os.Getenv("JWT_SIGNATURE"),
-		VC:   vc,
+		sign:          conf.Signature,
+		tokenLifeSpan: conf.TokenLifeSpan,
+		VC:            vc,
 	}
 }
 
 // CreateJWT генерирует JWT токен для заданного userID и version
 func (t *Tokenator) CreateJWT(userID string, version int) (string, error) {
 	now := time.Now()
-	expiration := now.Add(TokenLifeSpan)
+	expiration := now.Add(t.tokenLifeSpan)
 
 	claims := JWTClaims{
 		UserID:    userID,
@@ -81,5 +79,5 @@ func (t *Tokenator) ParseJWT(tokenString string) (*JWTClaims, error) {
 		return claims, nil
 	}
 
-	return nil, models.ErrInvalidToken
+	return nil, errs.ErrInvalidToken
 }
