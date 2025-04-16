@@ -38,6 +38,7 @@ const (
 	`
 )
 
+//go:generate mockgen -source=address.go -destination=../mocks/address_repository_mock.go -package=mocks IAddressRepository
 type IAddressRepository interface {
 	CheckAddressExists(context.Context, models.AddressDB) (uuid.UUID, error)
 	CreateAddress(context.Context, models.AddressDB) error

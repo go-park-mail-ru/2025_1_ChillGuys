@@ -10,6 +10,7 @@ import (
 
 	dto "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	gomock "github.com/golang/mock/gomock"
+	uuid "github.com/google/uuid"
 )
 
 // MockIAuthUsecase is a mock of IAuthUsecase interface.
@@ -36,12 +37,13 @@ func (m *MockIAuthUsecase) EXPECT() *MockIAuthUsecaseMockRecorder {
 }
 
 // Login mocks base method.
-func (m *MockIAuthUsecase) Login(arg0 context.Context, arg1 dto.UserLoginRequestDTO) (string, error) {
+func (m *MockIAuthUsecase) Login(arg0 context.Context, arg1 dto.UserLoginRequestDTO) (string, uuid.UUID, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Login", arg0, arg1)
 	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret1, _ := ret[1].(uuid.UUID)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
 }
 
 // Login indicates an expected call of Login.
@@ -65,12 +67,13 @@ func (mr *MockIAuthUsecaseMockRecorder) Logout(arg0 interface{}) *gomock.Call {
 }
 
 // Register mocks base method.
-func (m *MockIAuthUsecase) Register(arg0 context.Context, arg1 dto.UserRegisterRequestDTO) (string, error) {
+func (m *MockIAuthUsecase) Register(arg0 context.Context, arg1 dto.UserRegisterRequestDTO) (string, uuid.UUID, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Register", arg0, arg1)
 	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret1, _ := ret[1].(uuid.UUID)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
 }
 
 // Register indicates an expected call of Register.

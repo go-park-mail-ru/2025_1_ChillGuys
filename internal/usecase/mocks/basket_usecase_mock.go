@@ -95,13 +95,12 @@ func (mr *MockIBasketUsecaseMockRecorder) Get(ctx interface{}) *gomock.Call {
 }
 
 // UpdateQuantity mocks base method.
-func (m *MockIBasketUsecase) UpdateQuantity(ctx context.Context, productID uuid.UUID, quantity int) (*models.BasketItem, int, error) {
+func (m *MockIBasketUsecase) UpdateQuantity(ctx context.Context, productID uuid.UUID, quantity int) (*models.BasketItem, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateQuantity", ctx, productID, quantity)
 	ret0, _ := ret[0].(*models.BasketItem)
-	ret1, _ := ret[1].(int)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // UpdateQuantity indicates an expected call of UpdateQuantity.

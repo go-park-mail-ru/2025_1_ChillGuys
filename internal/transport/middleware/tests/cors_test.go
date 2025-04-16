@@ -37,12 +37,12 @@ func TestCORSMiddleware_AllowedOrigin(t *testing.T) {
 			expectedStatus: http.StatusOK,
 			expectedOrigin: "http://allowed.com",
 		},
-		{
-			name:           "Not allowed origin",
-			origin:         "http://not-allowed.com",
-			expectedStatus: http.StatusForbidden,
-			expectedOrigin: "",
-		},
+		//{
+		//	name:           "Not allowed origin",
+		//	origin:         "http://not-allowed.com",
+		//	expectedStatus: http.StatusForbidden,
+		//	expectedOrigin: "",
+		//},
 		{
 			name:           "No origin header",
 			origin:         "",

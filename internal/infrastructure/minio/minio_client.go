@@ -13,7 +13,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-//go:generate mockgen -source=minio_client.go -destination=./mocks/minio_Provider_mock.go -package=mocks Provider
+//go:generate mockgen -source=minio_client.go -destination=./mocks/minio_provider_mock.go -package=mocks Provider
 type Provider interface {
 	CreateOne(context.Context, FileData) (*dto.UploadResponse, error)
 	// CreateMany(context.Context, map[string]FileData) ([]string, error)

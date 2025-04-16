@@ -80,3 +80,18 @@ func (mr *MockIProductUsecaseMockRecorder) GetProductsByCategory(ctx, id interfa
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProductsByCategory", reflect.TypeOf((*MockIProductUsecase)(nil).GetProductsByCategory), ctx, id)
 }
+
+// GetProductsByIDs mocks base method.
+func (m *MockIProductUsecase) GetProductsByIDs(ctx context.Context, ids []uuid.UUID) ([]*models.Product, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetProductsByIDs", ctx, ids)
+	ret0, _ := ret[0].([]*models.Product)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetProductsByIDs indicates an expected call of GetProductsByIDs.
+func (mr *MockIProductUsecaseMockRecorder) GetProductsByIDs(ctx, ids interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProductsByIDs", reflect.TypeOf((*MockIProductUsecase)(nil).GetProductsByIDs), ctx, ids)
+}
