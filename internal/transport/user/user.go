@@ -2,15 +2,16 @@ package user
 
 import (
 	"context"
+	"io"
+	"net/http"
+
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/minio"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/logctx"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/request"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/response"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/validator"
-	"github.com/sirupsen/logrus"
-	"io"
-	"net/http"
 )
 
 //go:generate mockgen -source=user.go -destination=../../usecase/mocks/user_usecase_mock.go -package=mocks IUserUsecase
@@ -24,20 +25,17 @@ type IUserUsecase interface {
 
 type UserHandler struct {
 	userService  IUserUsecase
-	log          *logrus.Logger
 	minioService minio.Provider
 	config       config.Config
 }
 
 func NewUserHandler(
 	u IUserUsecase,
-	log *logrus.Logger,
 	ms minio.Provider,
 	cfg *config.Config,
 ) *UserHandler {
 	return &UserHandler{
 		userService:  u,
-		log:          log,
 		minioService: ms,
 		config:       *cfg,
 	}
@@ -53,9 +51,13 @@ func NewUserHandler(
 //	@Failure		500	{string}	string		"Внутренняя ошибка сервера"
 //	@Router			/users/me [get]
 func (h *UserHandler) GetMe(w http.ResponseWriter, r *http.Request) {
+	const op = "UserHandler.GetMe"
+	logger := logctx.GetLogger(r.Context()).WithField("op", op)
+	
 	user, err := h.userService.GetMe(r.Context())
 	if err != nil {
-		response.HandleDomainError(r.Context(), w, err, "failed to get current user")
+		logger.WithError(err).Error("failed to get current user")
+		response.HandleDomainError(r.Context(), w, err, op)
 		return
 	}
 
@@ -74,15 +76,18 @@ func (h *UserHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 //	@Failure		500				{string}	string				"Внутренняя ошибка сервера"
 //	@Router			/users/avatar [post]
 func (h *UserHandler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
+	const op = "UserHandler.UploadAvatar"
+	logger := logctx.GetLogger(r.Context()).WithField("op", op)
+
 	if err := r.ParseMultipartForm(h.config.ServerConfig.MaxMultipartMemory); err != nil {
-		h.log.Warnf("error parsing multipart form: %v", err)
+		logger.WithError(err).Error("failed to parse form data")
 		response.SendJSONError(r.Context(), w, http.StatusBadRequest, "failed to parse form data")
 		return
 	}
 
 	file, header, err := r.FormFile(h.config.ServerConfig.AvatarKey)
 	if err != nil {
-		h.log.Warnf("error getting file from form: %v", err)
+		logger.WithError(err).Error("no file uploaded")
 		response.SendJSONError(r.Context(), w, http.StatusBadRequest, "no file uploaded")
 		return
 	}
@@ -91,7 +96,7 @@ func (h *UserHandler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 
 	fileBytes, err := io.ReadAll(file)
 	if err != nil {
-		h.log.Errorf("error reading file: %v", err)
+		logger.WithError(err).Error("failed to read file")
 		response.SendJSONError(r.Context(), w, http.StatusInternalServerError, "failed to read file")
 		return
 	}
@@ -103,7 +108,7 @@ func (h *UserHandler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 
 	avatarURL, err := h.userService.UploadAvatar(r.Context(), fileData)
 	if err != nil {
-		h.log.Errorf("upload error: %v", err)
+		logger.WithError(err).Error("upload failed")
 		response.SendJSONError(r.Context(), w, http.StatusInternalServerError, "upload failed")
 		return
 	}
@@ -126,8 +131,12 @@ func (h *UserHandler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 //	@Security		TokenAuth
 //	@Router			/users/update-profile [post]
 func (h *UserHandler) UpdateUserProfile(w http.ResponseWriter, r *http.Request) {
+	const op = "UserHandler.UpdateUserProfile"
+	logger := logctx.GetLogger(r.Context()).WithField("op", op)
+	
 	var updateReq dto.UpdateUserProfileRequestDTO
 	if err := request.ParseData(r, &updateReq); err != nil {
+		logger.WithError(err).Error("failed to parse request data")
 		response.SendJSONError(r.Context(), w, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -160,9 +169,13 @@ func (h *UserHandler) UpdateUserProfile(w http.ResponseWriter, r *http.Request) 
 //	@Security		TokenAuth
 //	@Router			/users/update-email [post]
 func (h *UserHandler) UpdateUserEmail(w http.ResponseWriter, r *http.Request) {
+	const op = "UserHandler.UpdateUserEmail"
+	logger := logctx.GetLogger(r.Context()).WithField("op", op)
+
 	var updateReq dto.UpdateUserEmailDTO
 	if err := request.ParseData(r, &updateReq); err != nil {
-		response.SendJSONError(r.Context(), w, http.StatusBadRequest, err.Error())
+		logger.WithError(err).Error("failed to parse request data")
+		response.HandleDomainError(r.Context(), w, err, op)
 		return
 	}
 
@@ -194,9 +207,13 @@ func (h *UserHandler) UpdateUserEmail(w http.ResponseWriter, r *http.Request) {
 //	@Security		TokenAuth
 //	@Router			/users/update-password [post]
 func (h *UserHandler) UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
+	const op = "UserHandler.UpdateUserPassword"
+	logger := logctx.GetLogger(r.Context()).WithField("op", op)
+
 	var updateReq dto.UpdateUserPasswordDTO
 	if err := request.ParseData(r, &updateReq); err != nil {
-		response.SendJSONError(r.Context(), w, http.StatusBadRequest, err.Error())
+		logger.WithError(err).Error("failed to parse request data")
+		response.HandleDomainError(r.Context(), w, err, op)
 		return
 	}
 

@@ -76,15 +76,15 @@ func NewApp(conf *config.Config) (*App, error) {
 	authRepo := authrepo.NewAuthRepository(db)
 	tokenator := jwt.NewTokenator(authRepo, conf.JWTConfig)
 	authUsecase := authus.NewAuthUsecase(authRepo, tokenator)
-	authHandler := auth.NewAuthHandler(authUsecase, logger, conf)
+	authHandler := auth.NewAuthHandler(authUsecase, conf)
 
 	userRepository := userrepo.NewUserRepository(db)
 	userUsecase := userus.NewUserUsecase(userRepository, tokenator, minioClient)
-	userService := user.NewUserHandler(userUsecase, logger, minioClient, conf)
+	userService := user.NewUserHandler(userUsecase, minioClient, conf)
 
 	addressRepo := addressrepo.NewAddressRepository(db)
 	addressUsecase := addressus.NewAddressUsecase(addressRepo)
-	addressService := address.NewAddressHandler(addressUsecase, logger, conf.GeoapifyConfig.APIKey)
+	addressService := address.NewAddressHandler(addressUsecase, conf.GeoapifyConfig.APIKey)
 
 	productRepo := productrepo.NewProductRepository(db)
 	productUsecase := product.NewProductUsecase(productRepo)
@@ -92,7 +92,7 @@ func NewApp(conf *config.Config) (*App, error) {
 
 	orderRepo := orderrepo.NewOrderRepository(db)
 	orderUsecase := orderus.NewOrderUsecase(orderRepo)
-	orderService := order.NewOrderService(orderUsecase, logger)
+	orderService := order.NewOrderService(orderUsecase,)
 
 	basketRepo := basketrepo.NewBasketRepository(db)
 	basketUsecase := basketuc.NewBasketUsecase(basketRepo)
