@@ -6,7 +6,7 @@
         "contact": {},
         "version": "1.0"
     },
-    "host": "localhost:8083",
+    "host": "90.156.217.63:8081",
     "basePath": "/api/v1",
     "paths": {
         "/addresses": {
@@ -80,6 +80,13 @@
                         "schema": {
                             "$ref": "#/definitions/dto.AddressReqDTO"
                         }
+                    },
+                    {
+                        "type": "string",
+                        "description": "CSRF-токен для защиты от подделки запросов",
+                        "name": "X-Csrf-Token",
+                        "in": "header",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -209,6 +216,15 @@
                     "auth"
                 ],
                 "summary": "Выход из системы",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "CSRF-токен для защиты от подделки запросов",
+                        "name": "X-Csrf-Token",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "Успешный выход из системы",
@@ -348,6 +364,15 @@
                     "basket"
                 ],
                 "summary": "Очистить корзину",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "CSRF-токен для защиты от подделки запросов",
+                        "name": "X-Csrf-Token",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "204": {
                         "description": "No Content"
@@ -391,6 +416,13 @@
                         "description": "ID товара в формате UUID",
                         "name": "id",
                         "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "CSRF-токен для защиты от подделки запросов",
+                        "name": "X-Csrf-Token",
+                        "in": "header",
                         "required": true
                     }
                 ],
@@ -444,6 +476,13 @@
                         "description": "ID товара в формате UUID",
                         "name": "id",
                         "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "CSRF-токен для защиты от подделки запросов",
+                        "name": "X-Csrf-Token",
+                        "in": "header",
                         "required": true
                     }
                 ],
@@ -510,6 +549,13 @@
                         "schema": {
                             "$ref": "#/definitions/dto.UpdateQuantityRequest"
                         }
+                    },
+                    {
+                        "type": "string",
+                        "description": "CSRF-токен для защиты от подделки запросов",
+                        "name": "X-Csrf-Token",
+                        "in": "header",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -649,6 +695,13 @@
                         "schema": {
                             "$ref": "#/definitions/dto.CreateOrderDTO"
                         }
+                    },
+                    {
+                        "type": "string",
+                        "description": "CSRF-токен для защиты от подделки запросов",
+                        "name": "X-Csrf-Token",
+                        "in": "header",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -733,6 +786,13 @@
                         "schema": {
                             "$ref": "#/definitions/dto.GetProductsByIDRequest"
                         }
+                    },
+                    {
+                        "type": "string",
+                        "description": "CSRF-токен для защиты от подделки запросов",
+                        "name": "X-Csrf-Token",
+                        "in": "header",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -918,6 +978,13 @@
                         "name": "file",
                         "in": "formData",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "CSRF-токен для защиты от подделки запросов",
+                        "name": "X-Csrf-Token",
+                        "in": "header",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -1010,6 +1077,13 @@
                         "schema": {
                             "$ref": "#/definitions/dto.UpdateUserEmailDTO"
                         }
+                    },
+                    {
+                        "type": "string",
+                        "description": "CSRF-токен для защиты от подделки запросов",
+                        "name": "X-Csrf-Token",
+                        "in": "header",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -1061,6 +1135,13 @@
                         "schema": {
                             "$ref": "#/definitions/dto.UpdateUserPasswordDTO"
                         }
+                    },
+                    {
+                        "type": "string",
+                        "description": "CSRF-токен для защиты от подделки запросов",
+                        "name": "X-Csrf-Token",
+                        "in": "header",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -1112,6 +1193,13 @@
                         "schema": {
                             "$ref": "#/definitions/dto.UpdateUserProfileRequestDTO"
                         }
+                    },
+                    {
+                        "type": "string",
+                        "description": "CSRF-токен для защиты от подделки запросов",
+                        "name": "X-Csrf-Token",
+                        "in": "header",
+                        "required": true
                     }
                 ],
                 "responses": {

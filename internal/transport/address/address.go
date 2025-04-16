@@ -57,11 +57,12 @@ func NewAddressHandler(
 //	@Tags			address
 //	@Accept			json
 //	@Produce		json
-//	@Param			address	body	dto.AddressReqDTO	true	"Данные адреса"
-//	@Success		201		"Адрес успешно создан"
-//	@Failure		400		{object}	object	"Неверный формат данных или ID пользователя"
-//	@Failure		401		{object}	object	"Пользователь не авторизован"
-//	@Failure		500		{object}	object	"Ошибка сервера при создании адреса"
+//	@Param			address			body	dto.AddressReqDTO	true	"Данные адреса"
+//	@Param			X-Csrf-Token	header	string				true	"CSRF-токен для защиты от подделки запросов"
+//	@Success		201				"Адрес успешно создан"
+//	@Failure		400				{object}	object	"Неверный формат данных или ID пользователя"
+//	@Failure		401				{object}	object	"Пользователь не авторизован"
+//	@Failure		500				{object}	object	"Ошибка сервера при создании адреса"
 //	@Security		TokenAuth
 //	@Router			/addresses [post]
 func (h *AddressHandler) CreateAddress(w http.ResponseWriter, r *http.Request) {

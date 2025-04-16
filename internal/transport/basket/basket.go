@@ -68,12 +68,13 @@ func (h *BasketService) Get(w http.ResponseWriter, r *http.Request) {
 //	@Tags			basket
 //	@Accept			json
 //	@Produce		json
-//	@Param			id	path		string	true	"ID товара в формате UUID"
-//	@Success		201	{object}	models.BasketItem
-//	@Failure		400	{object}	object
-//	@Failure		401	{object}	object
-//	@Failure		404	{object}	object
-//	@Failure		500	{object}	object
+//	@Param			id				path		string	true	"ID товара в формате UUID"
+//	@Param			X-Csrf-Token	header		string	true	"CSRF-токен для защиты от подделки запросов"
+//	@Success		201				{object}	models.BasketItem
+//	@Failure		400				{object}	object
+//	@Failure		401				{object}	object
+//	@Failure		404				{object}	object
+//	@Failure		500				{object}	object
 //	@Security		TokenAuth
 //	@Router			/basket/{id} [post]
 func (h *BasketService) Add(w http.ResponseWriter, r *http.Request) {
@@ -104,7 +105,8 @@ func (h *BasketService) Add(w http.ResponseWriter, r *http.Request) {
 //	@Summary		Удалить товар из корзины
 //	@Description	Удаляет товар из корзины пользователя
 //	@Tags			basket
-//	@Param			id	path	string	true	"ID товара в формате UUID"
+//	@Param			id				path	string	true	"ID товара в формате UUID"
+//	@Param			X-Csrf-Token	header	string	true	"CSRF-токен для защиты от подделки запросов"
 //	@Success		204
 //	@Failure		400	{object}	object
 //	@Failure		401	{object}	object
@@ -141,13 +143,14 @@ func (h *BasketService) Delete(w http.ResponseWriter, r *http.Request) {
 //	@Tags			basket
 //	@Accept			json
 //	@Produce		json
-//	@Param			id		path		string						true	"ID товара в формате UUID"
-//	@Param			request	body		dto.UpdateQuantityRequest	true	"Новое количество"
-//	@Success		200		{object}	dto.UpdateQuantityResponse
-//	@Failure		400		{object}	object
-//	@Failure		401		{object}	object
-//	@Failure		404		{object}	object
-//	@Failure		500		{object}	object
+//	@Param			id				path		string						true	"ID товара в формате UUID"
+//	@Param			request			body		dto.UpdateQuantityRequest	true	"Новое количество"
+//	@Param			X-Csrf-Token	header		string						true	"CSRF-токен для защиты от подделки запросов"
+//	@Success		200				{object}	dto.UpdateQuantityResponse
+//	@Failure		400				{object}	object
+//	@Failure		401				{object}	object
+//	@Failure		404				{object}	object
+//	@Failure		500				{object}	object
 //	@Security		TokenAuth
 //	@Router			/basket/{id} [patch]
 func (h *BasketService) UpdateQuantity(w http.ResponseWriter, r *http.Request) {
@@ -192,6 +195,7 @@ func (h *BasketService) UpdateQuantity(w http.ResponseWriter, r *http.Request) {
 //	@Summary		Очистить корзину
 //	@Description	Полностью удаляет все товары из корзины пользователя
 //	@Tags			basket
+//	@Param			X-Csrf-Token	header	string	true	"CSRF-токен для защиты от подделки запросов"
 //	@Success		204
 //	@Failure		401	{object}	object
 //	@Failure		500	{object}	object

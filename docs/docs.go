@@ -86,6 +86,13 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/dto.AddressReqDTO"
                         }
+                    },
+                    {
+                        "type": "string",
+                        "description": "CSRF-токен для защиты от подделки запросов",
+                        "name": "X-Csrf-Token",
+                        "in": "header",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -215,6 +222,15 @@ const docTemplate = `{
                     "auth"
                 ],
                 "summary": "Выход из системы",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "CSRF-токен для защиты от подделки запросов",
+                        "name": "X-Csrf-Token",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "Успешный выход из системы",
@@ -354,6 +370,15 @@ const docTemplate = `{
                     "basket"
                 ],
                 "summary": "Очистить корзину",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "CSRF-токен для защиты от подделки запросов",
+                        "name": "X-Csrf-Token",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "204": {
                         "description": "No Content"
@@ -397,6 +422,13 @@ const docTemplate = `{
                         "description": "ID товара в формате UUID",
                         "name": "id",
                         "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "CSRF-токен для защиты от подделки запросов",
+                        "name": "X-Csrf-Token",
+                        "in": "header",
                         "required": true
                     }
                 ],
@@ -450,6 +482,13 @@ const docTemplate = `{
                         "description": "ID товара в формате UUID",
                         "name": "id",
                         "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "CSRF-токен для защиты от подделки запросов",
+                        "name": "X-Csrf-Token",
+                        "in": "header",
                         "required": true
                     }
                 ],
@@ -516,6 +555,13 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/dto.UpdateQuantityRequest"
                         }
+                    },
+                    {
+                        "type": "string",
+                        "description": "CSRF-токен для защиты от подделки запросов",
+                        "name": "X-Csrf-Token",
+                        "in": "header",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -655,6 +701,13 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/dto.CreateOrderDTO"
                         }
+                    },
+                    {
+                        "type": "string",
+                        "description": "CSRF-токен для защиты от подделки запросов",
+                        "name": "X-Csrf-Token",
+                        "in": "header",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -739,6 +792,13 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/dto.GetProductsByIDRequest"
                         }
+                    },
+                    {
+                        "type": "string",
+                        "description": "CSRF-токен для защиты от подделки запросов",
+                        "name": "X-Csrf-Token",
+                        "in": "header",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -924,6 +984,13 @@ const docTemplate = `{
                         "name": "file",
                         "in": "formData",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "CSRF-токен для защиты от подделки запросов",
+                        "name": "X-Csrf-Token",
+                        "in": "header",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -1016,6 +1083,13 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/dto.UpdateUserEmailDTO"
                         }
+                    },
+                    {
+                        "type": "string",
+                        "description": "CSRF-токен для защиты от подделки запросов",
+                        "name": "X-Csrf-Token",
+                        "in": "header",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -1067,6 +1141,13 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/dto.UpdateUserPasswordDTO"
                         }
+                    },
+                    {
+                        "type": "string",
+                        "description": "CSRF-токен для защиты от подделки запросов",
+                        "name": "X-Csrf-Token",
+                        "in": "header",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -1118,6 +1199,13 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/dto.UpdateUserProfileRequestDTO"
                         }
+                    },
+                    {
+                        "type": "string",
+                        "description": "CSRF-токен для защиты от подделки запросов",
+                        "name": "X-Csrf-Token",
+                        "in": "header",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -1643,7 +1731,7 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "localhost:8083",
+	Host:             "90.156.217.63:8081",
 	BasePath:         "/api/v1",
 	Schemes:          []string{},
 	Title:            "ChillGuys API",

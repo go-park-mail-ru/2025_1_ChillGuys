@@ -33,12 +33,13 @@ func NewOrderService(
 //	@Tags			order
 //	@Accept			json
 //	@Produce		json
-//	@Param			orderData	body	dto.CreateOrderDTO	true	"Данные для создания заказа"
-//	@Success		200			"Заказ успешно создан"
-//	@Failure		400			{object}	object	"Некорректные данные"
-//	@Failure		401			{object}	object	"Пользователь не авторизован"
-//	@Failure		404			{object}	object	"Ошибка при создании заказа"
-//	@Failure		500			{object}	object	"Внутренняя ошибка сервера"
+//	@Param			orderData		body	dto.CreateOrderDTO	true	"Данные для создания заказа"
+//	@Param			X-Csrf-Token	header	string				true	"CSRF-токен для защиты от подделки запросов"
+//	@Success		200				"Заказ успешно создан"
+//	@Failure		400				{object}	object	"Некорректные данные"
+//	@Failure		401				{object}	object	"Пользователь не авторизован"
+//	@Failure		404				{object}	object	"Ошибка при создании заказа"
+//	@Failure		500				{object}	object	"Внутренняя ошибка сервера"
 //	@Security		TokenAuth
 //	@Router			/orders [post]
 func (o *OrderService) CreateOrder(w http.ResponseWriter, r *http.Request) {

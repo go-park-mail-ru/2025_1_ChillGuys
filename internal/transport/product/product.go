@@ -136,8 +136,6 @@ func (h *ProductService) GetProductsByCategory(w http.ResponseWriter, r *http.Re
 	response.SendJSONResponse(r.Context(), w, http.StatusOK, productResponse)
 }
 
-// FIXME: models.SuccessResponse не найден
-
 // CreateOne godoc
 //
 //	@Summary		Загрузить изображение товара
@@ -203,10 +201,11 @@ func (h *ProductService) CreateOne(w http.ResponseWriter, r *http.Request) {
 //	@Tags			products
 //	@Accept			json
 //	@Produce		json
-//	@Param			request	body		dto.GetProductsByIDRequest	true	"Список ID товаров"
-//	@Success		200		{array}		dto.ProductsResponse
-//	@Failure		400		{object}	object	"Некорректные данные"
-//	@Failure		500		{object}	object
+//	@Param			request			body		dto.GetProductsByIDRequest	true	"Список ID товаров"
+//	@Param			X-Csrf-Token	header		string						true	"CSRF-токен для защиты от подделки запросов"
+//	@Success		200				{array}		dto.ProductsResponse
+//	@Failure		400				{object}	object	"Некорректные данные"
+//	@Failure		500				{object}	object
 //	@Router			/products/batch [post]
 func (p *ProductService) GetProductsByIDs(w http.ResponseWriter, r *http.Request) {
 	var req dto.GetProductsByIDRequest

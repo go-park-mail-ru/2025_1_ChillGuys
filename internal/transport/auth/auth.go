@@ -160,10 +160,11 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 //	@Description	Завершает сеанс пользователя и удаляет JWT-токен из cookies
 //	@Tags			auth
 //	@Produce		json
-//	@Success		200	{}			-			"Успешный выход из системы"
-//	@Header			200	{string}	Set-Cookie	"Очищает JWT-токен (устанавливает пустое значение с истекшим сроком)"
-//	@Failure		401	{object}	object		"Пользователь не авторизован"
-//	@Failure		500	{object}	object		"Внутренняя ошибка сервера"
+//	@Param			X-Csrf-Token	header		string		true	"CSRF-токен для защиты от подделки запросов"
+//	@Success		200				{}			-			"Успешный выход из системы"
+//	@Header			200				{string}	Set-Cookie	"Очищает JWT-токен (устанавливает пустое значение с истекшим сроком)"
+//	@Failure		401				{object}	object		"Пользователь не авторизован"
+//	@Failure		500				{object}	object		"Внутренняя ошибка сервера"
 //	@Security		TokenAuth
 //	@Router			/auth/logout [post]
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {

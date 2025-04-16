@@ -334,7 +334,7 @@ definitions:
     - ProductPending
     - ProductRejected
     - ProductApproved
-host: localhost:8083
+host: 90.156.217.63:8081
 info:
   contact: {}
   description: API for ChillGuys marketplace
@@ -381,6 +381,11 @@ paths:
         required: true
         schema:
           $ref: '#/definitions/dto.AddressReqDTO'
+      - description: CSRF-токен для защиты от подделки запросов
+        in: header
+        name: X-Csrf-Token
+        required: true
+        type: string
       produces:
       - application/json
       responses:
@@ -463,6 +468,12 @@ paths:
   /auth/logout:
     post:
       description: Завершает сеанс пользователя и удаляет JWT-токен из cookies
+      parameters:
+      - description: CSRF-токен для защиты от подделки запросов
+        in: header
+        name: X-Csrf-Token
+        required: true
+        type: string
       produces:
       - application/json
       responses:
@@ -529,6 +540,12 @@ paths:
   /basket:
     delete:
       description: Полностью удаляет все товары из корзины пользователя
+      parameters:
+      - description: CSRF-токен для защиты от подделки запросов
+        in: header
+        name: X-Csrf-Token
+        required: true
+        type: string
       responses:
         "204":
           description: No Content
@@ -580,6 +597,11 @@ paths:
         name: id
         required: true
         type: string
+      - description: CSRF-токен для защиты от подделки запросов
+        in: header
+        name: X-Csrf-Token
+        required: true
+        type: string
       responses:
         "204":
           description: No Content
@@ -620,6 +642,11 @@ paths:
         required: true
         schema:
           $ref: '#/definitions/dto.UpdateQuantityRequest'
+      - description: CSRF-токен для защиты от подделки запросов
+        in: header
+        name: X-Csrf-Token
+        required: true
+        type: string
       produces:
       - application/json
       responses:
@@ -656,6 +683,11 @@ paths:
       - description: ID товара в формате UUID
         in: path
         name: id
+        required: true
+        type: string
+      - description: CSRF-токен для защиты от подделки запросов
+        in: header
+        name: X-Csrf-Token
         required: true
         type: string
       produces:
@@ -747,6 +779,11 @@ paths:
         required: true
         schema:
           $ref: '#/definitions/dto.CreateOrderDTO'
+      - description: CSRF-токен для защиты от подделки запросов
+        in: header
+        name: X-Csrf-Token
+        required: true
+        type: string
       produces:
       - application/json
       responses:
@@ -831,6 +868,11 @@ paths:
         required: true
         schema:
           $ref: '#/definitions/dto.GetProductsByIDRequest'
+      - description: CSRF-токен для защиты от подделки запросов
+        in: header
+        name: X-Csrf-Token
+        required: true
+        type: string
       produces:
       - application/json
       responses:
@@ -927,6 +969,11 @@ paths:
         name: file
         required: true
         type: file
+      - description: CSRF-токен для защиты от подделки запросов
+        in: header
+        name: X-Csrf-Token
+        required: true
+        type: string
       produces:
       - application/json
       responses:
@@ -984,6 +1031,11 @@ paths:
         required: true
         schema:
           $ref: '#/definitions/dto.UpdateUserEmailDTO'
+      - description: CSRF-токен для защиты от подделки запросов
+        in: header
+        name: X-Csrf-Token
+        required: true
+        type: string
       produces:
       - application/json
       responses:
@@ -1016,6 +1068,11 @@ paths:
         required: true
         schema:
           $ref: '#/definitions/dto.UpdateUserPasswordDTO'
+      - description: CSRF-токен для защиты от подделки запросов
+        in: header
+        name: X-Csrf-Token
+        required: true
+        type: string
       produces:
       - application/json
       responses:
@@ -1048,6 +1105,11 @@ paths:
         required: true
         schema:
           $ref: '#/definitions/dto.UpdateUserProfileRequestDTO'
+      - description: CSRF-токен для защиты от подделки запросов
+        in: header
+        name: X-Csrf-Token
+        required: true
+        type: string
       produces:
       - application/json
       responses:
