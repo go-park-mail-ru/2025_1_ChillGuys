@@ -34,6 +34,7 @@ func NewBasketService(u IBasketUsecase) *BasketService {
 }
 
 // GetBasket godoc
+//
 //	@Summary		Получить содержимое корзины
 //	@Description	Возвращает все товары в корзине пользователя
 //	@Tags			basket
@@ -44,7 +45,6 @@ func NewBasketService(u IBasketUsecase) *BasketService {
 //	@Failure		500	{object}	object
 //	@Security		TokenAuth
 //	@Router			/basket [get]
-
 func (h *BasketService) Get(w http.ResponseWriter, r *http.Request) {
 	const op = "BasketService.Get"
 	logger := logctx.GetLogger(r.Context()).WithField("op", op)
@@ -62,6 +62,7 @@ func (h *BasketService) Get(w http.ResponseWriter, r *http.Request) {
 }
 
 // AddToBasket godoc
+//
 //	@Summary		Добавить товар в корзину
 //	@Description	Добавляет товар в корзину пользователя
 //	@Tags			basket
@@ -75,7 +76,6 @@ func (h *BasketService) Get(w http.ResponseWriter, r *http.Request) {
 //	@Failure		500	{object}	object
 //	@Security		TokenAuth
 //	@Router			/basket/{id} [post]
-
 func (h *BasketService) Add(w http.ResponseWriter, r *http.Request) {
 	const op = "BasketService.Add"
 	logger := logctx.GetLogger(r.Context()).WithField("op", op)
@@ -100,6 +100,7 @@ func (h *BasketService) Add(w http.ResponseWriter, r *http.Request) {
 }
 
 // RemoveFromBasket godoc
+//
 //	@Summary		Удалить товар из корзины
 //	@Description	Удаляет товар из корзины пользователя
 //	@Tags			basket
@@ -111,7 +112,6 @@ func (h *BasketService) Add(w http.ResponseWriter, r *http.Request) {
 //	@Failure		500	{object}	object
 //	@Security		TokenAuth
 //	@Router			/basket/{id} [delete]
-
 func (h *BasketService) Delete(w http.ResponseWriter, r *http.Request) {
 	const op = "BasketService.Delete"
 	logger := logctx.GetLogger(r.Context()).WithField("op", op)
@@ -135,6 +135,7 @@ func (h *BasketService) Delete(w http.ResponseWriter, r *http.Request) {
 }
 
 // UpdateQuantity godoc
+//
 //	@Summary		Обновить количество товара
 //	@Description	Изменяет количество указанного товара в корзине
 //	@Tags			basket
@@ -149,7 +150,6 @@ func (h *BasketService) Delete(w http.ResponseWriter, r *http.Request) {
 //	@Failure		500		{object}	object
 //	@Security		TokenAuth
 //	@Router			/basket/{id} [patch]
-
 func (h *BasketService) UpdateQuantity(w http.ResponseWriter, r *http.Request) {
 	const op = "BasketService.UpdateQuantity"
 	logger := logctx.GetLogger(r.Context()).WithField("op", op)
@@ -188,6 +188,7 @@ func (h *BasketService) UpdateQuantity(w http.ResponseWriter, r *http.Request) {
 }
 
 // ClearBasket godoc
+//
 //	@Summary		Очистить корзину
 //	@Description	Полностью удаляет все товары из корзины пользователя
 //	@Tags			basket
@@ -196,7 +197,6 @@ func (h *BasketService) UpdateQuantity(w http.ResponseWriter, r *http.Request) {
 //	@Failure		500	{object}	object
 //	@Security		TokenAuth
 //	@Router			/basket [delete]
-
 func (h *BasketService) Clear(w http.ResponseWriter, r *http.Request) {
 	const op = "BasketService.Clear"
 	logger := logctx.GetLogger(r.Context()).WithField("op", op)

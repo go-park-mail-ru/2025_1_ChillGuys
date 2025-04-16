@@ -205,7 +205,7 @@ func (h *ProductService) CreateOne(w http.ResponseWriter, r *http.Request) {
 //	@Success		200		{array}		dto.ProductsResponse
 //	@Failure		400		{object}	object	"Некорректные данные"
 //	@Failure		500		{object}	object
-//	@Router			/products/list [post]
+//	@Router			/products/batch [post]
 func (p *ProductService) GetProductsByIDs(w http.ResponseWriter, r *http.Request) {
 	var req dto.GetProductsByIDRequest
 	if err := request.ParseData(r, &req); err != nil {

@@ -20,6 +20,19 @@ definitions:
       region:
         type: string
     type: object
+  dto.BasketResponse:
+    properties:
+      products:
+        items:
+          $ref: '#/definitions/models.BasketItem'
+        type: array
+      total:
+        type: integer
+      total_price:
+        type: number
+      total_price_discount:
+        type: number
+    type: object
   dto.BriefProduct:
     properties:
       discount_price:
@@ -44,6 +57,28 @@ definitions:
           $ref: '#/definitions/models.Category'
         type: array
       total:
+        type: integer
+    type: object
+  dto.CreateOrderDTO:
+    properties:
+      addressID:
+        type: string
+      items:
+        items:
+          $ref: '#/definitions/dto.CreateOrderItemDTO'
+        type: array
+      userID:
+        type: string
+    type: object
+  dto.CreateOrderItemDTO:
+    properties:
+      id:
+        type: string
+      productID:
+        type: string
+      productPrice:
+        type: number
+      quantity:
         type: integer
     type: object
   dto.GetAddressResDTO:
@@ -129,6 +164,56 @@ definitions:
       total:
         type: integer
     type: object
+  dto.UpdateQuantityRequest:
+    properties:
+      quantity:
+        type: integer
+    type: object
+  dto.UpdateQuantityResponse:
+    properties:
+      item:
+        $ref: '#/definitions/models.BasketItem'
+      remain_quantity:
+        type: integer
+    type: object
+  dto.UpdateUserEmailDTO:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    type: object
+  dto.UpdateUserPasswordDTO:
+    properties:
+      NewPassword:
+        type: string
+      OldPassword:
+        type: string
+    type: object
+  dto.UpdateUserProfileRequestDTO:
+    properties:
+      name:
+        type: string
+      phoneNumber:
+        type: string
+      surname:
+        type: string
+    type: object
+  dto.UserDTO:
+    properties:
+      email:
+        type: string
+      id:
+        type: string
+      imageURL:
+        type: string
+      name:
+        type: string
+      phoneNumber:
+        type: string
+      surname:
+        type: string
+    type: object
   dto.UserLoginRequestDTO:
     properties:
       email:
@@ -158,6 +243,27 @@ definitions:
       id:
         type: string
       region:
+        type: string
+    type: object
+  models.BasketItem:
+    properties:
+      basket_id:
+        type: string
+      id:
+        type: string
+      price_discount:
+        type: number
+      product_id:
+        type: string
+      product_image:
+        type: string
+      product_name:
+        type: string
+      product_price:
+        type: number
+      quantity:
+        type: integer
+      updated_at:
         type: string
     type: object
   models.Category:
@@ -359,7 +465,7 @@ paths:
       parameters:
       - description: Данные для входа
         in: body
-        name: credentials
+        name: request
         required: true
         schema:
           $ref: '#/definitions/dto.UserLoginRequestDTO'
@@ -372,6 +478,8 @@ paths:
             Set-Cookie:
               description: JWT-токен авторизации
               type: string
+          schema:
+            type: ""
         "400":
           description: Ошибка валидации данных
           schema:
@@ -400,6 +508,8 @@ paths:
               description: Очищает JWT-токен (устанавливает пустое значение с истекшим
                 сроком)
               type: string
+          schema:
+            type: ""
         "401":
           description: Пользователь не авторизован
           schema:
@@ -434,6 +544,8 @@ paths:
             Set-Cookie:
               description: JWT-токен авторизации
               type: string
+          schema:
+            type: ""
         "400":
           description: Некорректные данные
           schema:
@@ -449,6 +561,166 @@ paths:
       summary: Регистрация пользователя
       tags:
       - auth
+  /basket:
+    delete:
+      description: Полностью удаляет все товары из корзины пользователя
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            type: object
+      security:
+      - TokenAuth: []
+      summary: Очистить корзину
+      tags:
+      - basket
+    get:
+      description: Возвращает все товары в корзине пользователя
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.BasketResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            type: object
+      security:
+      - TokenAuth: []
+      summary: Получить содержимое корзины
+      tags:
+      - basket
+  /basket/{id}:
+    delete:
+      description: Удаляет товар из корзины пользователя
+      parameters:
+      - description: ID товара в формате UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            type: object
+      security:
+      - TokenAuth: []
+      summary: Удалить товар из корзины
+      tags:
+      - basket
+    patch:
+      consumes:
+      - application/json
+      description: Изменяет количество указанного товара в корзине
+      parameters:
+      - description: ID товара в формате UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Новое количество
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateQuantityRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.UpdateQuantityResponse'
+        "400":
+          description: Bad Request
+          schema:
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            type: object
+      security:
+      - TokenAuth: []
+      summary: Обновить количество товара
+      tags:
+      - basket
+    post:
+      consumes:
+      - application/json
+      description: Добавляет товар в корзину пользователя
+      parameters:
+      - description: ID товара в формате UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.BasketItem'
+        "400":
+          description: Bad Request
+          schema:
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            type: object
+      security:
+      - TokenAuth: []
+      summary: Добавить товар в корзину
+      tags:
+      - basket
   /categories:
     get:
       description: Возвращает список всех доступных категорий товаров
@@ -493,6 +765,43 @@ paths:
       security:
       - TokenAuth: []
       summary: Получить список заказов
+      tags:
+      - order
+    post:
+      consumes:
+      - application/json
+      description: Создает новый заказ для текущего пользователя
+      parameters:
+      - description: Данные для создания заказа
+        in: body
+        name: orderData
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateOrderDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Заказ успешно создан
+        "400":
+          description: Некорректные данные
+          schema:
+            type: object
+        "401":
+          description: Пользователь не авторизован
+          schema:
+            type: object
+        "404":
+          description: Ошибка при создании заказа
+          schema:
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            type: object
+      security:
+      - TokenAuth: []
+      summary: Создать новый заказ
       tags:
       - order
   /products:
@@ -541,6 +850,38 @@ paths:
       summary: Получить продукт по ID
       tags:
       - products
+  /products/batch:
+    post:
+      consumes:
+      - application/json
+      description: Возвращает список товаров по переданным идентификаторам
+      parameters:
+      - description: Список ID товаров
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.GetProductsByIDRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.ProductsResponse'
+            type: array
+        "400":
+          description: Некорректные данные
+          schema:
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            type: object
+      summary: Получить товары по списку ID
+      tags:
+      - products
   /products/category/{id}:
     get:
       description: Возвращает список товаров указанной категории, отсортированных
@@ -575,38 +916,6 @@ paths:
       summary: Получить товары по категории
       tags:
       - products
-  /products/list:
-    post:
-      consumes:
-      - application/json
-      description: Возвращает список товаров по переданным идентификаторам
-      parameters:
-      - description: Список ID товаров
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/dto.GetProductsByIDRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/dto.ProductsResponse'
-            type: array
-        "400":
-          description: Некорректные данные
-          schema:
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            type: object
-      summary: Получить товары по списку ID
-      tags:
-      - products
   /products/upload:
     post:
       consumes:
@@ -638,7 +947,161 @@ paths:
       summary: Загрузить изображение товара
       tags:
       - products
+  /users/avatar:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Загружает изображение профиля пользователя
+      parameters:
+      - description: Файл изображения
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: URL загруженного аватара
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Ошибка загрузки или обработки формы
+          schema:
+            type: string
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            type: string
+      summary: Загрузить аватар
+      tags:
+      - users
+  /users/me:
+    get:
+      description: Возвращает информацию о текущем авторизованном пользователе
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Информация о пользователе
+          schema:
+            $ref: '#/definitions/dto.UserDTO'
+        "400":
+          description: Некорректный запрос
+          schema:
+            type: string
+        "401":
+          description: Пользователь не авторизован
+          schema:
+            type: string
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            type: string
+      summary: Получить информацию о себе
+      tags:
+      - users
+  /users/update-email:
+    post:
+      consumes:
+      - application/json
+      description: Обновляет email текущего пользователя
+      parameters:
+      - description: Новый email
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateUserEmailDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Email успешно обновлён
+          schema:
+            type: string
+        "400":
+          description: Невалидные данные
+          schema:
+            type: string
+        "500":
+          description: Ошибка при обновлении email
+          schema:
+            type: string
+      security:
+      - TokenAuth: []
+      summary: Обновить email пользователя
+      tags:
+      - users
+  /users/update-password:
+    post:
+      consumes:
+      - application/json
+      description: Меняет пароль текущего пользователя
+      parameters:
+      - description: Старый и новый пароли
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateUserPasswordDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Пароль успешно обновлён
+          schema:
+            type: string
+        "400":
+          description: Невалидные данные
+          schema:
+            type: string
+        "500":
+          description: Ошибка при обновлении пароля
+          schema:
+            type: string
+      security:
+      - TokenAuth: []
+      summary: Обновить пароль пользователя
+      tags:
+      - users
+  /users/update-profile:
+    post:
+      consumes:
+      - application/json
+      description: Обновляет основную информацию пользователя
+      parameters:
+      - description: Данные для обновления профиля
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateUserProfileRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Профиль успешно обновлён
+          schema:
+            type: string
+        "400":
+          description: Невалидные данные
+          schema:
+            type: string
+        "500":
+          description: Ошибка при обновлении профиля
+          schema:
+            type: string
+      security:
+      - TokenAuth: []
+      summary: Обновить профиль пользователя
+      tags:
+      - users
 securityDefinitions:
+  BasicAuth:
+    type: basic
   TokenAuth:
     in: cookie
     name: token

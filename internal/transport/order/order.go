@@ -27,6 +27,7 @@ func NewOrderService(
 }
 
 // CreateOrder godoc
+//
 //	@Summary		Создать новый заказ
 //	@Description	Создает новый заказ для текущего пользователя
 //	@Tags			order
@@ -40,7 +41,6 @@ func NewOrderService(
 //	@Failure		500			{object}	object	"Внутренняя ошибка сервера"
 //	@Security		TokenAuth
 //	@Router			/orders [post]
-
 func (o *OrderService) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	userIDStr, isExist := r.Context().Value(domains.UserIDKey{}).(string)
 	if !isExist {

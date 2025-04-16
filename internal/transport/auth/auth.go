@@ -47,12 +47,12 @@ func NewAuthHandler(
 //	@Tags			auth
 //	@Accept			json
 //	@Produce		json
-//	@Param			credentials	body	dto.UserLoginRequestDTO	true	"Данные для входа"
-//	@Success		200			"Успешная авторизация"
-//	@Header			200			{string}	Set-Cookie	"JWT-токен авторизации"
-//	@Failure		400			{object}	object		"Ошибка валидации данных"
-//	@Failure		401			{object}	object		"Неверные email или пароль"
-//	@Failure		500			{object}	object		"Внутренняя ошибка сервера"
+//	@Param			request	body		dto.UserLoginRequestDTO	true	"Данные для входа"
+//	@Success		200		{}			-						"Успешная авторизация"
+//	@Header			200		{string}	Set-Cookie				"JWT-токен авторизации"
+//	@Failure		400		{object}	object					"Ошибка валидации данных"
+//	@Failure		401		{object}	object					"Неверные email или пароль"
+//	@Failure		500		{object}	object					"Внутренняя ошибка сервера"
 //	@Router			/auth/login [post]
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var loginReq dto.UserLoginRequestDTO
@@ -88,12 +88,12 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 //	@Tags			auth
 //	@Accept			json
 //	@Produce		json
-//	@Param			userData	body	dto.UserRegisterRequestDTO	true	"Данные для регистрации"
-//	@Success		200			"Успешная регистрация"
-//	@Header			200			{string}	Set-Cookie	"JWT-токен авторизации"
-//	@Failure		400			{object}	object		"Некорректные данные"
-//	@Failure		409			{object}	object		"Пользователь уже существует"
-//	@Failure		500			{object}	object		"Внутренняя ошибка сервера"
+//	@Param			userData	body		dto.UserRegisterRequestDTO	true	"Данные для регистрации"
+//	@Success		200			{}			-							"Успешная регистрация"
+//	@Header			200			{string}	Set-Cookie					"JWT-токен авторизации"
+//	@Failure		400			{object}	object						"Некорректные данные"
+//	@Failure		409			{object}	object						"Пользователь уже существует"
+//	@Failure		500			{object}	object						"Внутренняя ошибка сервера"
 //	@Router			/auth/register [post]
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var registerReq dto.UserRegisterRequestDTO
@@ -129,7 +129,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 //	@Description	Завершает сеанс пользователя и удаляет JWT-токен из cookies
 //	@Tags			auth
 //	@Produce		json
-//	@Success		200	"Успешный выход из системы"
+//	@Success		200	{}			-			"Успешный выход из системы"
 //	@Header			200	{string}	Set-Cookie	"Очищает JWT-токен (устанавливает пустое значение с истекшим сроком)"
 //	@Failure		401	{object}	object		"Пользователь не авторизован"
 //	@Failure		500	{object}	object		"Внутренняя ошибка сервера"
