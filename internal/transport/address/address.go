@@ -34,6 +34,7 @@ type AddressHandler struct {
 	addressService address.IAddressUsecase
 	log            *logrus.Logger
 	geoapifyAPIKey string
+	httpClient     *http.Client
 }
 
 func NewAddressHandler(
@@ -45,6 +46,7 @@ func NewAddressHandler(
 		addressService: u,
 		log:            log,
 		geoapifyAPIKey: geoapifyAPIKey,
+		httpClient:     &http.Client{},
 	}
 }
 
@@ -121,8 +123,7 @@ func (h *AddressHandler) geocodeAddress(ctx context.Context, address dto.Address
 	}
 	req.Header.Set("Accept", "application/json")
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := h.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to call Geoapify API: %w", err)
 	}
