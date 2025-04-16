@@ -26,19 +26,22 @@ func NewOrderService(
 	}
 }
 
-//	@Summary		Create new order
-//	@Description	Создает новый заказ для пользователя
+// CreateOrder godoc
+//
+//	@Summary		Создать новый заказ
+//	@Description	Создает новый заказ для текущего пользователя
 //	@Tags			order
 //	@Accept			json
 //	@Produce		json
-//	@Param			input	body		models.CreateOrderDTO	true	"Данные для создания заказа"
-//	@Success		200		{}			"Order successfully created"
-//	@Failure		400		{object}	dto.ErrorResponse	"Некорректный запрос"
-//	@Failure		401		{object}	dto.ErrorResponse	"Пользователь не найден в контексте"
-//	@Failure		404		{object}	dto.ErrorResponse	"Ошибка при создании заказа"
-//	@Failure		500		{object}	dto.ErrorResponse	"Внутренняя ошибка сервера"
-//	@Router			/order [post]
-
+//	@Param			orderData		body	dto.CreateOrderDTO	true	"Данные для создания заказа"
+//	@Param			X-Csrf-Token	header	string				true	"CSRF-токен для защиты от подделки запросов"
+//	@Success		200				"Заказ успешно создан"
+//	@Failure		400				{object}	object	"Некорректные данные"
+//	@Failure		401				{object}	object	"Пользователь не авторизован"
+//	@Failure		404				{object}	object	"Ошибка при создании заказа"
+//	@Failure		500				{object}	object	"Внутренняя ошибка сервера"
+//	@Security		TokenAuth
+//	@Router			/orders [post]
 func (o *OrderService) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	userIDStr, isExist := r.Context().Value(domains.UserIDKey{}).(string)
 	if !isExist {
@@ -67,6 +70,18 @@ func (o *OrderService) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	response.SendJSONResponse(r.Context(), w, http.StatusOK, nil)
 }
 
+// GetOrders godoc
+//
+//	@Summary		Получить список заказов
+//	@Description	Возвращает список всех заказов текущего пользователя
+//	@Tags			order
+//	@Produce		json
+//	@Success		200	{object}	map[string][]dto.OrderPreviewDTO	"Список заказов"
+//	@Failure		400	{object}	object								"Некорректный ID пользователя"
+//	@Failure		401	{object}	object								"Пользователь не авторизован"
+//	@Failure		500	{object}	object								"Внутренняя ошибка сервера"
+//	@Security		TokenAuth
+//	@Router			/orders [get]
 func (o *OrderService) GetOrders(w http.ResponseWriter, r *http.Request) {
 	userIDStr, isExist := r.Context().Value(domains.UserIDKey{}).(string)
 	if !isExist {

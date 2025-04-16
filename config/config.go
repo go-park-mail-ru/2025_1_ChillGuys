@@ -17,6 +17,7 @@ type Config struct {
 	ServerConfig     *ServerConfig
 	JWTConfig        *JWTConfig
 	MigrationsConfig *MigrationsConfig
+	GeoapifyConfig   *GeoapifyConfig
 	CSRFConfig       *CSRFConfig
 }
 
@@ -51,6 +52,11 @@ func NewConfig() (*Config, error) {
 		return nil, err
 	}
 
+	geoapifyConfig, err := newGeoapifyConfig()
+  if err != nil {
+		return nil, err
+	}
+  
 	csrfConfig, err := newCSRFConfig()
 	if err != nil {
 		return nil, err
@@ -62,6 +68,7 @@ func NewConfig() (*Config, error) {
 		ServerConfig:     serverConfig,
 		JWTConfig:        jwtConfig,
 		MigrationsConfig: migrationsConfig,
+		GeoapifyConfig:   geoapifyConfig,
 		CSRFConfig:       csrfConfig,
 	}, nil
 }
@@ -248,6 +255,20 @@ func newMigrationsConfig() (*MigrationsConfig, error) {
 	}
 	return &MigrationsConfig{
 		Path: path,
+	}, nil
+}
+
+type GeoapifyConfig struct {
+	APIKey string
+}
+
+func newGeoapifyConfig() (*GeoapifyConfig, error) {
+	apiKey, exists := os.LookupEnv("GEOAPIFY_API_KEY")
+	if !exists {
+		return nil, errors.New("GEOAPIFY_API_KEY is not set")
+	}
+	return &GeoapifyConfig{
+		APIKey: apiKey,
 	}, nil
 }
 

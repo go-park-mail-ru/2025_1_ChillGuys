@@ -15,11 +15,313 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/api/v1/basket": {
+        "/addresses": {
             "get": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "TokenAuth": []
+                    }
+                ],
+                "description": "Возвращает все адреса текущего пользователя",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "address"
+                ],
+                "summary": "Получение списка адресов пользователя",
+                "responses": {
+                    "200": {
+                        "description": "Успешный запрос",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Неверный формат ID пользователя",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не авторизован",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "500": {
+                        "description": "Ошибка сервера при получении адресов",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "TokenAuth": []
+                    }
+                ],
+                "description": "Создает новый адрес для текущего пользователя",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "address"
+                ],
+                "summary": "Создание нового адреса",
+                "parameters": [
+                    {
+                        "description": "Данные адреса",
+                        "name": "address",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.AddressReqDTO"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "CSRF-токен для защиты от подделки запросов",
+                        "name": "X-Csrf-Token",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Адрес успешно создан"
+                    },
+                    "400": {
+                        "description": "Неверный формат данных или ID пользователя",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не авторизован",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "500": {
+                        "description": "Ошибка сервера при создании адреса",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                }
+            }
+        },
+        "/addresses/pickup-points": {
+            "get": {
+                "description": "Возвращает все доступные пункты выдачи",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "address"
+                ],
+                "summary": "Получение списка пунктов выдачи",
+                "responses": {
+                    "200": {
+                        "description": "Успешный запрос",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Ошибка сервера при получении пунктов выдачи",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/login": {
+            "post": {
+                "description": "Авторизует пользователя и устанавливает JWT-токен в cookies",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Авторизация пользователя",
+                "parameters": [
+                    {
+                        "description": "Данные для входа",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UserLoginRequestDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Успешная авторизация",
+                        "schema": {
+                            "type": ""
+                        },
+                        "headers": {
+                            "Set-Cookie": {
+                                "type": "string",
+                                "description": "JWT-токен авторизации"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Ошибка валидации данных",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "401": {
+                        "description": "Неверные email или пароль",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/logout": {
+            "post": {
+                "security": [
+                    {
+                        "TokenAuth": []
+                    }
+                ],
+                "description": "Завершает сеанс пользователя и удаляет JWT-токен из cookies",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Выход из системы",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "CSRF-токен для защиты от подделки запросов",
+                        "name": "X-Csrf-Token",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Успешный выход из системы",
+                        "schema": {
+                            "type": ""
+                        },
+                        "headers": {
+                            "Set-Cookie": {
+                                "type": "string",
+                                "description": "Очищает JWT-токен (устанавливает пустое значение с истекшим сроком)"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не авторизован",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/register": {
+            "post": {
+                "description": "Создает нового пользователя и устанавливает JWT-токен в cookies",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Регистрация пользователя",
+                "parameters": [
+                    {
+                        "description": "Данные для регистрации",
+                        "name": "userData",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UserRegisterRequestDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Успешная регистрация",
+                        "schema": {
+                            "type": ""
+                        },
+                        "headers": {
+                            "Set-Cookie": {
+                                "type": "string",
+                                "description": "JWT-токен авторизации"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректные данные",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "409": {
+                        "description": "Пользователь уже существует",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                }
+            }
+        },
+        "/basket": {
+            "get": {
+                "security": [
+                    {
+                        "TokenAuth": []
                     }
                 ],
                 "description": "Возвращает все товары в корзине пользователя",
@@ -32,40 +334,81 @@ const docTemplate = `{
                 "summary": "Получить содержимое корзины",
                 "responses": {
                     "200": {
-                        "description": "Содержимое корзины",
+                        "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/dto.BasketResponse"
                         }
                     },
                     "401": {
-                        "description": "Пользователь не авторизован",
+                        "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "type": "object"
                         }
                     },
                     "404": {
-                        "description": "Корзина не найдена",
+                        "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "type": "object"
                         }
                     },
                     "500": {
-                        "description": "Ошибка сервера",
+                        "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "type": "object"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "TokenAuth": []
+                    }
+                ],
+                "description": "Полностью удаляет все товары из корзины пользователя",
+                "tags": [
+                    "basket"
+                ],
+                "summary": "Очистить корзину",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "CSRF-токен для защиты от подделки запросов",
+                        "name": "X-Csrf-Token",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object"
                         }
                     }
                 }
             }
         },
-        "/api/v1/basket/{id}": {
+        "/basket/{id}": {
             "post": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "TokenAuth": []
                     }
                 ],
-                "description": "Добавляет товар в корзину пользователя или увеличивает количество, если товар уже есть",
+                "description": "Добавляет товар в корзину пользователя",
+                "consumes": [
+                    "application/json"
+                ],
                 "produces": [
                     "application/json"
                 ],
@@ -76,41 +419,48 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "ID товара",
+                        "description": "ID товара в формате UUID",
                         "name": "id",
                         "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "CSRF-токен для защиты от подделки запросов",
+                        "name": "X-Csrf-Token",
+                        "in": "header",
                         "required": true
                     }
                 ],
                 "responses": {
                     "201": {
-                        "description": "Добавленный товар",
+                        "description": "Created",
                         "schema": {
                             "$ref": "#/definitions/models.BasketItem"
                         }
                     },
                     "400": {
-                        "description": "Некорректный ID",
+                        "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "type": "object"
                         }
                     },
                     "401": {
-                        "description": "Пользователь не авторизован",
+                        "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "type": "object"
                         }
                     },
                     "404": {
-                        "description": "Товар не найден",
+                        "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "type": "object"
                         }
                     },
                     "500": {
-                        "description": "Ошибка сервера",
+                        "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "type": "object"
                         }
                     }
                 }
@@ -118,7 +468,7 @@ const docTemplate = `{
             "delete": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "TokenAuth": []
                     }
                 ],
                 "description": "Удаляет товар из корзины пользователя",
@@ -129,38 +479,45 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "ID товара",
+                        "description": "ID товара в формате UUID",
                         "name": "id",
                         "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "CSRF-токен для защиты от подделки запросов",
+                        "name": "X-Csrf-Token",
+                        "in": "header",
                         "required": true
                     }
                 ],
                 "responses": {
                     "204": {
-                        "description": "Товар успешно удалён"
+                        "description": "No Content"
                     },
                     "400": {
-                        "description": "Некорректный ID",
+                        "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "type": "object"
                         }
                     },
                     "401": {
-                        "description": "Пользователь не авторизован",
+                        "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "type": "object"
                         }
                     },
                     "404": {
-                        "description": "Товар не найден в корзине",
+                        "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "type": "object"
                         }
                     },
                     "500": {
-                        "description": "Внутренняя ошибка сервера",
+                        "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "type": "object"
                         }
                     }
                 }
@@ -168,7 +525,7 @@ const docTemplate = `{
             "patch": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "TokenAuth": []
                     }
                 ],
                 "description": "Изменяет количество указанного товара в корзине",
@@ -185,223 +542,57 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "ID товара",
+                        "description": "ID товара в формате UUID",
                         "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
                         "description": "Новое количество",
-                        "name": "quantity",
+                        "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
                             "$ref": "#/definitions/dto.UpdateQuantityRequest"
                         }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Обновленный товар",
-                        "schema": {
-                            "$ref": "#/definitions/models.BasketItem"
-                        }
                     },
-                    "400": {
-                        "description": "Некорректные данные",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Пользователь не авторизован",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Товар не найден",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Ошибка сервера",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/products/category/{id}": {
-            "get": {
-                "description": "Возвращает список всех одобренных товаров, принадлежащих указанной категории.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "products"
-                ],
-                "summary": "Получить товары по категории",
-                "parameters": [
                     {
                         "type": "string",
-                        "description": "UUID категории в формате строки",
-                        "name": "id",
-                        "in": "path",
+                        "description": "CSRF-токен для защиты от подделки запросов",
+                        "name": "X-Csrf-Token",
+                        "in": "header",
                         "required": true
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Успешный запрос. Возвращает массив товаров.",
+                        "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.Product"
-                            }
+                            "$ref": "#/definitions/dto.UpdateQuantityResponse"
                         }
                     },
                     "400": {
-                        "description": "Неверный формат UUID категории",
+                        "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "type": "object"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object"
                         }
                     },
                     "404": {
-                        "description": "Категория не найдена",
+                        "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "type": "object"
                         }
                     },
                     "500": {
-                        "description": "Внутренняя ошибка сервера",
+                        "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/auth/logout": {
-            "post": {
-                "security": [
-                    {
-                        "TokenAuth": []
-                    }
-                ],
-                "description": "Выход пользователя",
-                "tags": [
-                    "auth"
-                ],
-                "summary": "Logout user",
-                "responses": {
-                    "200": {
-                        "description": "No Content",
-                        "schema": {
-                            "type": ""
-                        }
-                    },
-                    "401": {
-                        "description": "Пользователь не найден",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Ошибка сервера",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/auth/register": {
-            "post": {
-                "description": "Создает нового пользователя, хеширует пароль и устанавливает JWT-токен в куки",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth"
-                ],
-                "summary": "Register user",
-                "parameters": [
-                    {
-                        "description": "Данные для регистрации",
-                        "name": "input",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dto.UserRegisterRequestDTO"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "No Content",
-                        "schema": {
-                            "type": ""
-                        },
-                        "headers": {
-                            "Set-Set": {
-                                "type": "string",
-                                "description": "Устанавливает JWT-токен в куки"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Некорректный запрос",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    },
-                    "409": {
-                        "description": "Пользователь уже существует",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Внутренняя ошибка сервера",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/basket": {
-            "delete": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Полностью удаляет все товары из корзины пользователя",
-                "tags": [
-                    "basket"
-                ],
-                "summary": "Очистить корзину",
-                "responses": {
-                    "204": {
-                        "description": "Корзина успешно очищена"
-                    },
-                    "401": {
-                        "description": "Пользователь не авторизован",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Ошибка сервера",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "type": "object"
                         }
                     }
                 }
@@ -419,76 +610,78 @@ const docTemplate = `{
                 "summary": "Получить все категории",
                 "responses": {
                     "200": {
-                        "description": "Список категорий",
+                        "description": "OK",
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.Category"
+                                "$ref": "#/definitions/dto.CategoryResponse"
                             }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                }
+            }
+        },
+        "/orders": {
+            "get": {
+                "security": [
+                    {
+                        "TokenAuth": []
+                    }
+                ],
+                "description": "Возвращает список всех заказов текущего пользователя",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "order"
+                ],
+                "summary": "Получить список заказов",
+                "responses": {
+                    "200": {
+                        "description": "Список заказов",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/definitions/dto.OrderPreviewDTO"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный ID пользователя",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не авторизован",
+                        "schema": {
+                            "type": "object"
                         }
                     },
                     "500": {
                         "description": "Внутренняя ошибка сервера",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "type": "object"
                         }
                     }
                 }
-            }
-        },
-        "/files/{objectID}": {
-            "get": {
-                "description": "Возвращает URL для доступа к файлу в MinIO",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "files"
-                ],
-                "summary": "Получить файл по ID",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "ID объекта в MinIO",
-                        "name": "objectID",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Ссылка на файл",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Неверный ID объекта",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Файл не найден",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Ошибка сервера",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/order": {
+            },
             "post": {
-                "description": "Создает новый заказ для пользователя",
+                "security": [
+                    {
+                        "TokenAuth": []
+                    }
+                ],
+                "description": "Создает новый заказ для текущего пользователя",
                 "consumes": [
                     "application/json"
                 ],
@@ -498,47 +691,51 @@ const docTemplate = `{
                 "tags": [
                     "order"
                 ],
-                "summary": "Create new order",
+                "summary": "Создать новый заказ",
                 "parameters": [
                     {
                         "description": "Данные для создания заказа",
-                        "name": "input",
+                        "name": "orderData",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.CreateOrderDTO"
+                            "$ref": "#/definitions/dto.CreateOrderDTO"
                         }
+                    },
+                    {
+                        "type": "string",
+                        "description": "CSRF-токен для защиты от подделки запросов",
+                        "name": "X-Csrf-Token",
+                        "in": "header",
+                        "required": true
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Order successfully created",
-                        "schema": {
-                            "type": ""
-                        }
+                        "description": "Заказ успешно создан"
                     },
                     "400": {
-                        "description": "Некорректный запрос",
+                        "description": "Некорректные данные",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "type": "object"
                         }
                     },
                     "401": {
-                        "description": "Пользователь не найден в контексте",
+                        "description": "Пользователь не авторизован",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "type": "object"
                         }
                     },
                     "404": {
                         "description": "Ошибка при создании заказа",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "type": "object"
                         }
                     },
                     "500": {
                         "description": "Внутренняя ошибка сервера",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "type": "object"
                         }
                     }
                 }
@@ -546,7 +743,7 @@ const docTemplate = `{
         },
         "/products": {
             "get": {
-                "description": "Возвращает список всех продуктов",
+                "description": "Возвращает список всех доступных продуктов",
                 "produces": [
                     "application/json"
                 ],
@@ -556,7 +753,7 @@ const docTemplate = `{
                 "summary": "Получить все продукты",
                 "responses": {
                     "200": {
-                        "description": "Список продуктов",
+                        "description": "OK",
                         "schema": {
                             "type": "array",
                             "items": {
@@ -565,9 +762,115 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Ошибка сервера",
+                        "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "type": "object"
+                        }
+                    }
+                }
+            }
+        },
+        "/products/batch": {
+            "post": {
+                "description": "Возвращает список товаров по переданным идентификаторам",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "products"
+                ],
+                "summary": "Получить товары по списку ID",
+                "parameters": [
+                    {
+                        "description": "Список ID товаров",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.GetProductsByIDRequest"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "CSRF-токен для защиты от подделки запросов",
+                        "name": "X-Csrf-Token",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.ProductsResponse"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректные данные",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                }
+            }
+        },
+        "/products/category/{id}": {
+            "get": {
+                "description": "Возвращает список товаров указанной категории, отсортированных по дате обновления (новые сначала)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "products"
+                ],
+                "summary": "Получить товары по категории",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID категории",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Product"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный формат UUID",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "404": {
+                        "description": "Категория не найдена",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object"
                         }
                     }
                 }
@@ -575,7 +878,7 @@ const docTemplate = `{
         },
         "/products/upload": {
             "post": {
-                "description": "Загружает один файл в хранилище MinIO",
+                "description": "Загружает изображение товара в хранилище MinIO",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -585,11 +888,11 @@ const docTemplate = `{
                 "tags": [
                     "products"
                 ],
-                "summary": "Загрузить файл в MinIO",
+                "summary": "Загрузить изображение товара",
                 "parameters": [
                     {
                         "type": "file",
-                        "description": "Файл для загрузки",
+                        "description": "Изображение товара",
                         "name": "file",
                         "in": "formData",
                         "required": true
@@ -597,7 +900,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Информация о загруженном файле",
+                        "description": "URL загруженного изображения",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -606,15 +909,15 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Ошибка в запросе",
+                        "description": "Ошибка в данных запроса",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "type": "object"
                         }
                     },
                     "500": {
-                        "description": "Ошибка сервера",
+                        "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "type": "object"
                         }
                     }
                 }
@@ -622,7 +925,7 @@ const docTemplate = `{
         },
         "/products/{id}": {
             "get": {
-                "description": "Возвращает продукт по его ID",
+                "description": "Возвращает детальную информацию о продукте по его ID",
                 "produces": [
                     "application/json"
                 ],
@@ -633,7 +936,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "ID продукта",
+                        "description": "UUID продукта",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -641,21 +944,21 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Информация о продукте",
+                        "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/models.Product"
                         }
                     },
                     "400": {
-                        "description": "Некорректный ID",
+                        "description": "Некорректный формат UUID",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "type": "object"
                         }
                     },
                     "404": {
                         "description": "Продукт не найден",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "type": "object"
                         }
                     }
                 }
@@ -663,12 +966,7 @@ const docTemplate = `{
         },
         "/users/avatar": {
             "post": {
-                "security": [
-                    {
-                        "TokenAuth": []
-                    }
-                ],
-                "description": "Загружает аватар пользователя",
+                "description": "Загружает изображение профиля пользователя",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -678,13 +976,20 @@ const docTemplate = `{
                 "tags": [
                     "users"
                 ],
-                "summary": "Upload avatar",
+                "summary": "Загрузить аватар",
                 "parameters": [
                     {
                         "type": "file",
                         "description": "Файл изображения",
                         "name": "file",
                         "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "CSRF-токен для защиты от подделки запросов",
+                        "name": "X-Csrf-Token",
+                        "in": "header",
                         "required": true
                     }
                 ],
@@ -699,15 +1004,15 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Ошибка при обработке формы",
+                        "description": "Ошибка загрузки или обработки формы",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "type": "string"
                         }
                     },
                     "500": {
-                        "description": "Ошибка загрузки файла",
+                        "description": "Внутренняя ошибка сервера",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "type": "string"
                         }
                     }
                 }
@@ -715,42 +1020,211 @@ const docTemplate = `{
         },
         "/users/me": {
             "get": {
-                "security": [
-                    {
-                        "TokenAuth": []
-                    }
-                ],
-                "description": "Получение информации о текущем пользователе",
+                "description": "Возвращает информацию о текущем авторизованном пользователе",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "users"
                 ],
-                "summary": "Get user info",
+                "summary": "Получить информацию о себе",
                 "responses": {
                     "200": {
                         "description": "Информация о пользователе",
                         "schema": {
-                            "$ref": "#/definitions/models.User"
+                            "$ref": "#/definitions/dto.UserDTO"
                         }
                     },
                     "400": {
                         "description": "Некорректный запрос",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "type": "string"
                         }
                     },
                     "401": {
-                        "description": "Пользователь не найден",
+                        "description": "Пользователь не авторизован",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "type": "string"
                         }
                     },
                     "500": {
-                        "description": "Ошибка сервера",
+                        "description": "Внутренняя ошибка сервера",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/update-email": {
+            "post": {
+                "security": [
+                    {
+                        "TokenAuth": []
+                    }
+                ],
+                "description": "Обновляет email текущего пользователя",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Обновить email пользователя",
+                "parameters": [
+                    {
+                        "description": "Новый email",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateUserEmailDTO"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "CSRF-токен для защиты от подделки запросов",
+                        "name": "X-Csrf-Token",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Email успешно обновлён",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Невалидные данные",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Ошибка при обновлении email",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/update-password": {
+            "post": {
+                "security": [
+                    {
+                        "TokenAuth": []
+                    }
+                ],
+                "description": "Меняет пароль текущего пользователя",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Обновить пароль пользователя",
+                "parameters": [
+                    {
+                        "description": "Старый и новый пароли",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateUserPasswordDTO"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "CSRF-токен для защиты от подделки запросов",
+                        "name": "X-Csrf-Token",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Пароль успешно обновлён",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Невалидные данные",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Ошибка при обновлении пароля",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/update-profile": {
+            "post": {
+                "security": [
+                    {
+                        "TokenAuth": []
+                    }
+                ],
+                "description": "Обновляет основную информацию пользователя",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Обновить профиль пользователя",
+                "parameters": [
+                    {
+                        "description": "Данные для обновления профиля",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateUserProfileRequestDTO"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "CSRF-токен для защиты от подделки запросов",
+                        "name": "X-Csrf-Token",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Профиль успешно обновлён",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Невалидные данные",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Ошибка при обновлении профиля",
+                        "schema": {
+                            "type": "string"
                         }
                     }
                 }
@@ -758,6 +1232,26 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "dto.AddressReqDTO": {
+            "type": "object",
+            "properties": {
+                "addressString": {
+                    "type": "string"
+                },
+                "city": {
+                    "type": "string"
+                },
+                "coordinate": {
+                    "type": "string"
+                },
+                "label": {
+                    "type": "string"
+                },
+                "region": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.BasketResponse": {
             "type": "object",
             "properties": {
@@ -778,11 +1272,141 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.ErrorResponse": {
+        "dto.BriefProduct": {
             "type": "object",
             "properties": {
-                "message": {
+                "discount_price": {
+                    "type": "number"
+                },
+                "id": {
                     "type": "string"
+                },
+                "image": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "price": {
+                    "type": "number"
+                },
+                "rating": {
+                    "type": "integer"
+                },
+                "reviews_count": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.CategoryResponse": {
+            "type": "object",
+            "properties": {
+                "categories": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Category"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.CreateOrderDTO": {
+            "type": "object",
+            "properties": {
+                "addressID": {
+                    "type": "string"
+                },
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.CreateOrderItemDTO"
+                    }
+                },
+                "userID": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.CreateOrderItemDTO": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "productID": {
+                    "type": "string"
+                },
+                "productPrice": {
+                    "type": "number"
+                },
+                "quantity": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.GetProductsByIDRequest": {
+            "type": "object",
+            "required": [
+                "productIDs"
+            ],
+            "properties": {
+                "productIDs": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "dto.OrderPreviewDTO": {
+            "type": "object",
+            "properties": {
+                "actualDeliveryAt": {
+                    "type": "string"
+                },
+                "address": {
+                    "$ref": "#/definitions/models.AddressDB"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "expectedDeliveryAt": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "products": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.OrderPreviewProductDTO"
+                    }
+                },
+                "status": {
+                    "$ref": "#/definitions/models.OrderStatus"
+                },
+                "totalDiscountPrice": {
+                    "type": "number"
+                },
+                "totalPrice": {
+                    "type": "number"
+                }
+            }
+        },
+        "dto.ProductsResponse": {
+            "type": "object",
+            "properties": {
+                "products": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.BriefProduct"
+                    }
+                },
+                "total": {
+                    "type": "integer"
                 }
             }
         },
@@ -791,6 +1415,84 @@ const docTemplate = `{
             "properties": {
                 "quantity": {
                     "type": "integer"
+                }
+            }
+        },
+        "dto.UpdateQuantityResponse": {
+            "type": "object",
+            "properties": {
+                "item": {
+                    "$ref": "#/definitions/models.BasketItem"
+                }
+            }
+        },
+        "dto.UpdateUserEmailDTO": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.UpdateUserPasswordDTO": {
+            "type": "object",
+            "properties": {
+                "NewPassword": {
+                    "type": "string"
+                },
+                "OldPassword": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.UpdateUserProfileRequestDTO": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "phoneNumber": {
+                    "type": "string"
+                },
+                "surname": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.UserDTO": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "imageURL": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "phoneNumber": {
+                    "type": "string"
+                },
+                "surname": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.UserLoginRequestDTO": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
                 }
             }
         },
@@ -807,6 +1509,29 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "surname": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.AddressDB": {
+            "type": "object",
+            "properties": {
+                "addressString": {
+                    "type": "string"
+                },
+                "city": {
+                    "type": "string"
+                },
+                "coordinate": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "label": {
+                    "type": "string"
+                },
+                "region": {
                     "type": "string"
                 }
             }
@@ -838,6 +1563,9 @@ const docTemplate = `{
                 "quantity": {
                     "type": "integer"
                 },
+                "remain_quantity": {
+                    "type": "integer"
+                },
                 "updated_at": {
                     "type": "string"
                 }
@@ -854,39 +1582,79 @@ const docTemplate = `{
                 }
             }
         },
-        "models.CreateOrderDTO": {
+        "models.OrderPreviewProductDTO": {
             "type": "object",
             "properties": {
-                "address_id": {
+                "ProductImageURL": {
                     "type": "string"
                 },
-                "items": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.CreateOrderItemDTO"
-                    }
-                },
-                "userID": {
-                    "type": "string"
-                }
-            }
-        },
-        "models.CreateOrderItemDTO": {
-            "type": "object",
-            "properties": {
-                "id": {
-                    "type": "string"
-                },
-                "product_id": {
-                    "type": "string"
-                },
-                "product_price": {
-                    "type": "number"
-                },
-                "quantity": {
+                "productQuantity": {
                     "type": "integer"
                 }
             }
+        },
+        "models.OrderStatus": {
+            "type": "integer",
+            "enum": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9,
+                10,
+                11,
+                12,
+                13,
+                14,
+                15,
+                16,
+                17
+            ],
+            "x-enum-comments": {
+                "AwaitingConfirmation": "Ожидает подтверждения",
+                "AwaitingPayment": "Ожидает оплаты",
+                "BeingPrepared": "Готовится",
+                "Canceled": "Отменен",
+                "CanceledBySeller": "Отменен продавцом",
+                "CanceledByUser": "Отменен пользователем",
+                "CanceledDueToPaymentError": "Отменен из-за ошибки платежа",
+                "Delivered": "Доставлен",
+                "DeliveredToPickupPoint": "Доставлен в пункт самовывоза",
+                "InTransit": "В пути",
+                "Paid": "Оплачено (опечатка в оригинале: должно быть Paid)",
+                "PaymentFailed": "Платеж не удался",
+                "Placed": "Оформлен",
+                "ReturnCompleted": "Возврат завершен",
+                "ReturnInitiated": "Возврат инициирован",
+                "ReturnProcessed": "Возврат обработан",
+                "ReturnRequested": "Возврат запрашивается",
+                "Shipped": "Отправлен"
+            },
+            "x-enum-varnames": [
+                "Placed",
+                "AwaitingConfirmation",
+                "BeingPrepared",
+                "Shipped",
+                "InTransit",
+                "DeliveredToPickupPoint",
+                "Delivered",
+                "Canceled",
+                "AwaitingPayment",
+                "Paid",
+                "PaymentFailed",
+                "ReturnRequested",
+                "ReturnProcessed",
+                "ReturnInitiated",
+                "ReturnCompleted",
+                "CanceledByUser",
+                "CanceledBySeller",
+                "CanceledDueToPaymentError"
+            ]
         },
         "models.Product": {
             "type": "object",
@@ -904,6 +1672,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "price": {
+                    "type": "number"
+                },
+                "price_discount": {
                     "type": "number"
                 },
                 "quantity": {
@@ -943,29 +1714,6 @@ const docTemplate = `{
                 "ProductRejected",
                 "ProductApproved"
             ]
-        },
-        "models.User": {
-            "type": "object",
-            "properties": {
-                "email": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "imageURL": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "phoneNumber": {
-                    "type": "string"
-                },
-                "surname": {
-                    "type": "string"
-                }
-            }
         }
     },
     "securityDefinitions": {

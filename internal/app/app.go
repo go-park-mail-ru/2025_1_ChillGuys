@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
+	_ "github.com/go-park-mail-ru/2025_1_ChillGuys/docs"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/minio"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres"
 	addressrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/address"
@@ -83,7 +84,7 @@ func NewApp(conf *config.Config) (*App, error) {
 
 	addressRepo := addressrepo.NewAddressRepository(db, logger)
 	addressUsecase := addressus.NewAddressUsecase(addressRepo, logger)
-	addressService := address.NewAddressHandler(addressUsecase, logger)
+	addressService := address.NewAddressHandler(addressUsecase, logger, conf.GeoapifyConfig.APIKey)
 
 	productRepo := productrepo.NewProductRepository(db)
 	productUsecase := product.NewProductUsecase(productRepo)

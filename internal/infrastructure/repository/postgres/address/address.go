@@ -13,7 +13,7 @@ import (
 const (
 	queryCheckAddressExists = `
         SELECT id FROM bazaar.address
-        WHERE region = $1 AND city = $2 AND address_string = $3 AND coordinate = $4
+        WHERE address_string = $1 AND coordinate = $2
         LIMIT 1
     `
 	queryUpsertAddress = `
@@ -62,7 +62,7 @@ func NewAddressRepository(db *sql.DB, log *logrus.Logger) *AddressRepository {
 func (r *AddressRepository) CheckAddressExists(ctx context.Context, address models.AddressDB) (uuid.UUID, error) {
 	var id uuid.UUID
 	err := r.db.QueryRowContext(ctx, queryCheckAddressExists,
-		address.Region, address.City, address.AddressString, address.Coordinate,
+		address.AddressString, address.Coordinate,
 	).Scan(&id)
 
 	if errors.Is(err, sql.ErrNoRows) {
