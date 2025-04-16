@@ -26,6 +26,7 @@ const (
 	queryGetOrderAddress       = `SELECT region, city, address_string, coordinate FROM bazaar.address WHERE id = $1 LIMIT 1`
 )
 
+//go:generate mockgen -source=order.go -destination=../mocks/order_repository_mock.go -package=mocks IOrderRepository
 type IOrderRepository interface {
 	CreateOrder(context.Context, dto.CreateOrderRepoReq) error
 	ProductPrice(context.Context, uuid.UUID) (*models.Product, error)

@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 )
 
+//go:generate mockgen -source=address.go -destination=../mocks/address_usecase_mock.go -package=mocks IAddressUsecase
 type IAddressUsecase interface {
 	CreateAddress(context.Context, uuid.UUID, dto.AddressDTO) error
 	GetAddresses(context.Context, uuid.UUID) ([]dto.GetAddressResDTO, error)
@@ -46,7 +47,7 @@ func (u *AddressUsecase) CreateAddress(ctx context.Context, userID uuid.UUID, in
 		Coordinate:    in.Coordinate,
 	}
 
-	addrID, err := u.repo.CheckAddressExists(ctx, addr)
+	addrID, err := u.Repo.CheckAddressExists(ctx, addr)
 	if err != nil {
 		return err
 	}

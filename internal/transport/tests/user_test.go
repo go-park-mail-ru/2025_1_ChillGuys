@@ -34,8 +34,7 @@ func TestUserHandler_GetMe(t *testing.T) {
 		UseSSL:       false,
 	}
 
-	ctx := context.Background()
-	minio, err := minio.NewMinioClient(ctx, minioConfig)
+	minio, err := minio.NewMinioProvider(minioConfig, logger)
 	assert.Error(t, err)
 
 	handler := user.NewUserHandler(mockUserUsecase, logger, minio, &config.Config{})
@@ -80,24 +79,24 @@ func TestUserHandler_GetMe(t *testing.T) {
 		},
 	}
 
-// 	for _, tt := range tests {
-// 		t.Run(tt.name, func(t *testing.T) {
-// 			tt.mockBehavior()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.mockBehavior()
 
-// 			req := httptest.NewRequest("GET", "/me", nil)
-// 			if tt.userID != "" {
-// 				req = req.WithContext(context.WithValue(req.Context(), "userID", tt.userID))
-// 			}
-// 			w := httptest.NewRecorder()
+			req := httptest.NewRequest("GET", "/me", nil)
+			if tt.userID != "" {
+				req = req.WithContext(context.WithValue(req.Context(), "userID", tt.userID))
+			}
+			w := httptest.NewRecorder()
 
-// 			handler.GetMe(w, req)
+			handler.GetMe(w, req)
 
-// 			assert.Equal(t, tt.expectedStatus, w.Code)
-// 			if tt.expectedBody == `{}` {
-// 				assert.Empty(t, w.Body.String())
-// 			} else {
-// 				assert.JSONEq(t, tt.expectedBody, w.Body.String())
-// 			}
-// 		})
-// 	}
-// }
+			assert.Equal(t, tt.expectedStatus, w.Code)
+			if tt.expectedBody == `{}` {
+				assert.Empty(t, w.Body.String())
+			} else {
+				assert.JSONEq(t, tt.expectedBody, w.Body.String())
+			}
+		})
+	}
+}

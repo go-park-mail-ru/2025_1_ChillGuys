@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	productRepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/product"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
-	productRepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/product"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -35,34 +35,37 @@ func TestProductRepository_GetAllProducts(t *testing.T) {
 			{
 				ID:              product1ID,
 				SellerID:        sellerID,
-				Name:           "Product 1",
+				Name:            "Product 1",
 				PreviewImageURL: "image1.jpg",
-				Description:    "Description 1",
-				Status:         models.ProductApproved,
-				Price:          1000,
-				Quantity:       10,
-				UpdatedAt:      now,
-				Rating:         4,
-				ReviewsCount:   20,
+				Description:     "Description 1",
+				Status:          models.ProductApproved,
+				Price:           1000,
+				Quantity:        10,
+				UpdatedAt:       now,
+				Rating:          4,
+				ReviewsCount:    20,
+				PriceDiscount:   800,
 			},
 			{
 				ID:              product2ID,
 				SellerID:        sellerID,
-				Name:           "Product 2",
+				Name:            "Product 2",
 				PreviewImageURL: "image2.jpg",
-				Description:    "Description 2",
-				Status:         models.ProductApproved,
-				Price:          2000,
-				Quantity:       5,
-				UpdatedAt:      now,
-				Rating:         4,
-				ReviewsCount:   15,
+				Description:     "Description 2",
+				Status:          models.ProductApproved,
+				Price:           2000,
+				Quantity:        5,
+				UpdatedAt:       now,
+				Rating:          4,
+				ReviewsCount:    15,
+				PriceDiscount:   0,
 			},
 		}
 
 		rows := sqlmock.NewRows([]string{
 			"id", "seller_id", "name", "preview_image_url", "description",
 			"status", "price", "quantity", "updated_at", "rating", "reviews_count",
+			"discounted_price",
 		}).
 			AddRow(
 				expectedProducts[0].ID,
@@ -76,6 +79,7 @@ func TestProductRepository_GetAllProducts(t *testing.T) {
 				expectedProducts[0].UpdatedAt,
 				expectedProducts[0].Rating,
 				expectedProducts[0].ReviewsCount,
+				expectedProducts[0].PriceDiscount,
 			).
 			AddRow(
 				expectedProducts[1].ID,
@@ -89,14 +93,17 @@ func TestProductRepository_GetAllProducts(t *testing.T) {
 				expectedProducts[1].UpdatedAt,
 				expectedProducts[1].Rating,
 				expectedProducts[1].ReviewsCount,
+				nil,
 			)
 
 		mock.ExpectQuery(`
-			SELECT p.id, p.seller_id, p.name, p.preview_image_url, p.description, 
-				p.status, p.price, p.quantity, p.updated_at, p.rating, p.reviews_count 
-			FROM bazaar.product p 
-			WHERE p.status = 'approved'
-		`).WillReturnRows(rows)
+      SELECT p.id, p.seller_id, p.name, p.preview_image_url, p.description, 
+        p.status, p.price, p.quantity, p.updated_at, p.rating, p.reviews_count,
+        d.discounted_price
+      FROM bazaar.product p 
+      LEFT JOIN bazaar.discount d ON p.id = d.product_id
+      WHERE p.status = 'approved'
+    `).WillReturnRows(rows)
 
 		products, err := repo.GetAllProducts(context.Background())
 		require.NoError(t, err)
@@ -108,14 +115,17 @@ func TestProductRepository_GetAllProducts(t *testing.T) {
 		rows := sqlmock.NewRows([]string{
 			"id", "seller_id", "name", "preview_image_url", "description",
 			"status", "price", "quantity", "updated_at", "rating", "reviews_count",
+			"discounted_price",
 		})
 
 		mock.ExpectQuery(`
-			SELECT p.id, p.seller_id, p.name, p.preview_image_url, p.description, 
-				p.status, p.price, p.quantity, p.updated_at, p.rating, p.reviews_count 
-			FROM bazaar.product p 
-			WHERE p.status = 'approved'
-		`).WillReturnRows(rows)
+      SELECT p.id, p.seller_id, p.name, p.preview_image_url, p.description, 
+        p.status, p.price, p.quantity, p.updated_at, p.rating, p.reviews_count,
+        d.discounted_price
+      FROM bazaar.product p 
+      LEFT JOIN bazaar.discount d ON p.id = d.product_id
+      WHERE p.status = 'approved'
+    `).WillReturnRows(rows)
 
 		products, err := repo.GetAllProducts(context.Background())
 		require.NoError(t, err)
@@ -124,11 +134,13 @@ func TestProductRepository_GetAllProducts(t *testing.T) {
 
 	t.Run("database error", func(t *testing.T) {
 		mock.ExpectQuery(`
-			SELECT p.id, p.seller_id, p.name, p.preview_image_url, p.description, 
-				p.status, p.price, p.quantity, p.updated_at, p.rating, p.reviews_count 
-			FROM bazaar.product p 
-			WHERE p.status = 'approved'
-		`).WillReturnError(errors.New("database error"))
+      SELECT p.id, p.seller_id, p.name, p.preview_image_url, p.description, 
+        p.status, p.price, p.quantity, p.updated_at, p.rating, p.reviews_count,
+        d.discounted_price
+      FROM bazaar.product p 
+      LEFT JOIN bazaar.discount d ON p.id = d.product_id
+      WHERE p.status = 'approved'
+    `).WillReturnError(errors.New("database error"))
 
 		products, err := repo.GetAllProducts(context.Background())
 		require.Error(t, err)
@@ -153,20 +165,22 @@ func TestProductRepository_GetProductByID(t *testing.T) {
 		expectedProduct := &models.Product{
 			ID:              productID,
 			SellerID:        sellerID,
-			Name:           "Test Product",
+			Name:            "Test Product",
 			PreviewImageURL: "test.jpg",
-			Description:    "Test Description",
-			Status:         models.ProductApproved,
-			Price:          1500,
-			Quantity:       8,
-			UpdatedAt:      now,
-			Rating:         4,
-			ReviewsCount:   10,
+			Description:     "Test Description",
+			Status:          models.ProductApproved,
+			Price:           1500,
+			Quantity:        8,
+			UpdatedAt:       now,
+			Rating:          4,
+			ReviewsCount:    10,
+			PriceDiscount:   1200,
 		}
 
 		row := sqlmock.NewRows([]string{
 			"id", "seller_id", "name", "preview_image_url", "description",
 			"status", "price", "quantity", "updated_at", "rating", "reviews_count",
+			"discounted_price",
 		}).
 			AddRow(
 				expectedProduct.ID,
@@ -180,13 +194,17 @@ func TestProductRepository_GetProductByID(t *testing.T) {
 				expectedProduct.UpdatedAt,
 				expectedProduct.Rating,
 				expectedProduct.ReviewsCount,
+				expectedProduct.PriceDiscount,
 			)
 
 		mock.ExpectQuery(`
-			SELECT id, seller_id, name, preview_image_url, description, 
-				status, price, quantity, updated_at, rating, reviews_count 
-			FROM bazaar.product WHERE id = \$1
-		`).
+      SELECT p.id, p.seller_id, p.name, p.preview_image_url, p.description, 
+        p.status, p.price, p.quantity, p.updated_at, p.rating, p.reviews_count,
+        d.discounted_price
+      FROM bazaar.product p
+      LEFT JOIN bazaar.discount d ON p.id = d.product_id
+      WHERE p.id = \$1
+    `).
 			WithArgs(productID).
 			WillReturnRows(row)
 
@@ -199,10 +217,13 @@ func TestProductRepository_GetProductByID(t *testing.T) {
 		productID := uuid.New()
 
 		mock.ExpectQuery(`
-			SELECT id, seller_id, name, preview_image_url, description, 
-				status, price, quantity, updated_at, rating, reviews_count 
-			FROM bazaar.product WHERE id = \$1
-		`).
+      SELECT p.id, p.seller_id, p.name, p.preview_image_url, p.description, 
+        p.status, p.price, p.quantity, p.updated_at, p.rating, p.reviews_count,
+        d.discounted_price
+      FROM bazaar.product p
+      LEFT JOIN bazaar.discount d ON p.id = d.product_id
+      WHERE p.id = \$1
+    `).
 			WithArgs(productID).
 			WillReturnError(sql.ErrNoRows)
 
@@ -216,10 +237,13 @@ func TestProductRepository_GetProductByID(t *testing.T) {
 		productID := uuid.New()
 
 		mock.ExpectQuery(`
-			SELECT id, seller_id, name, preview_image_url, description, 
-				status, price, quantity, updated_at, rating, reviews_count 
-			FROM bazaar.product WHERE id = \$1
-		`).
+      SELECT p.id, p.seller_id, p.name, p.preview_image_url, p.description, 
+        p.status, p.price, p.quantity, p.updated_at, p.rating, p.reviews_count,
+        d.discounted_price
+      FROM bazaar.product p
+      LEFT JOIN bazaar.discount d ON p.id = d.product_id
+      WHERE p.id = \$1
+    `).
 			WithArgs(productID).
 			WillReturnError(errors.New("database error"))
 
@@ -249,28 +273,28 @@ func TestProductRepository_GetProductsByCategory(t *testing.T) {
 			{
 				ID:              product1ID,
 				SellerID:        sellerID,
-				Name:           "Product 1",
+				Name:            "Product 1",
 				PreviewImageURL: "image1.jpg",
-				Description:    "Description 1",
-				Status:         models.ProductApproved,
-				Price:          1000,
-				Quantity:       10,
-				UpdatedAt:      now,
-				Rating:         4,
-				ReviewsCount:   20,
+				Description:     "Description 1",
+				Status:          models.ProductApproved,
+				Price:           1000,
+				Quantity:        10,
+				UpdatedAt:       now,
+				Rating:          4,
+				ReviewsCount:    20,
 			},
 			{
 				ID:              product2ID,
 				SellerID:        sellerID,
-				Name:           "Product 2",
+				Name:            "Product 2",
 				PreviewImageURL: "image2.jpg",
-				Description:    "Description 2",
-				Status:         models.ProductApproved,
-				Price:          2000,
-				Quantity:       5,
-				UpdatedAt:      now,
-				Rating:         4,
-				ReviewsCount:   15,
+				Description:     "Description 2",
+				Status:          models.ProductApproved,
+				Price:           2000,
+				Quantity:        5,
+				UpdatedAt:       now,
+				Rating:          4,
+				ReviewsCount:    15,
 			},
 		}
 
@@ -306,12 +330,12 @@ func TestProductRepository_GetProductsByCategory(t *testing.T) {
 			)
 
 		mock.ExpectQuery(`
-			SELECT p.id, p.seller_id, p.name, p.preview_image_url, p.description, 
-				p.status, p.price, p.quantity, p.updated_at, p.rating, p.reviews_count 
-			FROM bazaar.product p
-			JOIN bazaar.product_category pc ON p.id = pc.product_id
-			WHERE pc.category_id = \$1 AND p.status = 'approved'
-		`).
+      SELECT p.id, p.seller_id, p.name, p.preview_image_url, p.description, 
+        p.status, p.price, p.quantity, p.updated_at, p.rating, p.reviews_count 
+      FROM bazaar.product p
+      JOIN bazaar.product_category pc ON p.id = pc.product_id
+      WHERE pc.category_id = \$1 AND p.status = 'approved'
+    `).
 			WithArgs(categoryID).
 			WillReturnRows(rows)
 
@@ -330,12 +354,12 @@ func TestProductRepository_GetProductsByCategory(t *testing.T) {
 		})
 
 		mock.ExpectQuery(`
-			SELECT p.id, p.seller_id, p.name, p.preview_image_url, p.description, 
-				p.status, p.price, p.quantity, p.updated_at, p.rating, p.reviews_count 
-			FROM bazaar.product p
-			JOIN bazaar.product_category pc ON p.id = pc.product_id
-			WHERE pc.category_id = \$1 AND p.status = 'approved'
-		`).
+      SELECT p.id, p.seller_id, p.name, p.preview_image_url, p.description, 
+        p.status, p.price, p.quantity, p.updated_at, p.rating, p.reviews_count 
+      FROM bazaar.product p
+      JOIN bazaar.product_category pc ON p.id = pc.product_id
+      WHERE pc.category_id = \$1 AND p.status = 'approved'
+    `).
 			WithArgs(categoryID).
 			WillReturnRows(rows)
 
@@ -348,12 +372,12 @@ func TestProductRepository_GetProductsByCategory(t *testing.T) {
 		categoryID := uuid.New()
 
 		mock.ExpectQuery(`
-			SELECT p.id, p.seller_id, p.name, p.preview_image_url, p.description, 
-				p.status, p.price, p.quantity, p.updated_at, p.rating, p.reviews_count 
-			FROM bazaar.product p
-			JOIN bazaar.product_category pc ON p.id = pc.product_id
-			WHERE pc.category_id = \$1 AND p.status = 'approved'
-		`).
+      SELECT p.id, p.seller_id, p.name, p.preview_image_url, p.description, 
+        p.status, p.price, p.quantity, p.updated_at, p.rating, p.reviews_count 
+      FROM bazaar.product p
+      JOIN bazaar.product_category pc ON p.id = pc.product_id
+      WHERE pc.category_id = \$1 AND p.status = 'approved'
+    `).
 			WithArgs(categoryID).
 			WillReturnError(errors.New("database error"))
 
