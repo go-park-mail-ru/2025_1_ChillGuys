@@ -9,7 +9,6 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	"github.com/google/uuid"
 	"github.com/guregu/null"
-	"github.com/sirupsen/logrus"
 	"sync"
 	"time"
 )
@@ -21,16 +20,13 @@ type IOrderUsecase interface {
 
 type OrderUsecase struct {
 	repo order.IOrderRepository
-	log  *logrus.Logger
 }
 
 func NewOrderUsecase(
 	repo order.IOrderRepository,
-	log *logrus.Logger,
 ) *OrderUsecase {
 	return &OrderUsecase{
 		repo: repo,
-		log:  log,
 	}
 }
 
@@ -77,11 +73,6 @@ func (u *OrderUsecase) CreateOrder(ctx context.Context, in dto.CreateOrderDTO) e
 
 				product, productErr = u.repo.ProductPrice(ctx, item.ProductID)
 				if productErr != nil {
-					u.log.WithFields(logrus.Fields{
-						"product_id": item.ProductID,
-						"error":      productErr,
-						"action":     "get_product_price",
-					}).Error("Failed to fetch product price")
 					trySendError(productErr, errCh, cancel)
 					return
 				}
@@ -95,11 +86,6 @@ func (u *OrderUsecase) CreateOrder(ctx context.Context, in dto.CreateOrderDTO) e
 				}
 
 				discounts, discountErr = u.repo.ProductDiscounts(ctx, item.ProductID)
-				u.log.WithFields(logrus.Fields{
-					"product_id": item.ProductID,
-					"error":      discountErr,
-					"action":     "get_product_discount",
-				}).Error("Failed to fetch product discount")
 				if discountErr != nil && !errors.Is(discountErr, errs.ErrNotFound) {
 					trySendError(discountErr, errCh, cancel)
 					return
@@ -114,11 +100,6 @@ func (u *OrderUsecase) CreateOrder(ctx context.Context, in dto.CreateOrderDTO) e
 			}
 
 			if product.Status != models.ProductApproved {
-				u.log.WithFields(logrus.Fields{
-					"product_id":      item.ProductID,
-					"status":          product.Status,
-					"required_status": models.ProductApproved,
-				}).Warn("Product not approved")
 				trySendError(errs.ErrProductNotApproved, errCh, cancel)
 				return
 			}
@@ -169,8 +150,6 @@ func (u *OrderUsecase) CreateOrder(ctx context.Context, in dto.CreateOrderDTO) e
 		AddressID:          in.AddressID,
 		Items:              orderItems,
 	}
-
-	u.log.Infoln(totalPrice, totalDiscountedPrice)
 
 	return u.repo.CreateOrder(ctx, dto.CreateOrderRepoReq{
 		Order:             order,

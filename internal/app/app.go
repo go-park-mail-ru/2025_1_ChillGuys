@@ -73,17 +73,17 @@ func NewApp(conf *config.Config) (*App, error) {
 	}
 
 	// Инициализация репозиториев и use-case-ов.
-	authRepo := authrepo.NewAuthRepository(db, logger)
+	authRepo := authrepo.NewAuthRepository(db)
 	tokenator := jwt.NewTokenator(authRepo, conf.JWTConfig)
-	authUsecase := authus.NewAuthUsecase(authRepo, tokenator, logger)
+	authUsecase := authus.NewAuthUsecase(authRepo, tokenator)
 	authHandler := auth.NewAuthHandler(authUsecase, logger, conf)
 
 	userRepository := userrepo.NewUserRepository(db)
-	userUsecase := userus.NewUserUsecase(userRepository, tokenator, logger, minioClient)
+	userUsecase := userus.NewUserUsecase(userRepository, tokenator, minioClient)
 	userService := user.NewUserHandler(userUsecase, logger, minioClient, conf)
 
-	addressRepo := addressrepo.NewAddressRepository(db, logger)
-	addressUsecase := addressus.NewAddressUsecase(addressRepo, logger)
+	addressRepo := addressrepo.NewAddressRepository(db)
+	addressUsecase := addressus.NewAddressUsecase(addressRepo)
 	addressService := address.NewAddressHandler(addressUsecase, logger, conf.GeoapifyConfig.APIKey)
 
 	productRepo := productrepo.NewProductRepository(db)
@@ -91,7 +91,7 @@ func NewApp(conf *config.Config) (*App, error) {
 	ProductService := producttr.NewProductService(productUsecase, minioClient)
 
 	orderRepo := orderrepo.NewOrderRepository(db)
-	orderUsecase := orderus.NewOrderUsecase(orderRepo, logger)
+	orderUsecase := orderus.NewOrderUsecase(orderRepo)
 	orderService := order.NewOrderService(orderUsecase, logger)
 
 	basketRepo := basketrepo.NewBasketRepository(db)

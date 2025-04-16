@@ -2,11 +2,15 @@ package address
 
 import (
 	"context"
+	"errors"
+	"fmt"
+
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/address"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/logctx"
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
 )
 
 type IAddressUsecase interface {
@@ -17,20 +21,22 @@ type IAddressUsecase interface {
 
 type AddressUsecase struct {
 	repo address.IAddressRepository
-	log  *logrus.Logger
 }
 
 func NewAddressUsecase(
 	repo address.IAddressRepository,
-	log *logrus.Logger,
 ) *AddressUsecase {
 	return &AddressUsecase{
 		repo: repo,
-		log:  log,
 	}
 }
 
 func (u *AddressUsecase) CreateAddress(ctx context.Context, userID uuid.UUID, in dto.AddressDTO) error {
+	const op = "AddressUsecase.CreateAddress"
+	logger := logctx.GetLogger(ctx).WithField("op", op).
+		WithField("user_id", userID).
+		WithField("address", in)
+		
 	addressID := uuid.New()
 	addr := models.AddressDB{
 		ID:            addressID,
@@ -47,7 +53,8 @@ func (u *AddressUsecase) CreateAddress(ctx context.Context, userID uuid.UUID, in
 
 	if addrID == uuid.Nil {
 		if err = u.repo.CreateAddress(ctx, addr); err != nil {
-			return err
+			logger.WithError(err).Error("create address")
+			return fmt.Errorf("%s: %w", op, err)
 		}
 	} else {
 		addressID = addrID
@@ -60,13 +67,26 @@ func (u *AddressUsecase) CreateAddress(ctx context.Context, userID uuid.UUID, in
 		AddressID: addressID,
 	}
 
-	return u.repo.CreateUserAddress(ctx, userAddr)
+	if err := u.repo.CreateUserAddress(ctx, userAddr); err != nil {
+		logger.WithError(err).Error("create user address")
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	return nil
 }
 
 func (u *AddressUsecase) GetAddresses(ctx context.Context, userID uuid.UUID) ([]dto.GetAddressResDTO, error) {
+	const op = "AddressUsecase.GetAddresses"
+	logger := logctx.GetLogger(ctx).WithField("op", op).WithField("user_id", userID)
+	
 	addresses, err := u.repo.GetUserAddress(ctx, userID)
 	if err != nil {
-		return nil, err
+		if errors.Is(err, errs.ErrNotFound) {
+			logger.Warn("no addresses found for user")
+			return nil, fmt.Errorf("%s: %w", op, errs.NewNotFoundError(op))
+		}
+		logger.WithError(err).Error("get user addresses")
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	res := make([]dto.GetAddressResDTO, 0, len(*addresses))
@@ -83,9 +103,17 @@ func (u *AddressUsecase) GetAddresses(ctx context.Context, userID uuid.UUID) ([]
 }
 
 func (u *AddressUsecase) GetPickupPoints(ctx context.Context) ([]dto.GetPointAddressResDTO, error) {
+	const op = "AddressUsecase.GetPickupPoints"
+	logger := logctx.GetLogger(ctx).WithField("op", op)
+
 	points, err := u.repo.GetAllPickupPoints(ctx)
 	if err != nil {
-		return nil, err
+		if errors.Is(err, errs.ErrNotFound) {
+			logger.Warn("no pickup points found")
+			return nil, fmt.Errorf("%s: %w", op, errs.NewNotFoundError(op))
+		}
+		logger.WithError(err).Error("get pickup points")
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	res := make([]dto.GetPointAddressResDTO, 0, len(*points))

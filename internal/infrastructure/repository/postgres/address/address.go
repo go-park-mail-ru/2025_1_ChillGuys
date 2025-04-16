@@ -4,10 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
+
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/logctx"
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -48,32 +51,39 @@ type IAddressRepository interface {
 
 type AddressRepository struct {
 	db  *sql.DB
-	log *logrus.Logger
 }
 
-func NewAddressRepository(db *sql.DB, log *logrus.Logger) *AddressRepository {
+func NewAddressRepository(db *sql.DB) *AddressRepository {
 	return &AddressRepository{
 		db:  db,
-		log: log,
 	}
 }
 
 func (r *AddressRepository) CheckAddressExists(ctx context.Context, address models.AddressDB) (uuid.UUID, error) {
+	const op = "AddressRepository.CheckAddressExists"
+	logger := logctx.GetLogger(ctx).WithField("op", op).WithField("address", address)
+	
 	var id uuid.UUID
 	err := r.db.QueryRowContext(ctx, queryCheckAddressExists,
 		address.AddressString, address.Coordinate,
 	).Scan(&id)
 
-	if errors.Is(err, sql.ErrNoRows) {
-		return uuid.Nil, nil
-	} else if err != nil {
-		return uuid.Nil, err
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			logger.Debug("address not found")
+			return uuid.Nil, nil
+		}
+		logger.WithError(err).Error("check address exists")
+		return uuid.Nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	return id, nil
 }
 
 func (r *AddressRepository) CreateAddress(ctx context.Context, in models.AddressDB) error {
+	const op = "AddressRepository.CreateAddress"
+	logger := logctx.GetLogger(ctx).WithField("op", op).WithField("address", in)
+
 	_, err := r.db.QueryContext(ctx, queryUpsertAddress,
 		in.ID.String(),
 		in.Region,
@@ -82,26 +92,43 @@ func (r *AddressRepository) CreateAddress(ctx context.Context, in models.Address
 		in.Coordinate,
 	)
 
-	return err
+	if err != nil {
+		logger.WithError(err).Error("create address")
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	return nil
 }
 
 func (r *AddressRepository) CreateUserAddress(ctx context.Context, in models.UserAddress) error {
+	const op = "AddressRepository.CreateUserAddress"
+	logger := logctx.GetLogger(ctx).WithField("op", op).WithField("user_address", in)
+
 	if _, err := r.db.ExecContext(ctx, queryUpsertUserAddress,
 		in.ID.String(),
 		in.Label,
 		in.UserID.String(),
 		in.AddressID.String(),
 	); err != nil {
-		return err
+		logger.WithError(err).Error("create user address")
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
 	return nil
 }
 
 func (r *AddressRepository) GetUserAddress(ctx context.Context, userID uuid.UUID) (*[]dto.AddressDTO, error) {
+	const op = "AddressRepository.GetUserAddress"
+	logger := logctx.GetLogger(ctx).WithField("op", op).WithField("user_id", userID)
+
 	rows, err := r.db.QueryContext(ctx, queryGetAddressesByUserID, userID.String())
 	if err != nil {
-		return nil, err
+		if errors.Is(err, sql.ErrNoRows) {
+			logger.Warn("no addresses found for user")
+			return nil, fmt.Errorf("%s: %w", op, errs.NewNotFoundError(op))
+		}
+		logger.WithError(err).Error("query user addresses")
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	defer rows.Close()
 
@@ -117,12 +144,14 @@ func (r *AddressRepository) GetUserAddress(ctx context.Context, userID uuid.UUID
 			&address.AddressString,
 			&address.Coordinate,
 		); err != nil {
-			return nil, err
+			logger.WithError(err).Error("scan address row")
+			return nil, fmt.Errorf("%s: %w", op, err)
 		}
 		addresses = append(addresses, address)
 	}
 
 	if err = rows.Err(); err != nil {
+		logger.WithError(err).Error("rows iteration error")
 		return nil, err
 	}
 
@@ -130,9 +159,17 @@ func (r *AddressRepository) GetUserAddress(ctx context.Context, userID uuid.UUID
 }
 
 func (r *AddressRepository) GetAllPickupPoints(ctx context.Context) (*[]models.AddressDB, error) {
+	const op = "AddressRepository.GetAllPickupPoints"
+	logger := logctx.GetLogger(ctx).WithField("op", op)
+
 	rows, err := r.db.QueryContext(ctx, queryGetAllPickupPoints)
 	if err != nil {
-		return nil, err
+		if errors.Is(err, sql.ErrNoRows) {
+			logger.Warn("no pickup points found")
+			return nil, fmt.Errorf("%s: %w", op, errs.NewNotFoundError(op))
+		}
+		logger.WithError(err).Error("query pickup points")
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	defer rows.Close()
 
@@ -147,13 +184,15 @@ func (r *AddressRepository) GetAllPickupPoints(ctx context.Context) (*[]models.A
 			&addr.AddressString,
 			&addr.Coordinate,
 		); err != nil {
-			return nil, err
+			logger.WithError(err).Error("scan pickup point row")
+			return nil, fmt.Errorf("%s: %w", op, err)
 		}
 		points = append(points, addr)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, err
+		logger.WithError(err).Error("rows iteration error")
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	return &points, nil

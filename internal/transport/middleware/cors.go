@@ -14,8 +14,8 @@ func CORSMiddleware(next http.Handler, conf *config.ServerConfig) http.Handler {
 			return
 		}
 
-		//allowedOrigin := conf.AllowOrigin
-		allowedOrigin := "*"
+		allowedOrigin := conf.AllowOrigin
+		//allowedOrigin := "*"
 
 		if allowedOrigin != "*" && allowedOrigin != origin {
 			http.Error(w, "CORS Origin not allowed", http.StatusForbidden)
