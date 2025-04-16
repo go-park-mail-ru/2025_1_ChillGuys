@@ -23,34 +23,38 @@ func TestBasketRepository_Get(t *testing.T) {
 	defer db.Close()
 
 	repo := basketRepo.NewBasketRepository(db)
+
+	//t.Run("success", func(t *testing.T) {
+	//  userID := uuid.New()
+	//  basketID := uuid.New()
+	//  productID := uuid.New()
+	//  now := time.Now()
 	//
-	//t.Run("success with items", func(t *testing.T) {
-	//	userID := uuid.New()
-	//	basketID := uuid.New()
-	//	productID := uuid.New()
-	//	now := time.Now()
+	//  mock.ExpectQuery(`SELECT id FROM bazaar.basket WHERE user_id = \$1`).
+	//    WithArgs(userID).
+	//    WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(basketID))
 	//
-	//	// First expectation - get basket ID
-	//	mock.ExpectQuery(`SELECT id FROM bazaar.basket WHERE user_id = \$1`).
-	//		WithArgs(userID).
-	//		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(basketID))
+	//  rows := sqlmock.NewRows([]string{
+	//    "id", "basket_id", "product_id", "quantity", "updated_at",
+	//    "name", "price", "preview_image_url", "discounted_price",
+	//  }).AddRow(
+	//    uuid.New(), basketID, productID, 2, now,
+	//    "Test Product", 1000.0, "image.jpg", 800.0,
+	//  )
 	//
-	//	// Second expectation - get basket items
-	//	rows := sqlmock.NewRows([]string{
-	//		"id", "basket_id", "product_id", "quantity", "updated_at",
-	//		"name", "price", "preview_image_url", "discounted_price",
-	//	}).AddRow(
-	//		uuid.New(), basketID, productID, 2, now,
-	//		"Test Product", 1000.0, "image.jpg", 800.0,
-	//	)
+	//  mock.ExpectQuery(`SELECT`).
+	//    WithArgs(basketID).
+	//    WillReturnRows(rows)
 	//
-	//	mock.ExpectQuery(`SELECT`).
-	//		WithArgs(basketID).
-	//		WillReturnRows(rows)
-	//
-	//	items, err := repo.Get(context.Background(), userID)
-	//	require.NoError(t, err)
-	//	require.Len(t, items, 1)
+	//  items, err := repo.Get(context.Background(), userID)
+	//  require.NoError(t, err)
+	//  require.Len(t, items, 1)
+	//  assert.Equal(t, productID, items[0].ProductID)
+	//  assert.Equal(t, 2, items[0].Quantity)
+	//  assert.Equal(t, "Test Product", items[0].ProductName)
+	//  assert.Equal(t, 1000.0, items[0].Price)
+	//  assert.Equal(t, "image.jpg", items[0].ProductImage)
+	//  assert.Equal(t, 800.0, items[0].PriceDiscount)
 	//})
 
 	t.Run("basket not found", func(t *testing.T) {
@@ -67,10 +71,15 @@ func TestBasketRepository_Get(t *testing.T) {
 
 	t.Run("database error", func(t *testing.T) {
 		userID := uuid.New()
+		basketID := uuid.New()
 
 		mock.ExpectQuery(`SELECT id FROM bazaar.basket WHERE user_id = \$1`).
 			WithArgs(userID).
-			WillReturnError(errors.New("db error"))
+			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(basketID))
+
+		mock.ExpectQuery(`SELECT`).
+			WithArgs(basketID).
+			WillReturnError(errors.New("database error"))
 
 		_, err := repo.Get(context.Background(), userID)
 		require.Error(t, err)
@@ -199,73 +208,104 @@ func TestBasketRepository_Delete(t *testing.T) {
 	})
 }
 
-//
-//func TestBasketRepository_UpdateQuantity(t *testing.T) {
-//	t.Parallel()
-//
-//	db, mock, err := sqlmock.New()
-//	require.NoError(t, err)
-//	defer db.Close()
-//
-//	repo := basketRepo.NewBasketRepository(db)
-//
-//	t.Run("success", func(t *testing.T) {
-//		userID := uuid.New()
-//		basketID := uuid.New()
-//		productID := uuid.New()
-//		itemID := uuid.New()
-//		now := time.Now()
-//		quantity := 2
-//		availableQuantity := uint(10)
-//
-//		mock.ExpectQuery(`SELECT quantity FROM bazaar.product WHERE id = \$1`).
-//			WithArgs(productID).
-//			WillReturnRows(sqlmock.NewRows([]string{"quantity"}).AddRow(availableQuantity))
-//
-//		mock.ExpectQuery(`SELECT id FROM bazaar.basket WHERE user_id = \$1`).
-//			WithArgs(userID).
-//			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(basketID))
-//
-//		mock.ExpectQuery(`UPDATE bazaar.basket_item`).
-//			WithArgs(quantity, basketID, productID).
-//			WillReturnRows(sqlmock.NewRows([]string{"id", "basket_id", "product_id", "quantity", "updated_at"}).
-//				AddRow(itemID, basketID, productID, quantity, now))
-//
-//		item, remaining, err := repo.UpdateQuantity(context.Background(), userID, productID, quantity)
-//		require.NoError(t, err)
-//		assert.Equal(t, itemID, item.ID)
-//		assert.Equal(t, quantity, item.Quantity)
-//		assert.Equal(t, int(availableQuantity)-quantity, remaining)
-//	})
-//
-//	t.Run("insufficient quantity", func(t *testing.T) {
-//		userID := uuid.New()
-//		productID := uuid.New()
-//		quantity := 5
-//		availableQuantity := uint(3)
-//
-//		mock.ExpectQuery(`SELECT quantity FROM bazaar.product WHERE id = \$1`).
-//			WithArgs(productID).
-//			WillReturnRows(sqlmock.NewRows([]string{"quantity"}).AddRow(availableQuantity))
-//
-//		_, _, err := repo.UpdateQuantity(context.Background(), userID, productID, quantity)
-//		require.Error(t, err)
-//		assert.ErrorIs(t, err, errs.ErrBusinessLogic)
-//	})
-//
-//	t.Run("product not found", func(t *testing.T) {
-//		userID := uuid.New()
-//		productID := uuid.New()
-//
-//		mock.ExpectQuery(`SELECT quantity FROM bazaar.product WHERE id = \$1`).
-//			WithArgs(productID).
-//			WillReturnError(sql.ErrNoRows)
-//
-//		_, _, err := repo.UpdateQuantity(context.Background(), userID, productID, 1)
-//		require.Error(t, err)
-//		assert.ErrorIs(t, err, errs.ErrNotFound)
-//	})
-//}
+func TestBasketRepository_UpdateQuantity(t *testing.T) {
+	t.Parallel()
+
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+
+	repo := basketRepo.NewBasketRepository(db)
+
+	t.Run("success", func(t *testing.T) {
+		userID := uuid.New()
+		basketID := uuid.New()
+		productID := uuid.New()
+		itemID := uuid.New()
+		now := time.Now()
+		quantity := 2
+		availableQuantity := uint(10)
+
+		mock.ExpectQuery(`SELECT quantity FROM bazaar.product WHERE id = \$1`).
+			WithArgs(productID).
+			WillReturnRows(sqlmock.NewRows([]string{"quantity"}).AddRow(availableQuantity))
+
+		mock.ExpectQuery(`SELECT id FROM bazaar.basket WHERE user_id = \$1`).
+			WithArgs(userID).
+			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(basketID))
+
+		mock.ExpectQuery(`UPDATE bazaar.basket_item`).
+			WithArgs(quantity, basketID, productID).
+			WillReturnRows(sqlmock.NewRows([]string{"id", "basket_id", "product_id", "quantity", "updated_at"}).
+				AddRow(itemID, basketID, productID, quantity, now))
+
+		item, err := repo.UpdateQuantity(context.Background(), userID, productID, quantity)
+		require.NoError(t, err)
+		assert.Equal(t, itemID, item.ID)
+		assert.Equal(t, quantity, item.Quantity)
+	})
+
+	t.Run("insufficient quantity", func(t *testing.T) {
+		userID := uuid.New()
+		productID := uuid.New()
+		quantity := 5
+		availableQuantity := uint(3)
+
+		mock.ExpectQuery(`SELECT quantity FROM bazaar.product WHERE id = \$1`).
+			WithArgs(productID).
+			WillReturnRows(sqlmock.NewRows([]string{"quantity"}).AddRow(availableQuantity))
+
+		_, err := repo.UpdateQuantity(context.Background(), userID, productID, quantity)
+		require.Error(t, err)
+		assert.ErrorIs(t, err, errs.ErrBusinessLogic)
+	})
+
+	t.Run("product not found", func(t *testing.T) {
+		userID := uuid.New()
+		productID := uuid.New()
+		quantity := 1
+
+		mock.ExpectQuery(`SELECT quantity FROM bazaar.product WHERE id = \$1`).
+			WithArgs(productID).
+			WillReturnError(sql.ErrNoRows)
+
+		_, err := repo.UpdateQuantity(context.Background(), userID, productID, quantity)
+		require.Error(t, err)
+		assert.ErrorIs(t, err, errs.ErrNotFound)
+	})
+
+	t.Run("basket not found", func(t *testing.T) {
+		userID := uuid.New()
+		productID := uuid.New()
+		quantity := 1
+		availableQuantity := uint(10)
+
+		mock.ExpectQuery(`SELECT quantity FROM bazaar.product WHERE id = \$1`).
+			WithArgs(productID).
+			WillReturnRows(sqlmock.NewRows([]string{"quantity"}).AddRow(availableQuantity))
+
+		mock.ExpectQuery(`SELECT id FROM bazaar.basket WHERE user_id = \$1`).
+			WithArgs(userID).
+			WillReturnError(sql.ErrNoRows)
+
+		_, err := repo.UpdateQuantity(context.Background(), userID, productID, quantity)
+		require.Error(t, err)
+		assert.ErrorIs(t, err, errs.ErrNotFound)
+	})
+
+	t.Run("database error", func(t *testing.T) {
+		userID := uuid.New()
+		productID := uuid.New()
+		quantity := 1
+
+		mock.ExpectQuery(`SELECT quantity FROM bazaar.product WHERE id = \$1`).
+			WithArgs(productID).
+			WillReturnError(errors.New("database error"))
+
+		_, err := repo.UpdateQuantity(context.Background(), userID, productID, quantity)
+		require.Error(t, err)
+	})
+}
 
 func TestBasketRepository_Clear(t *testing.T) {
 	t.Parallel()
@@ -303,6 +343,22 @@ func TestBasketRepository_Clear(t *testing.T) {
 		require.Error(t, err)
 		assert.ErrorIs(t, err, errs.ErrNotFound)
 	})
+
+	t.Run("database error", func(t *testing.T) {
+		userID := uuid.New()
+		basketID := uuid.New()
+
+		mock.ExpectQuery(`SELECT id FROM bazaar.basket WHERE user_id = \$1`).
+			WithArgs(userID).
+			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(basketID))
+
+		mock.ExpectExec(`DELETE FROM bazaar.basket_item WHERE basket_id = \$1`).
+			WithArgs(basketID).
+			WillReturnError(errors.New("database error"))
+
+		err := repo.Clear(context.Background(), userID)
+		require.Error(t, err)
+	})
 }
 
 func TestBasketRepository_GetProductsInBasket(t *testing.T) {
@@ -314,57 +370,52 @@ func TestBasketRepository_GetProductsInBasket(t *testing.T) {
 
 	repo := basketRepo.NewBasketRepository(db)
 
-	//t.Run("success with discount", func(t *testing.T) {
-	//	userID := uuid.New()
-	//	basketID := uuid.New()
-	//	product1ID := uuid.New()
-	//	now := time.Now()
+	//t.Run("success", func(t *testing.T) {
+	//  userID := uuid.New()
+	//  basketID := uuid.New()
+	//  productID := uuid.New()
+	//  now := time.Now()
 	//
-	//	expectedItems := []*models.BasketItem{
-	//		{
-	//			ID:            uuid.New(),
-	//			BasketID:      basketID,
-	//			ProductID:     product1ID,
-	//			Quantity:      2,
-	//			UpdatedAt:     now,
-	//			ProductName:   "Product 1",
-	//			Price:         1000,
-	//			ProductImage:  "image1.jpg",
-	//			PriceDiscount: 800,
-	//		},
-	//	}
+	//  mock.ExpectQuery(`SELECT id FROM bazaar.basket WHERE user_id = \$1`).
+	//    WithArgs(userID).
+	//    WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(basketID))
 	//
-	//	mock.ExpectQuery(`SELECT id FROM bazaar.basket WHERE user_id = \$1`).
-	//		WithArgs(userID).
-	//		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(basketID))
+	//  rows := sqlmock.NewRows([]string{
+	//    "id", "basket_id", "product_id", "quantity", "updated_at",
+	//    "name", "price", "preview_image_url", "discounted_price",
+	//  }).AddRow(
+	//    uuid.New(), basketID, productID, 2, now,
+	//    "Test Product", 1000.0, "image.jpg", 800.0,
+	//  )
 	//
-	//	rows := sqlmock.NewRows([]string{
-	//		"id", "basket_id", "product_id", "quantity", "updated_at",
-	//		"name", "price", "preview_image_url", "discounted_price",
-	//	}).
-	//		AddRow(
-	//			expectedItems[0].ID,
-	//			expectedItems[0].BasketID,
-	//			expectedItems[0].ProductID,
-	//			expectedItems[0].Quantity,
-	//			expectedItems[0].UpdatedAt,
-	//			expectedItems[0].ProductName,
-	//			expectedItems[0].Price,
-	//			expectedItems[0].ProductImage,
-	//			800.0,
-	//		)
+	//  mock.ExpectQuery(`SELECT`).
+	//    WithArgs(basketID).
+	//    WillReturnRows(rows)
 	//
-	//	mock.ExpectQuery(`SELECT`).
-	//		WithArgs(basketID).
-	//		WillReturnRows(rows)
-	//
-	//	items, err := repo.Get(context.Background(), userID)
-	//	require.NoError(t, err)
-	//	require.Len(t, items, 1)
-	//	assert.Equal(t, expectedItems, items)
+	//  items, err := repo.Get(context.Background(), userID)
+	//  require.NoError(t, err)
+	//  require.Len(t, items, 1)
+	//  assert.Equal(t, productID, items[0].ProductID)
+	//  assert.Equal(t, 2, items[0].Quantity)
+	//  assert.Equal(t, "Test Product", items[0].ProductName)
+	//  assert.Equal(t, 1000.0, items[0].Price)
+	//  assert.Equal(t, "image.jpg", items[0].ProductImage)
+	//  assert.Equal(t, 800.0, items[0].PriceDiscount)
 	//})
 
-	t.Run("empty basket", func(t *testing.T) {
+	t.Run("basket not found", func(t *testing.T) {
+		userID := uuid.New()
+
+		mock.ExpectQuery(`SELECT id FROM bazaar.basket WHERE user_id = \$1`).
+			WithArgs(userID).
+			WillReturnError(sql.ErrNoRows)
+
+		_, err := repo.Get(context.Background(), userID)
+		require.Error(t, err)
+		assert.ErrorIs(t, err, errs.ErrNotFound)
+	})
+
+	t.Run("database error", func(t *testing.T) {
 		userID := uuid.New()
 		basketID := uuid.New()
 
@@ -374,13 +425,9 @@ func TestBasketRepository_GetProductsInBasket(t *testing.T) {
 
 		mock.ExpectQuery(`SELECT`).
 			WithArgs(basketID).
-			WillReturnRows(sqlmock.NewRows([]string{
-				"id", "basket_id", "product_id", "quantity", "updated_at",
-				"name", "price", "preview_image_url", "discounted_price",
-			}))
+			WillReturnError(errors.New("database error"))
 
-		items, err := repo.Get(context.Background(), userID)
-		require.NoError(t, err)
-		assert.Empty(t, items)
+		_, err := repo.Get(context.Background(), userID)
+		require.Error(t, err)
 	})
 }
