@@ -89,6 +89,6 @@ func (s OrderStatus) MarshalJSON() ([]byte, error) {
 }
 
 type OrderPreviewProductDTO struct {
-	ProductImageURL null.String
+	ProductImageURL null.String `json:"ProductImageURL" swaggertype:"primitive,string"`
 	ProductQuantity uint
 }

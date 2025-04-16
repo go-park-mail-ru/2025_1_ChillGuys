@@ -42,19 +42,20 @@ func NewAuthHandler(
 	}
 }
 
-// @Summary		Login auth
-// @Description	Авторизация пользователя
-// @Tags			auth
-// @Accept			json
-// @Produce		json
-// @Param			request	body		models.UserLoginRequestDTO	true	"User credentials"
-// @success		200		{}			-							"No Content"
-// @Header			200		{string}	Set-Set						"Устанавливает JWT-токен в куки"
-// @Failure		400		{object}	response.ErrorResponse		"Ошибка валидации"
-// @Failure		401		{object}	response.ErrorResponse		"Неверные email или пароль"
-// @Failure		500		{object}	response.ErrorResponse		"Внутренняя ошибка сервера"
-// @Router			/auth/login [post]
-
+// Login godoc
+//
+//	@Summary		Авторизация пользователя
+//	@Description	Авторизует пользователя и устанавливает JWT-токен в cookies
+//	@Tags			auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			request	body		dto.UserLoginRequestDTO	true	"Данные для входа"
+//	@Success		200		{}			-						"Успешная авторизация"
+//	@Header			200		{string}	Set-Cookie				"JWT-токен авторизации"
+//	@Failure		400		{object}	object					"Ошибка валидации данных"
+//	@Failure		401		{object}	object					"Неверные email или пароль"
+//	@Failure		500		{object}	object					"Внутренняя ошибка сервера"
+//	@Router			/auth/login [post]
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var loginReq dto.UserLoginRequestDTO
 	if err := request.ParseData(r, &loginReq); err != nil {
@@ -74,7 +75,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		response.HandleDomainError(r.Context(), w, err, "failed to login user")
 		return
 	}
-	
+
 	// Генерируем CSRF токен
 	csrfToken, err := middleware.GenerateCSRFToken(
 		token, // Используем JWT токен как sessionID
@@ -97,18 +98,20 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	response.SendJSONResponse(r.Context(), w, http.StatusOK, nil)
 }
 
-// @Summary		Register auth
-// @Description	Создает нового пользователя, хеширует пароль и устанавливает JWT-токен в куки
-// @Tags			auth
-// @Accept			json
-// @Produce		json
-// @Param			input	body		models.UserRegisterRequestDTO	true	"Данные для регистрации"
-// @success		200		{}			-								"No Content"
-// @Header			200		{string}	Set-Set							"Устанавливает JWT-токен в куки"
-// @Failure		400		{object}	response.ErrorResponse			"Некорректный запрос"
-// @Failure		409		{object}	response.ErrorResponse			"Пользователь уже существует"
-// @Failure		500		{object}	response.ErrorResponse			"Внутренняя ошибка сервера"
-// @Router			/auth/register [post]
+// Register godoc
+//
+//	@Summary		Регистрация пользователя
+//	@Description	Создает нового пользователя и устанавливает JWT-токен в cookies
+//	@Tags			auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			userData	body		dto.UserRegisterRequestDTO	true	"Данные для регистрации"
+//	@Success		200			{}			-							"Успешная регистрация"
+//	@Header			200			{string}	Set-Cookie					"JWT-токен авторизации"
+//	@Failure		400			{object}	object						"Некорректные данные"
+//	@Failure		409			{object}	object						"Пользователь уже существует"
+//	@Failure		500			{object}	object						"Внутренняя ошибка сервера"
+//	@Router			/auth/register [post]
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var registerReq dto.UserRegisterRequestDTO
 	if err := request.ParseData(r, &registerReq); err != nil {
@@ -151,14 +154,18 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	response.SendJSONResponse(r.Context(), w, http.StatusOK, nil)
 }
 
-// @Summary		Logout auth
-// @Description	Выход пользователя
-// @Tags			auth
-// @Security		TokenAuth
-// @Success		200	{}			"No Content"
-// @Failure		401	{object}	response.ErrorResponse	"Пользователь не найден"
-// @Failure		500	{object}	response.ErrorResponse	"Ошибка сервера"
-// @Router			/auth/logout [post]
+// Logout godoc
+//
+//	@Summary		Выход из системы
+//	@Description	Завершает сеанс пользователя и удаляет JWT-токен из cookies
+//	@Tags			auth
+//	@Produce		json
+//	@Success		200	{}			-			"Успешный выход из системы"
+//	@Header			200	{string}	Set-Cookie	"Очищает JWT-токен (устанавливает пустое значение с истекшим сроком)"
+//	@Failure		401	{object}	object		"Пользователь не авторизован"
+//	@Failure		500	{object}	object		"Внутренняя ошибка сервера"
+//	@Security		TokenAuth
+//	@Router			/auth/logout [post]
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	if err := h.authService.Logout(r.Context()); err != nil {
 		response.HandleDomainError(r.Context(), w, err, "failed to logout")

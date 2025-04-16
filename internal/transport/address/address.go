@@ -50,6 +50,20 @@ func NewAddressHandler(
 	}
 }
 
+// CreateAddress godoc
+//
+//	@Summary		Создание нового адреса
+//	@Description	Создает новый адрес для текущего пользователя
+//	@Tags			address
+//	@Accept			json
+//	@Produce		json
+//	@Param			address	body	dto.AddressReqDTO	true	"Данные адреса"
+//	@Success		201		"Адрес успешно создан"
+//	@Failure		400		{object}	object	"Неверный формат данных или ID пользователя"
+//	@Failure		401		{object}	object	"Пользователь не авторизован"
+//	@Failure		500		{object}	object	"Ошибка сервера при создании адреса"
+//	@Security		TokenAuth
+//	@Router			/addresses [post]
 func (h *AddressHandler) CreateAddress(w http.ResponseWriter, r *http.Request) {
 	var createAddressReq dto.AddressDTO
 	if err := request.ParseData(r, &createAddressReq); err != nil {
@@ -141,6 +155,18 @@ func (h *AddressHandler) geocodeAddress(ctx context.Context, address dto.Address
 	return &geoResponse, nil
 }
 
+// GetAddress godoc
+//
+//	@Summary		Получение списка адресов пользователя
+//	@Description	Возвращает все адреса текущего пользователя
+//	@Tags			address
+//	@Produce		json
+//	@Success		200	{object}	map[string]string	"Успешный запрос"
+//	@Failure		400	{object}	object				"Неверный формат ID пользователя"
+//	@Failure		401	{object}	object				"Пользователь не авторизован"
+//	@Failure		500	{object}	object				"Ошибка сервера при получении адресов"
+//	@Security		TokenAuth
+//	@Router			/addresses [get]
 func (h *AddressHandler) GetAddress(w http.ResponseWriter, r *http.Request) {
 	userIDStr, isExist := r.Context().Value(domains.UserIDKey{}).(string)
 	if !isExist {
@@ -169,6 +195,15 @@ func (h *AddressHandler) GetAddress(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// GetPickupPoints godoc
+//
+//	@Summary		Получение списка пунктов выдачи
+//	@Description	Возвращает все доступные пункты выдачи
+//	@Tags			address
+//	@Produce		json
+//	@Success		200	{object}	map[string]string	"Успешный запрос"
+//	@Failure		500	{object}	object				"Ошибка сервера при получении пунктов выдачи"
+//	@Router			/addresses/pickup-points [get]
 func (h *AddressHandler) GetPickupPoints(w http.ResponseWriter, r *http.Request) {
 	points, err := h.addressService.GetPickupPoints(r.Context())
 	if err != nil {

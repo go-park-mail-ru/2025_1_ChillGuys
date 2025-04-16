@@ -42,11 +42,11 @@ func NewProductService(u IProductUsecase, ms minio.Provider) *ProductService {
 // GetAllProducts godoc
 //
 //	@Summary		Получить все продукты
-//	@Description	Возвращает список всех продуктов
+//	@Description	Возвращает список всех доступных продуктов
 //	@Tags			products
 //	@Produce		json
-//	@Success		200	{object}	[]models.Product	"Список продуктов"
-//	@Failure		500	{object}	dto.ErrorResponse	"Ошибка сервера"
+//	@Success		200	{array}		models.Product
+//	@Failure		500	{object}	object
 //	@Router			/products [get]
 func (h *ProductService) GetAllProducts(w http.ResponseWriter, r *http.Request) {
 	const op = "ProductService.GetAllProducts"
@@ -67,13 +67,13 @@ func (h *ProductService) GetAllProducts(w http.ResponseWriter, r *http.Request) 
 // GetProductByID godoc
 //
 //	@Summary		Получить продукт по ID
-//	@Description	Возвращает продукт по его ID
+//	@Description	Возвращает детальную информацию о продукте по его ID
 //	@Tags			products
 //	@Produce		json
-//	@Param			id	path		string				true	"ID продукта"
-//	@Success		200	{object}	models.Product		"Информация о продукте"
-//	@Failure		400	{object}	dto.ErrorResponse	"Некорректный ID"
-//	@Failure		404	{object}	dto.ErrorResponse	"Продукт не найден"
+//	@Param			id	path		string	true	"UUID продукта"
+//	@Success		200	{object}	models.Product
+//	@Failure		400	{object}	object	"Некорректный формат UUID"
+//	@Failure		404	{object}	object	"Продукт не найден"
 //	@Router			/products/{id} [get]
 func (h *ProductService) GetProductByID(w http.ResponseWriter, r *http.Request) {
 	const op = "ProductService.GetProductByID"
@@ -102,18 +102,15 @@ func (h *ProductService) GetProductByID(w http.ResponseWriter, r *http.Request) 
 // GetProductsByCategory godoc
 //
 //	@Summary		Получить товары по категории
-//	@Description	Возвращает список всех одобренных товаров, принадлежащих указанной категории.
-//
-// Товары сортируются по дате обновления (сначала новые).
-//
+//	@Description	Возвращает список товаров указанной категории, отсортированных по дате обновления (новые сначала)
 //	@Tags			products
 //	@Produce		json
-//	@Param			id	path		string				true	"UUID категории в формате строки"
-//	@Success		200	{object}	[]models.Product	"Успешный запрос. Возвращает массив товаров."
-//	@Failure		400	{object}	dto.ErrorResponse	"Неверный формат UUID категории"
-//	@Failure		404	{object}	dto.ErrorResponse	"Категория не найдена"
-//	@Failure		500	{object}	dto.ErrorResponse	"Внутренняя ошибка сервера"
-//	@Router			/api/v1/products/category/{id} [get]
+//	@Param			id	path		string	true	"UUID категории"
+//	@Success		200	{array}		models.Product
+//	@Failure		400	{object}	object	"Некорректный формат UUID"
+//	@Failure		404	{object}	object	"Категория не найдена"
+//	@Failure		500	{object}	object
+//	@Router			/products/category/{id} [get]
 func (h *ProductService) GetProductsByCategory(w http.ResponseWriter, r *http.Request) {
 	const op = "ProductService.GetProductsByCategory"
 	logger := logctx.GetLogger(r.Context()).WithField("op", op)
@@ -143,15 +140,15 @@ func (h *ProductService) GetProductsByCategory(w http.ResponseWriter, r *http.Re
 
 // CreateOne godoc
 //
-//	@Summary		Загрузить файл в MinIO
-//	@Description	Загружает один файл в хранилище MinIO
+//	@Summary		Загрузить изображение товара
+//	@Description	Загружает изображение товара в хранилище MinIO
 //	@Tags			products
 //	@Accept			multipart/form-data
 //	@Produce		json
-//	@Param			file	formData	file				true	"Файл для загрузки"
-//	@Success		200		{object}	map[string]string	"Информация о загруженном файле"
-//	@Failure		400		{object}	dto.ErrorResponse	"Ошибка в запросе"
-//	@Failure		500		{object}	dto.ErrorResponse	"Ошибка сервера"
+//	@Param			file	formData	file				true	"Изображение товара"
+//	@Success		200		{object}	map[string]string	"URL загруженного изображения"
+//	@Failure		400		{object}	object				"Ошибка в данных запроса"
+//	@Failure		500		{object}	object
 //	@Router			/products/upload [post]
 func (h *ProductService) CreateOne(w http.ResponseWriter, r *http.Request) {
 	const op = "ProductService.CreateOne"
@@ -199,6 +196,18 @@ func (h *ProductService) CreateOne(w http.ResponseWriter, r *http.Request) {
 	response.SendJSONResponse(r.Context(), w, http.StatusOK, productResponse)
 }
 
+// GetProductsByIDs godoc
+//
+//	@Summary		Получить товары по списку ID
+//	@Description	Возвращает список товаров по переданным идентификаторам
+//	@Tags			products
+//	@Accept			json
+//	@Produce		json
+//	@Param			request	body		dto.GetProductsByIDRequest	true	"Список ID товаров"
+//	@Success		200		{array}		dto.ProductsResponse
+//	@Failure		400		{object}	object	"Некорректные данные"
+//	@Failure		500		{object}	object
+//	@Router			/products/batch [post]
 func (p *ProductService) GetProductsByIDs(w http.ResponseWriter, r *http.Request) {
 	var req dto.GetProductsByIDRequest
 	if err := request.ParseData(r, &req); err != nil {

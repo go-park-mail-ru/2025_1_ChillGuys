@@ -26,3 +26,11 @@ type GetPointAddressResDTO struct {
 	AddressString null.String `json:"addressString"`
 	Coordinate    null.String `json:"coordinate"`
 }
+
+type AddressReqDTO struct {
+	Label         null.String `json:"label" swaggertype:"primitive,string"`
+	Region        null.String `json:"region" swaggertype:"primitive,string"`
+	City          null.String `json:"city" swaggertype:"primitive,string"`
+	AddressString null.String `json:"addressString" swaggertype:"primitive,string"`
+	Coordinate    null.String `json:"coordinate" swaggertype:"primitive,string"`
+}
