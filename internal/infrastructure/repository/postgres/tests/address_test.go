@@ -2,306 +2,374 @@ package tests
 
 import (
 	"context"
+	"database/sql"
 	"errors"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/mocks"
+	"github.com/DATA-DOG/go-sqlmock"
+	address2 "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/address"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
-	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/guregu/null"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
-func TestCheckAddressExists(t *testing.T) {
-	// Create test UUIDs once at the start
-	existingAddressID := uuid.New()
+func TestCheckAddressExists_Success(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
 
-	tests := []struct {
-		name          string
-		address       models.AddressDB
-		mockBehavior  func(*mocks.MockIAddressRepository, models.AddressDB, uuid.UUID)
-		expectedID    uuid.UUID
-		expectedError error
-	}{
-		{
-			name: "Success - address exists",
-			address: models.AddressDB{
-				Region:        null.StringFrom("Region"),
-				City:          null.StringFrom("City"),
-				AddressString: null.StringFrom("Address"),
-				Coordinate:    null.StringFrom("0,0"),
-			},
-			mockBehavior: func(m *mocks.MockIAddressRepository, addr models.AddressDB, id uuid.UUID) {
-				m.EXPECT().CheckAddressExists(gomock.Any(), addr).Return(id, nil)
-			},
-			expectedID:    existingAddressID, // Use the pre-generated UUID
-			expectedError: nil,
-		},
-		{
-			name: "Success - address not exists",
-			address: models.AddressDB{
-				Region:        null.StringFrom("Region"),
-				City:          null.StringFrom("City"),
-				AddressString: null.StringFrom("Address"),
-				Coordinate:    null.StringFrom("0,0"),
-			},
-			mockBehavior: func(m *mocks.MockIAddressRepository, addr models.AddressDB, _ uuid.UUID) {
-				m.EXPECT().CheckAddressExists(gomock.Any(), addr).Return(uuid.Nil, nil)
-			},
-			expectedID:    uuid.Nil,
-			expectedError: nil,
-		},
-		{
-			name: "Error - database error",
-			address: models.AddressDB{
-				Region:        null.StringFrom("Region"),
-				City:          null.StringFrom("City"),
-				AddressString: null.StringFrom("Address"),
-				Coordinate:    null.StringFrom("0,0"),
-			},
-			mockBehavior: func(m *mocks.MockIAddressRepository, addr models.AddressDB, _ uuid.UUID) {
-				m.EXPECT().CheckAddressExists(gomock.Any(), addr).Return(uuid.Nil, errors.New("database error"))
-			},
-			expectedID:    uuid.Nil,
-			expectedError: errors.New("database error"),
-		},
+	addressID := uuid.New()
+	address := models.AddressDB{
+		AddressString: null.StringFrom("Test Address"),
+		Coordinate:    null.StringFrom("10.0,20.0"),
 	}
 
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
+	rows := sqlmock.NewRows([]string{"id"}).AddRow(addressID)
 
-			mockRepo := mocks.NewMockIAddressRepository(ctrl)
-			test.mockBehavior(mockRepo, test.address, test.expectedID)
+	mock.ExpectQuery("SELECT id FROM bazaar.address").
+		WithArgs(address.AddressString, address.Coordinate).
+		WillReturnRows(rows)
 
-			id, err := mockRepo.CheckAddressExists(context.Background(), test.address)
+	repo := address2.NewAddressRepository(db, logrus.New())
+	result, err := repo.CheckAddressExists(context.Background(), address)
 
-			assert.Equal(t, test.expectedID, id)
-			assert.Equal(t, test.expectedError, err)
-		})
-	}
+	assert.NoError(t, err)
+	assert.Equal(t, addressID, result)
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
-func TestCreateAddress(t *testing.T) {
-	tests := []struct {
-		name          string
-		address       models.AddressDB
-		mockBehavior  func(*mocks.MockIAddressRepository, models.AddressDB)
-		expectedError error
-	}{
-		{
-			name: "Success",
-			address: models.AddressDB{
-				Region:        null.StringFrom("Region"),
-				City:          null.StringFrom("City"),
-				AddressString: null.StringFrom("Address"),
-				Coordinate:    null.StringFrom("0,0"),
-			},
-			mockBehavior: func(m *mocks.MockIAddressRepository, addr models.AddressDB) {
-				m.EXPECT().CreateAddress(gomock.Any(), addr).Return(nil)
-			},
-			expectedError: nil,
-		},
-		{
-			name: "Error",
-			address: models.AddressDB{
-				Region:        null.StringFrom("Region"),
-				City:          null.StringFrom("City"),
-				AddressString: null.StringFrom("Address"),
-				Coordinate:    null.StringFrom("0,0"),
-			},
-			mockBehavior: func(m *mocks.MockIAddressRepository, addr models.AddressDB) {
-				m.EXPECT().CreateAddress(gomock.Any(), addr).Return(errors.New("database error"))
-			},
-			expectedError: errors.New("database error"),
-		},
+func TestCheckAddressExists_NotFound(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	address := models.AddressDB{
+		AddressString: null.StringFrom("Test Address"),
+		Coordinate:    null.StringFrom("10.0,20.0"),
 	}
 
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
+	mock.ExpectQuery("SELECT id FROM bazaar.address").
+		WithArgs(address.AddressString, address.Coordinate).
+		WillReturnError(sql.ErrNoRows)
 
-			mockRepo := mocks.NewMockIAddressRepository(ctrl)
-			test.mockBehavior(mockRepo, test.address)
+	repo := address2.NewAddressRepository(db, logrus.New())
+	result, err := repo.CheckAddressExists(context.Background(), address)
 
-			err := mockRepo.CreateAddress(context.Background(), test.address)
-
-			assert.Equal(t, test.expectedError, err)
-		})
-	}
+	assert.NoError(t, err)
+	assert.Equal(t, uuid.Nil, result)
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
-func TestCreateUserAddress(t *testing.T) {
-	tests := []struct {
-		name          string
-		userAddress   models.UserAddress
-		mockBehavior  func(*mocks.MockIAddressRepository, models.UserAddress)
-		expectedError error
-	}{
-		{
-			name: "Success",
-			userAddress: models.UserAddress{
-				ID:        uuid.New(),
-				Label:     null.StringFrom("Home"), // Changed from sql.NullString to null.String
-				UserID:    uuid.New(),
-				AddressID: uuid.New(),
-			},
-			mockBehavior: func(m *mocks.MockIAddressRepository, ua models.UserAddress) {
-				m.EXPECT().CreateUserAddress(gomock.Any(), ua).Return(nil)
-			},
-			expectedError: nil,
-		},
-		{
-			name: "Error",
-			userAddress: models.UserAddress{
-				ID:        uuid.New(),
-				Label:     null.StringFrom("Home"),
-				UserID:    uuid.New(),
-				AddressID: uuid.New(),
-			},
-			mockBehavior: func(m *mocks.MockIAddressRepository, ua models.UserAddress) {
-				m.EXPECT().CreateUserAddress(gomock.Any(), ua).Return(errors.New("database error"))
-			},
-			expectedError: errors.New("database error"),
-		},
+func TestCheckAddressExists_QueryError(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	address := models.AddressDB{
+		AddressString: null.StringFrom("Test Address"),
+		Coordinate:    null.StringFrom("10.0,20.0"),
 	}
 
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
+	mock.ExpectQuery("SELECT id FROM bazaar.address").
+		WithArgs(address.AddressString, address.Coordinate).
+		WillReturnError(errors.New("database error"))
 
-			mockRepo := mocks.NewMockIAddressRepository(ctrl)
-			test.mockBehavior(mockRepo, test.userAddress)
+	repo := address2.NewAddressRepository(db, logrus.New())
+	result, err := repo.CheckAddressExists(context.Background(), address)
 
-			err := mockRepo.CreateUserAddress(context.Background(), test.userAddress)
-
-			assert.Equal(t, test.expectedError, err)
-		})
-	}
+	assert.Error(t, err)
+	assert.Equal(t, uuid.Nil, result)
+	assert.Contains(t, err.Error(), "database error")
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
-func TestGetUserAddress(t *testing.T) {
+func TestCreateAddress_Success(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	address := models.AddressDB{
+		ID:            uuid.New(),
+		Region:        null.StringFrom("Test Region"),
+		City:          null.StringFrom("Test City"),
+		AddressString: null.StringFrom("Test Address"),
+		Coordinate:    null.StringFrom("10.0,20.0"),
+	}
+
+	mock.ExpectQuery("INSERT INTO bazaar.address").
+		WithArgs(
+			address.ID.String(),
+			address.Region,
+			address.City,
+			address.AddressString,
+			address.Coordinate,
+		).
+		WillReturnRows(sqlmock.NewRows([]string{}))
+
+	repo := address2.NewAddressRepository(db, logrus.New())
+	err = repo.CreateAddress(context.Background(), address)
+
+	assert.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestCreateAddress_QueryError(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	address := models.AddressDB{
+		ID:            uuid.New(),
+		Region:        null.StringFrom("Test Region"),
+		City:          null.StringFrom("Test City"),
+		AddressString: null.StringFrom("Test Address"),
+		Coordinate:    null.StringFrom("10.0,20.0"),
+	}
+
+	mock.ExpectQuery("INSERT INTO bazaar.address").
+		WithArgs(
+			address.ID.String(),
+			address.Region,
+			address.City,
+			address.AddressString,
+			address.Coordinate,
+		).
+		WillReturnError(errors.New("database error"))
+
+	repo := address2.NewAddressRepository(db, logrus.New())
+	err = repo.CreateAddress(context.Background(), address)
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "database error")
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestCreateUserAddress_Success(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	userAddress := models.UserAddress{
+		ID:        uuid.New(),
+		Label:     null.StringFrom("Home"),
+		UserID:    uuid.New(),
+		AddressID: uuid.New(),
+	}
+
+	mock.ExpectExec("INSERT INTO bazaar.user_address").
+		WithArgs(
+			userAddress.ID.String(),
+			userAddress.Label,
+			userAddress.UserID.String(),
+			userAddress.AddressID.String(),
+		).
+		WillReturnResult(sqlmock.NewResult(1, 1))
+
+	repo := address2.NewAddressRepository(db, logrus.New())
+	err = repo.CreateUserAddress(context.Background(), userAddress)
+
+	assert.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestCreateUserAddress_ExecError(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	userAddress := models.UserAddress{
+		ID:        uuid.New(),
+		Label:     null.StringFrom("Home"),
+		UserID:    uuid.New(),
+		AddressID: uuid.New(),
+	}
+
+	mock.ExpectExec("INSERT INTO bazaar.user_address").
+		WithArgs(
+			userAddress.ID.String(),
+			userAddress.Label,
+			userAddress.UserID.String(),
+			userAddress.AddressID.String(),
+		).
+		WillReturnError(errors.New("database error"))
+
+	repo := address2.NewAddressRepository(db, logrus.New())
+	err = repo.CreateUserAddress(context.Background(), userAddress)
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "database error")
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestGetUserAddress_Success(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
 	userID := uuid.New()
-	testAddresses := []dto.AddressDTO{
-		{
-			ID:            uuid.New(),
-			Label:         null.StringFrom("Home"),
-			Region:        null.StringFrom("Region"),
-			City:          null.StringFrom("City"),
-			AddressString: null.StringFrom("Address"),
-			Coordinate:    null.StringFrom("0,0"),
-		},
-		{
-			ID:            uuid.New(),
-			Label:         null.StringFrom("Work"),
-			Region:        null.StringFrom("Region"),
-			City:          null.StringFrom("City"),
-			AddressString: null.StringFrom("Address2"),
-			Coordinate:    null.StringFrom("1,1"),
-		},
-	}
+	addressID := uuid.New()
 
-	tests := []struct {
-		name           string
-		userID         uuid.UUID
-		mockBehavior   func(*mocks.MockIAddressRepository, uuid.UUID)
-		expectedResult *[]dto.AddressDTO
-		expectedError  error
-	}{
-		{
-			name:   "Success",
-			userID: userID,
-			mockBehavior: func(m *mocks.MockIAddressRepository, uid uuid.UUID) {
-				m.EXPECT().GetUserAddress(gomock.Any(), uid).Return(&testAddresses, nil)
-			},
-			expectedResult: &testAddresses,
-			expectedError:  nil,
-		},
-		{
-			name:   "Error",
-			userID: userID,
-			mockBehavior: func(m *mocks.MockIAddressRepository, uid uuid.UUID) {
-				m.EXPECT().GetUserAddress(gomock.Any(), uid).Return(nil, errors.New("database error"))
-			},
-			expectedResult: nil,
-			expectedError:  errors.New("database error"),
-		},
-	}
+	rows := sqlmock.NewRows([]string{"id", "label", "region", "city", "address_string", "coordinate"}).
+		AddRow(
+			addressID,
+			"Home",
+			"Test Region",
+			"Test City",
+			"Test Address",
+			"10.0,20.0",
+		)
 
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
+	mock.ExpectQuery("SELECT a.id, ua.label, a.region, a.city, a.address_string, a.coordinate").
+		WithArgs(userID.String()).
+		WillReturnRows(rows)
 
-			mockRepo := mocks.NewMockIAddressRepository(ctrl)
-			test.mockBehavior(mockRepo, test.userID)
+	repo := address2.NewAddressRepository(db, logrus.New())
+	addresses, err := repo.GetUserAddress(context.Background(), userID)
 
-			result, err := mockRepo.GetUserAddress(context.Background(), test.userID)
-
-			assert.Equal(t, test.expectedResult, result)
-			assert.Equal(t, test.expectedError, err)
-		})
-	}
+	assert.NoError(t, err)
+	assert.Len(t, *addresses, 1)
+	assert.Equal(t, addressID, (*addresses)[0].ID)
+	assert.Equal(t, null.StringFrom("Home"), (*addresses)[0].Label)
+	assert.Equal(t, null.StringFrom("Test Region"), (*addresses)[0].Region)
+	assert.Equal(t, null.StringFrom("Test City"), (*addresses)[0].City)
+	assert.Equal(t, null.StringFrom("Test Address"), (*addresses)[0].AddressString)
+	assert.Equal(t, null.StringFrom("10.0,20.0"), (*addresses)[0].Coordinate)
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
-func TestGetAllPickupPoints(t *testing.T) {
-	testPoints := []models.AddressDB{
-		{
-			ID:            uuid.New(),
-			Region:        null.StringFrom("Region1"),
-			City:          null.StringFrom("City1"),
-			AddressString: null.StringFrom("Address1"),
-			Coordinate:    null.StringFrom("0,0"),
-		},
-		{
-			ID:            uuid.New(),
-			Region:        null.StringFrom("Region2"),
-			City:          null.StringFrom("City2"),
-			AddressString: null.StringFrom("Address2"),
-			Coordinate:    null.StringFrom("1,1"),
-		},
+func TestGetUserAddress_QueryError(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
 	}
+	defer db.Close()
 
-	tests := []struct {
-		name           string
-		mockBehavior   func(*mocks.MockIAddressRepository)
-		expectedResult *[]models.AddressDB
-		expectedError  error
-	}{
-		{
-			name: "Success",
-			mockBehavior: func(m *mocks.MockIAddressRepository) {
-				m.EXPECT().GetAllPickupPoints(gomock.Any()).Return(&testPoints, nil)
-			},
-			expectedResult: &testPoints,
-			expectedError:  nil,
-		},
-		{
-			name: "Error",
-			mockBehavior: func(m *mocks.MockIAddressRepository) {
-				m.EXPECT().GetAllPickupPoints(gomock.Any()).Return(nil, errors.New("database error"))
-			},
-			expectedResult: nil,
-			expectedError:  errors.New("database error"),
-		},
+	userID := uuid.New()
+
+	mock.ExpectQuery("SELECT a.id, ua.label, a.region, a.city, a.address_string, a.coordinate").
+		WithArgs(userID.String()).
+		WillReturnError(errors.New("database error"))
+
+	repo := address2.NewAddressRepository(db, logrus.New())
+	addresses, err := repo.GetUserAddress(context.Background(), userID)
+
+	assert.Nil(t, addresses)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "database error")
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestGetUserAddress_ScanError(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
 	}
+	defer db.Close()
 
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
+	userID := uuid.New()
 
-			mockRepo := mocks.NewMockIAddressRepository(ctrl)
-			test.mockBehavior(mockRepo)
+	rows := sqlmock.NewRows([]string{"id", "label", "region", "city", "address_string", "coordinate"}).
+		AddRow("invalid_uuid", "Home", "Test Region", "Test City", "Test Address", "10.0,20.0")
 
-			result, err := mockRepo.GetAllPickupPoints(context.Background())
+	mock.ExpectQuery("SELECT a.id, ua.label, a.region, a.city, a.address_string, a.coordinate").
+		WithArgs(userID.String()).
+		WillReturnRows(rows)
 
-			assert.Equal(t, test.expectedResult, result)
-			assert.Equal(t, test.expectedError, err)
-		})
+	repo := address2.NewAddressRepository(db, logrus.New())
+	addresses, err := repo.GetUserAddress(context.Background(), userID)
+
+	assert.Nil(t, addresses)
+	assert.Error(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestGetAllPickupPoints_Success(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
 	}
+	defer db.Close()
+
+	addressID := uuid.New()
+
+	rows := sqlmock.NewRows([]string{"id", "region", "city", "address_string", "coordinate"}).
+		AddRow(
+			addressID,
+			"Test Region",
+			"Test City",
+			"Test Address",
+			"10.0,20.0",
+		)
+
+	mock.ExpectQuery("SELECT a.id, a.region, a.city, a.address_string, a.coordinate").
+		WillReturnRows(rows)
+
+	repo := address2.NewAddressRepository(db, logrus.New())
+	points, err := repo.GetAllPickupPoints(context.Background())
+
+	assert.NoError(t, err)
+	assert.Len(t, *points, 1)
+	assert.Equal(t, addressID, (*points)[0].ID)
+	assert.Equal(t, null.StringFrom("Test Region"), (*points)[0].Region)
+	assert.Equal(t, null.StringFrom("Test City"), (*points)[0].City)
+	assert.Equal(t, null.StringFrom("Test Address"), (*points)[0].AddressString)
+	assert.Equal(t, null.StringFrom("10.0,20.0"), (*points)[0].Coordinate)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestGetAllPickupPoints_QueryError(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	mock.ExpectQuery("SELECT a.id, a.region, a.city, a.address_string, a.coordinate").
+		WillReturnError(errors.New("database error"))
+
+	repo := address2.NewAddressRepository(db, logrus.New())
+	points, err := repo.GetAllPickupPoints(context.Background())
+
+	assert.Nil(t, points)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "database error")
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestGetAllPickupPoints_ScanError(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	rows := sqlmock.NewRows([]string{"id", "region", "city", "address_string", "coordinate"}).
+		AddRow("invalid_uuid", "Test Region", "Test City", "Test Address", "10.0,20.0")
+
+	mock.ExpectQuery("SELECT a.id, a.region, a.city, a.address_string, a.coordinate").
+		WillReturnRows(rows)
+
+	repo := address2.NewAddressRepository(db, logrus.New())
+	points, err := repo.GetAllPickupPoints(context.Background())
+
+	assert.Nil(t, points)
+	assert.Error(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
