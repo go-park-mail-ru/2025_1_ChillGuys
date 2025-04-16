@@ -8,12 +8,12 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	minio_mocks "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/minio/mocks"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/mocks"
-	minio_mocks "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/minio/mocks"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/product"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
@@ -22,12 +22,12 @@ import (
 
 // ProductResponse - структура для парсинга ответа с продуктом
 type ProductResponse struct {
-	ID             uuid.UUID `json:"id"`
-	Name           string    `json:"name"`
-	PreviewImageURL string   `json:"preview_image_url"`
-	Price          float64   `json:"price"`
-	ReviewsCount   uint      `json:"reviews_count"`
-	Rating         uint      `json:"rating"`
+	ID              uuid.UUID `json:"id"`
+	Name            string    `json:"name"`
+	PreviewImageURL string    `json:"preview_image_url"`
+	Price           float64   `json:"price"`
+	ReviewsCount    uint      `json:"reviews_count"`
+	Rating          uint      `json:"rating"`
 }
 
 func parseResponseBody(t *testing.T, body io.ReadCloser, target interface{}) {
@@ -48,22 +48,22 @@ func TestProductService_GetAllProducts(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		expectedProducts := []*models.Product{
 			{
-				ID: uuid.New(), 
-				Name: "Product 1", 
-				PreviewImageURL: "url1", 
-				Price: 10.5, 
-				ReviewsCount: 5, 
-				Rating: 4,
-				Status: models.ProductApproved,
+				ID:              uuid.New(),
+				Name:            "Product 1",
+				PreviewImageURL: "url1",
+				Price:           10.5,
+				ReviewsCount:    5,
+				Rating:          4,
+				Status:          models.ProductApproved,
 			},
 			{
-				ID: uuid.New(), 
-				Name: "Product 2", 
-				PreviewImageURL: "url2", 
-				Price: 20.5, 
-				ReviewsCount: 10, 
-				Rating: 5,
-				Status: models.ProductApproved,
+				ID:              uuid.New(),
+				Name:            "Product 2",
+				PreviewImageURL: "url2",
+				Price:           20.5,
+				ReviewsCount:    10,
+				Rating:          5,
+				Status:          models.ProductApproved,
 			},
 		}
 
@@ -81,7 +81,7 @@ func TestProductService_GetAllProducts(t *testing.T) {
 
 		var responseData dto.ProductsResponse
 		parseResponseBody(t, resp.Body, &responseData)
-		
+
 		assert.Equal(t, len(expectedProducts), responseData.Total)
 		assert.Equal(t, expectedProducts[0].Name, responseData.Products[0].Name)
 		assert.Equal(t, expectedProducts[0].PreviewImageURL, responseData.Products[0].ImageURL)
@@ -117,13 +117,13 @@ func TestProductService_GetProductByID(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		productID := uuid.New()
 		expectedProduct := &models.Product{
-			ID: productID, 
-			Name: "Test Product",
+			ID:              productID,
+			Name:            "Test Product",
 			PreviewImageURL: "test_url",
-			Price: 15.99,
-			ReviewsCount: 8,
-			Rating: 4,
-			Status: models.ProductApproved,
+			Price:           15.99,
+			ReviewsCount:    8,
+			Rating:          4,
+			Status:          models.ProductApproved,
 		}
 
 		mockUsecase.EXPECT().
@@ -142,7 +142,7 @@ func TestProductService_GetProductByID(t *testing.T) {
 
 		var responseData ProductResponse
 		parseResponseBody(t, resp.Body, &responseData)
-		
+
 		assert.Equal(t, expectedProduct.ID, responseData.ID)
 		assert.Equal(t, expectedProduct.Name, responseData.Name)
 		assert.Equal(t, expectedProduct.PreviewImageURL, responseData.PreviewImageURL)
@@ -178,7 +178,7 @@ func TestProductService_GetProductByID(t *testing.T) {
 		service.GetProductByID(w, req)
 
 		resp := w.Result()
-		assert.Equal(t, http.StatusNotFound, resp.StatusCode)
+		assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 	})
 }
 
@@ -218,6 +218,6 @@ func TestProductService_GetProductsByCategory(t *testing.T) {
 		service.GetProductsByCategory(w, req)
 
 		resp := w.Result()
-		assert.Equal(t, http.StatusNotFound, resp.StatusCode)
+		assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 	})
 }

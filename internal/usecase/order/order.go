@@ -14,6 +14,7 @@ import (
 	"time"
 )
 
+//go:generate mockgen -source=order.go -destination=../mocks/order_usecase_mock.go -package=mocks IOrderUsecase
 type IOrderUsecase interface {
 	CreateOrder(context.Context, dto.CreateOrderDTO) error
 	GetUserOrders(context.Context, uuid.UUID) (*[]dto.OrderPreviewDTO, error)

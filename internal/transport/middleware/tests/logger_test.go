@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/domains"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/domains"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/logctx"
 	"github.com/sirupsen/logrus"
@@ -37,7 +37,7 @@ func TestLogRequest(t *testing.T) {
 	// Создаем тестовый обработчик, который проверит контекст
 	nextHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Проверяем наличие request_id в контексте
-		reqID, ok := r.Context().Value(domains.ReqIDKey).(string)
+		reqID, ok := r.Context().Value(domains.ReqIDKey{}).(string)
 		require.True(t, ok, "Request ID should be in context")
 		assert.NotEmpty(t, reqID, "Request ID should not be empty")
 
@@ -109,11 +109,11 @@ func TestLogRequest_ContextValues(t *testing.T) {
 	middleware.ServeHTTP(rec, req)
 
 	// Проверяем значения в контексте
-	reqID, ok := ctx.Value(domains.ReqIDKey).(string)
+	reqID, ok := ctx.Value(domains.ReqIDKey{}).(string)
 	require.True(t, ok, "Request ID should be in context")
 	assert.NotEmpty(t, reqID, "Request ID should not be empty")
 
-	loggerEntry, ok := ctx.Value(domains.LoggerKey).(*logrus.Entry)
+	loggerEntry, ok := ctx.Value(domains.LoggerKey{}).(*logrus.Entry)
 	require.True(t, ok, "Logger should be in context")
 	assert.Equal(t, reqID, loggerEntry.Data["request_id"], "Logger should have correct request_id")
 

@@ -9,6 +9,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+//go:generate mockgen -source=address.go -destination=../mocks/address_usecase_mock.go -package=mocks IAddressUsecase
 type IAddressUsecase interface {
 	CreateAddress(context.Context, uuid.UUID, dto.AddressDTO) error
 	GetAddresses(context.Context, uuid.UUID) ([]dto.GetAddressResDTO, error)
@@ -16,8 +17,8 @@ type IAddressUsecase interface {
 }
 
 type AddressUsecase struct {
-	repo address.IAddressRepository
-	log  *logrus.Logger
+	Repo address.IAddressRepository
+	Log  *logrus.Logger
 }
 
 func NewAddressUsecase(
@@ -25,8 +26,8 @@ func NewAddressUsecase(
 	log *logrus.Logger,
 ) *AddressUsecase {
 	return &AddressUsecase{
-		repo: repo,
-		log:  log,
+		Repo: repo,
+		Log:  log,
 	}
 }
 
@@ -40,13 +41,13 @@ func (u *AddressUsecase) CreateAddress(ctx context.Context, userID uuid.UUID, in
 		Coordinate:    in.Coordinate,
 	}
 
-	addrID, err := u.repo.CheckAddressExists(ctx, addr)
+	addrID, err := u.Repo.CheckAddressExists(ctx, addr)
 	if err != nil {
 		return err
 	}
 
 	if addrID == uuid.Nil {
-		if err = u.repo.CreateAddress(ctx, addr); err != nil {
+		if err = u.Repo.CreateAddress(ctx, addr); err != nil {
 			return err
 		}
 	} else {
@@ -60,11 +61,11 @@ func (u *AddressUsecase) CreateAddress(ctx context.Context, userID uuid.UUID, in
 		AddressID: addressID,
 	}
 
-	return u.repo.CreateUserAddress(ctx, userAddr)
+	return u.Repo.CreateUserAddress(ctx, userAddr)
 }
 
 func (u *AddressUsecase) GetAddresses(ctx context.Context, userID uuid.UUID) ([]dto.GetAddressResDTO, error) {
-	addresses, err := u.repo.GetUserAddress(ctx, userID)
+	addresses, err := u.Repo.GetUserAddress(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +84,7 @@ func (u *AddressUsecase) GetAddresses(ctx context.Context, userID uuid.UUID) ([]
 }
 
 func (u *AddressUsecase) GetPickupPoints(ctx context.Context) ([]dto.GetPointAddressResDTO, error) {
-	points, err := u.repo.GetAllPickupPoints(ctx)
+	points, err := u.Repo.GetAllPickupPoints(ctx)
 	if err != nil {
 		return nil, err
 	}

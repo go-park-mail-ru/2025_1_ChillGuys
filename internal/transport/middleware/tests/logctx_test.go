@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/domains"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/domains"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/logctx"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -16,7 +16,7 @@ func TestWithLogger(t *testing.T) {
 
 	ctx = logctx.WithLogger(ctx, logger)
 
-	retrieved, ok := ctx.Value(domains.LoggerKey).(*logrus.Entry)
+	retrieved, ok := ctx.Value(domains.LoggerKey{}).(*logrus.Entry)
 	assert.True(t, ok, "Should retrieve logger from context")
 	assert.Equal(t, logger, retrieved, "Retrieved logger should match stored one")
 }
