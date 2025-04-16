@@ -18,6 +18,7 @@ type Config struct {
 	JWTConfig        *JWTConfig
 	MigrationsConfig *MigrationsConfig
 	GeoapifyConfig   *GeoapifyConfig
+	CSRFConfig       *CSRFConfig
 }
 
 // NewConfig загружает переменные окружения и инициализирует все компоненты конфига.
@@ -52,6 +53,11 @@ func NewConfig() (*Config, error) {
 	}
 
 	geoapifyConfig, err := newGeoapifyConfig()
+  if err != nil {
+		return nil, err
+	}
+  
+	csrfConfig, err := newCSRFConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -63,6 +69,7 @@ func NewConfig() (*Config, error) {
 		JWTConfig:        jwtConfig,
 		MigrationsConfig: migrationsConfig,
 		GeoapifyConfig:   geoapifyConfig,
+		CSRFConfig:       csrfConfig,
 	}, nil
 }
 
@@ -262,6 +269,31 @@ func newGeoapifyConfig() (*GeoapifyConfig, error) {
 	}
 	return &GeoapifyConfig{
 		APIKey: apiKey,
+	}, nil
+}
+
+type CSRFConfig struct {
+	SecretKey    string
+	TokenExpiry  time.Duration
+	CookieName   string
+	SecureCookie bool
+}
+
+func newCSRFConfig() (*CSRFConfig, error) {
+	secretKey, exists := os.LookupEnv("CSRF_SECRET_KEY")
+	if !exists {
+		return nil, errors.New("CSRF_SECRET_KEY is not set")
+	}
+
+	tokenExpiry := getEnvAsDuration("CSRF_TOKEN_EXPIRY", 24*time.Hour)
+	cookieName := getEnvWithDefault("CSRF_COOKIE_NAME", "_csrf")
+	secureCookie := getEnvWithDefault("CSRF_SECURE_COOKIE", "true") == "true"
+
+	return &CSRFConfig{
+		SecretKey:    secretKey,
+		TokenExpiry:  tokenExpiry,
+		CookieName:   cookieName,
+		SecureCookie: secureCookie,
 	}, nil
 }
 
