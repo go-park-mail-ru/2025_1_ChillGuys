@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/validator"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/domains"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
@@ -74,14 +76,20 @@ func (h *AddressHandler) CreateAddress(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Проверяем только addressString
+	if createAddressReq.Label.Valid && strings.TrimSpace(createAddressReq.Label.String) != "" {
+		if err := validator.ValidateLabel(createAddressReq.Label.String); err != nil {
+			logger.WithError(err).Error("invalid address label")
+			response.SendJSONError(r.Context(), w, http.StatusBadRequest, err.Error())
+			return
+		}
+	}
+
 	if !createAddressReq.AddressString.Valid || createAddressReq.AddressString.String == "" {
 		logger.Error("address string is required")
 		response.SendJSONError(r.Context(), w, http.StatusBadRequest, "address string is required")
 		return
 	}
 
-	// Остальной код остается без изменений
 	userIDStr, ok := r.Context().Value(domains.UserIDKey{}).(string)
 	if !ok {
 		logger.Error("auth not found in context")
@@ -133,7 +141,7 @@ func (h *AddressHandler) CreateAddress(w http.ResponseWriter, r *http.Request) {
 func (h *AddressHandler) geocodeAddress(ctx context.Context, address dto.AddressDTO) (*GeoapifyResponse, error) {
 	const op = "AddressHandler.geocodeAddress"
 	logger := logctx.GetLogger(ctx).WithField("op", op)
-	
+
 	if !address.AddressString.Valid || address.AddressString.String == "" {
 		logger.Error("address string is empty")
 		return nil, fmt.Errorf("%s: address string is empty", op)
