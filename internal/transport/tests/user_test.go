@@ -37,7 +37,7 @@ func TestUserHandler_GetMe(t *testing.T) {
 	minio, err := minio.NewMinioProvider(minioConfig, logger)
 	assert.Error(t, err)
 
-	handler := user.NewUserHandler(mockUserUsecase, logger, minio, &config.Config{})
+	handler := user.NewUserHandler(mockUserUsecase, minio, &config.Config{})
 
 	userID := uuid.New()
 

@@ -14,6 +14,11 @@ var (
 	lowercaseRegexp   = regexp.MustCompile(`[a-z]`)
 	uppercaseRegexp   = regexp.MustCompile(`[A-Z]`)
 	phoneNumberRegexp = regexp.MustCompile(`^(?:\+?\d{1,3})?[\s\-]?\(?\d{1,4}\)?[\s\-]?\d{1,4}[\s\-]?\d{1,4}$`)
+	allowedImageTypes = map[string]bool{
+		"image/jpeg": true,
+		"image/png":  true,
+		"image/webp": true,
+	}
 )
 
 func ValidateLoginCreds(req dto.UserLoginRequestDTO) error {
@@ -141,6 +146,13 @@ func validatePhoneNumber(phone string) error {
 		return errors.New("invalid phone number format")
 	}
 
+	return nil
+}
+
+func ValidateImageContentType(contentType string) error {
+	if !allowedImageTypes[contentType] {
+		return errors.New("unsupported file type")
+	}
 	return nil
 }
 

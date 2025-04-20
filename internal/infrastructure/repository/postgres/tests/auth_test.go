@@ -13,7 +13,6 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
 	"github.com/google/uuid"
 	"github.com/guregu/null"
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -72,7 +71,7 @@ func TestCreateUser_Success(t *testing.T) {
 
 	mock.ExpectCommit()
 
-	repo := auth2.NewAuthRepository(db, logrus.New())
+	repo := auth2.NewAuthRepository(db)
 	err = repo.CreateUser(context.Background(), user)
 
 	assert.NoError(t, err)
@@ -103,7 +102,7 @@ func TestCreateUser_TransactionError(t *testing.T) {
 
 	mock.ExpectBegin().WillReturnError(errors.New("transaction error"))
 
-	repo := auth2.NewAuthRepository(db, logrus.New())
+	repo := auth2.NewAuthRepository(db)
 	err = repo.CreateUser(context.Background(), user)
 
 	assert.Error(t, err)
@@ -146,7 +145,7 @@ func TestCreateUser_InsertUserError(t *testing.T) {
 		WillReturnError(errors.New("insert user error"))
 	mock.ExpectRollback()
 
-	repo := auth2.NewAuthRepository(db, logrus.New())
+	repo := auth2.NewAuthRepository(db)
 	err = repo.CreateUser(context.Background(), user)
 
 	assert.Error(t, err)
@@ -170,7 +169,7 @@ func TestGetUserCurrentVersion_Success(t *testing.T) {
 		WithArgs(userID).
 		WillReturnRows(rows)
 
-	repo := auth2.NewAuthRepository(db, logrus.New())
+	repo := auth2.NewAuthRepository(db)
 	result, err := repo.GetUserCurrentVersion(context.Background(), userID)
 
 	assert.NoError(t, err)
@@ -191,7 +190,7 @@ func TestGetUserCurrentVersion_NotFound(t *testing.T) {
 		WithArgs(userID).
 		WillReturnError(sql.ErrNoRows)
 
-	repo := auth2.NewAuthRepository(db, logrus.New())
+	repo := auth2.NewAuthRepository(db)
 	_, err = repo.GetUserCurrentVersion(context.Background(), userID)
 
 	assert.Error(t, err)
@@ -228,7 +227,7 @@ func TestGetUserByEmail_Success(t *testing.T) {
 		WithArgs(email).
 		WillReturnRows(rows)
 
-	repo := auth2.NewAuthRepository(db, logrus.New())
+	repo := auth2.NewAuthRepository(db)
 	user, err := repo.GetUserByEmail(context.Background(), email)
 
 	assert.NoError(t, err)
@@ -257,7 +256,7 @@ func TestGetUserByEmail_NotFound(t *testing.T) {
 		WithArgs(email).
 		WillReturnError(sql.ErrNoRows)
 
-	repo := auth2.NewAuthRepository(db, logrus.New())
+	repo := auth2.NewAuthRepository(db)
 	user, err := repo.GetUserByEmail(context.Background(), email)
 
 	assert.Nil(t, user)
@@ -295,7 +294,7 @@ func TestGetUserByID_Success(t *testing.T) {
 		WithArgs(userID).
 		WillReturnRows(rows)
 
-	repo := auth2.NewAuthRepository(db, logrus.New())
+	repo := auth2.NewAuthRepository(db)
 	user, err := repo.GetUserByID(context.Background(), userID)
 
 	assert.NoError(t, err)
@@ -325,7 +324,7 @@ func TestGetUserByID_NotFound(t *testing.T) {
 		WithArgs(userID).
 		WillReturnError(sql.ErrNoRows)
 
-	repo := auth2.NewAuthRepository(db, logrus.New())
+	repo := auth2.NewAuthRepository(db)
 	user, err := repo.GetUserByID(context.Background(), userID)
 
 	assert.Nil(t, user)
@@ -347,7 +346,7 @@ func TestIncrementUserVersion_Success(t *testing.T) {
 		WithArgs(userID).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
-	repo := auth2.NewAuthRepository(db, logrus.New())
+	repo := auth2.NewAuthRepository(db)
 	err = repo.IncrementUserVersion(context.Background(), userID)
 
 	assert.NoError(t, err)
@@ -367,7 +366,7 @@ func TestIncrementUserVersion_NotFound(t *testing.T) {
 		WithArgs(userID).
 		WillReturnResult(sqlmock.NewResult(0, 0))
 
-	repo := auth2.NewAuthRepository(db, logrus.New())
+	repo := auth2.NewAuthRepository(db)
 	err = repo.IncrementUserVersion(context.Background(), userID)
 
 	assert.Error(t, err)
@@ -391,7 +390,7 @@ func TestCheckUserVersion_Success(t *testing.T) {
 		WithArgs(userID).
 		WillReturnRows(rows)
 
-	repo := auth2.NewAuthRepository(db, logrus.New())
+	repo := auth2.NewAuthRepository(db)
 	result := repo.CheckUserVersion(context.Background(), userID, version)
 
 	assert.True(t, result)
@@ -415,7 +414,7 @@ func TestCheckUserVersion_NotEqual(t *testing.T) {
 		WithArgs(userID).
 		WillReturnRows(rows)
 
-	repo := auth2.NewAuthRepository(db, logrus.New())
+	repo := auth2.NewAuthRepository(db)
 	result := repo.CheckUserVersion(context.Background(), userID, checkVersion)
 
 	assert.False(t, result)
@@ -438,7 +437,7 @@ func TestCheckUserExists_Success(t *testing.T) {
 		WithArgs(email).
 		WillReturnRows(rows)
 
-	repo := auth2.NewAuthRepository(db, logrus.New())
+	repo := auth2.NewAuthRepository(db)
 	result, err := repo.CheckUserExists(context.Background(), email)
 
 	assert.NoError(t, err)
@@ -459,7 +458,7 @@ func TestCheckUserExists_QueryError(t *testing.T) {
 		WithArgs(email).
 		WillReturnError(errors.New("database error"))
 
-	repo := auth2.NewAuthRepository(db, logrus.New())
+	repo := auth2.NewAuthRepository(db)
 	_, err = repo.CheckUserExists(context.Background(), email)
 
 	assert.Error(t, err)

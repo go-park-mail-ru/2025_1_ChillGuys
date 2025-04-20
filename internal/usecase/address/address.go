@@ -21,14 +21,14 @@ type IAddressUsecase interface {
 }
 
 type AddressUsecase struct {
-	repo address.IAddressRepository
+	Repo address.IAddressRepository
 }
 
 func NewAddressUsecase(
 	repo address.IAddressRepository,
 ) *AddressUsecase {
 	return &AddressUsecase{
-		repo: repo,
+		Repo: repo,
 	}
 }
 
@@ -37,7 +37,7 @@ func (u *AddressUsecase) CreateAddress(ctx context.Context, userID uuid.UUID, in
 	logger := logctx.GetLogger(ctx).WithField("op", op).
 		WithField("user_id", userID).
 		WithField("address", in)
-		
+
 	addressID := uuid.New()
 	addr := models.AddressDB{
 		ID:            addressID,
@@ -53,7 +53,7 @@ func (u *AddressUsecase) CreateAddress(ctx context.Context, userID uuid.UUID, in
 	}
 
 	if addrID == uuid.Nil {
-		if err = u.repo.CreateAddress(ctx, addr); err != nil {
+		if err = u.Repo.CreateAddress(ctx, addr); err != nil {
 			logger.WithError(err).Error("create address")
 			return fmt.Errorf("%s: %w", op, err)
 		}
@@ -68,7 +68,7 @@ func (u *AddressUsecase) CreateAddress(ctx context.Context, userID uuid.UUID, in
 		AddressID: addressID,
 	}
 
-	if err := u.repo.CreateUserAddress(ctx, userAddr); err != nil {
+	if err := u.Repo.CreateUserAddress(ctx, userAddr); err != nil {
 		logger.WithError(err).Error("create user address")
 		return fmt.Errorf("%s: %w", op, err)
 	}
@@ -79,8 +79,8 @@ func (u *AddressUsecase) CreateAddress(ctx context.Context, userID uuid.UUID, in
 func (u *AddressUsecase) GetAddresses(ctx context.Context, userID uuid.UUID) ([]dto.GetAddressResDTO, error) {
 	const op = "AddressUsecase.GetAddresses"
 	logger := logctx.GetLogger(ctx).WithField("op", op).WithField("user_id", userID)
-	
-	addresses, err := u.repo.GetUserAddress(ctx, userID)
+
+	addresses, err := u.Repo.GetUserAddress(ctx, userID)
 	if err != nil {
 		if errors.Is(err, errs.ErrNotFound) {
 			logger.Warn("no addresses found for user")
@@ -107,7 +107,7 @@ func (u *AddressUsecase) GetPickupPoints(ctx context.Context) ([]dto.GetPointAdd
 	const op = "AddressUsecase.GetPickupPoints"
 	logger := logctx.GetLogger(ctx).WithField("op", op)
 
-	points, err := u.repo.GetAllPickupPoints(ctx)
+	points, err := u.Repo.GetAllPickupPoints(ctx)
 	if err != nil {
 		if errors.Is(err, errs.ErrNotFound) {
 			logger.Warn("no pickup points found")

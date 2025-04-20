@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/domains"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
 	"github.com/google/uuid"
 	"net/http"
@@ -26,36 +25,37 @@ func CSRFMiddleware(tokenator *jwt.Tokenator, next http.Handler, cfg *config.CSR
 			return
 		}
 
-		jwtCookie, err := r.Cookie(string(domains.TokenCookieName))
-		if err != nil {
-			http.Error(w, "JWT token required", http.StatusForbidden)
-			return
-		}
-		jwtToken := jwtCookie.Value
-
-		claims, err := tokenator.ParseJWT(jwtToken)
-		if err != nil {
-			http.Error(w, "Invalid JWT token", http.StatusForbidden)
-			return
-		}
-
-		userID, err := uuid.Parse(claims.UserID)
-		if err != nil {
-			http.Error(w, "Invalid user ID in token", http.StatusForbidden)
-			return
-		}
-
-		token := r.Header.Get(CSRFTokenHeader)
-		if token == "" {
-			http.Error(w, "CSRF token missing", http.StatusForbidden)
-			return
-		}
-
-		valid, err := CheckCSRFToken(jwtToken, userID, token, cfg.SecretKey)
-		if err != nil || !valid {
-			http.Error(w, "Invalid CSRF token", http.StatusForbidden)
-			return
-		}
+		//FIXME: включить для прода
+		//jwtCookie, err := r.Cookie(string(domains.TokenCookieName))
+		//if err != nil {
+		//	http.Error(w, "JWT token required", http.StatusForbidden)
+		//	return
+		//}
+		//jwtToken := jwtCookie.Value
+		//
+		//claims, err := tokenator.ParseJWT(jwtToken)
+		//if err != nil {
+		//	http.Error(w, "Invalid JWT token", http.StatusForbidden)
+		//	return
+		//}
+		//
+		//userID, err := uuid.Parse(claims.UserID)
+		//if err != nil {
+		//	http.Error(w, "Invalid user ID in token", http.StatusForbidden)
+		//	return
+		//}
+		//
+		//token := r.Header.Get(CSRFTokenHeader)
+		//if token == "" {
+		//	http.Error(w, "CSRF token missing", http.StatusForbidden)
+		//	return
+		//}
+		//
+		//valid, err := CheckCSRFToken(jwtToken, userID, token, cfg.SecretKey)
+		//if err != nil || !valid {
+		//	http.Error(w, "Invalid CSRF token", http.StatusForbidden)
+		//	return
+		//}
 
 		next.ServeHTTP(w, r)
 	})

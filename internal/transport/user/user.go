@@ -41,19 +41,19 @@ func NewUserHandler(
 	}
 }
 
-//	@Summary		Получить информацию о себе
-//	@Description	Возвращает информацию о текущем авторизованном пользователе
-//	@Tags			users
-//	@Produce		json
-//	@Success		200	{object}	dto.UserDTO	"Информация о пользователе"
-//	@Failure		400	{string}	string		"Некорректный запрос"
-//	@Failure		401	{string}	string		"Пользователь не авторизован"
-//	@Failure		500	{string}	string		"Внутренняя ошибка сервера"
-//	@Router			/users/me [get]
+// @Summary		Получить информацию о себе
+// @Description	Возвращает информацию о текущем авторизованном пользователе
+// @Tags			users
+// @Produce		json
+// @Success		200	{object}	dto.UserDTO	"Информация о пользователе"
+// @Failure		400	{string}	string		"Некорректный запрос"
+// @Failure		401	{string}	string		"Пользователь не авторизован"
+// @Failure		500	{string}	string		"Внутренняя ошибка сервера"
+// @Router			/users/me [get]
 func (h *UserHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 	const op = "UserHandler.GetMe"
 	logger := logctx.GetLogger(r.Context()).WithField("op", op)
-	
+
 	user, err := h.userService.GetMe(r.Context())
 	if err != nil {
 		logger.WithError(err).Error("failed to get current user")
@@ -64,17 +64,17 @@ func (h *UserHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 	response.SendJSONResponse(r.Context(), w, http.StatusOK, user)
 }
 
-//	@Summary		Загрузить аватар
-//	@Description	Загружает изображение профиля пользователя
-//	@Tags			users
-//	@Accept			multipart/form-data
-//	@Produce		json
-//	@Param			file			formData	file				true	"Файл изображения"
-//	@Param			X-Csrf-Token	header		string				true	"CSRF-токен для защиты от подделки запросов"
-//	@Success		200				{object}	map[string]string	"URL загруженного аватара"
-//	@Failure		400				{string}	string				"Ошибка загрузки или обработки формы"
-//	@Failure		500				{string}	string				"Внутренняя ошибка сервера"
-//	@Router			/users/avatar [post]
+// @Summary		Загрузить аватар
+// @Description	Загружает изображение профиля пользователя
+// @Tags			users
+// @Accept			multipart/form-data
+// @Produce		json
+// @Param			file			formData	file				true	"Файл изображения"
+// @Param			X-Csrf-Token	header		string				true	"CSRF-токен для защиты от подделки запросов"
+// @Success		200				{object}	map[string]string	"URL загруженного аватара"
+// @Failure		400				{string}	string				"Ошибка загрузки или обработки формы"
+// @Failure		500				{string}	string				"Внутренняя ошибка сервера"
+// @Router			/users/avatar [post]
 func (h *UserHandler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 	const op = "UserHandler.UploadAvatar"
 	logger := logctx.GetLogger(r.Context()).WithField("op", op)
@@ -91,13 +91,19 @@ func (h *UserHandler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 		response.SendJSONError(r.Context(), w, http.StatusBadRequest, "no file uploaded")
 		return
 	}
-
 	defer file.Close()
 
 	fileBytes, err := io.ReadAll(file)
 	if err != nil {
 		logger.WithError(err).Error("failed to read file")
 		response.SendJSONError(r.Context(), w, http.StatusInternalServerError, "failed to read file")
+		return
+	}
+
+	contentType := http.DetectContentType(fileBytes)
+	if err := validator.ValidateImageContentType(contentType); err != nil {
+		logger.WithField("contentType", contentType).Error(err.Error())
+		response.SendJSONError(r.Context(), w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -118,22 +124,22 @@ func (h *UserHandler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-//	@Summary		Обновить профиль пользователя
-//	@Description	Обновляет основную информацию пользователя
-//	@Tags			users
-//	@Accept			json
-//	@Produce		json
-//	@Param			body			body		dto.UpdateUserProfileRequestDTO	true	"Данные для обновления профиля"
-//	@Param			X-Csrf-Token	header		string							true	"CSRF-токен для защиты от подделки запросов"
-//	@Success		200				{string}	string							"Профиль успешно обновлён"
-//	@Failure		400				{string}	string							"Невалидные данные"
-//	@Failure		500				{string}	string							"Ошибка при обновлении профиля"
-//	@Security		TokenAuth
-//	@Router			/users/update-profile [post]
+// @Summary		Обновить профиль пользователя
+// @Description	Обновляет основную информацию пользователя
+// @Tags			users
+// @Accept			json
+// @Produce		json
+// @Param			body			body		dto.UpdateUserProfileRequestDTO	true	"Данные для обновления профиля"
+// @Param			X-Csrf-Token	header		string							true	"CSRF-токен для защиты от подделки запросов"
+// @Success		200				{string}	string							"Профиль успешно обновлён"
+// @Failure		400				{string}	string							"Невалидные данные"
+// @Failure		500				{string}	string							"Ошибка при обновлении профиля"
+// @Security		TokenAuth
+// @Router			/users/update-profile [post]
 func (h *UserHandler) UpdateUserProfile(w http.ResponseWriter, r *http.Request) {
 	const op = "UserHandler.UpdateUserProfile"
 	logger := logctx.GetLogger(r.Context()).WithField("op", op)
-	
+
 	var updateReq dto.UpdateUserProfileRequestDTO
 	if err := request.ParseData(r, &updateReq); err != nil {
 		logger.WithError(err).Error("failed to parse request data")
@@ -156,18 +162,18 @@ func (h *UserHandler) UpdateUserProfile(w http.ResponseWriter, r *http.Request) 
 	response.SendJSONResponse(r.Context(), w, http.StatusOK, nil)
 }
 
-//	@Summary		Обновить email пользователя
-//	@Description	Обновляет email текущего пользователя
-//	@Tags			users
-//	@Accept			json
-//	@Produce		json
-//	@Param			body			body		dto.UpdateUserEmailDTO	true	"Новый email"
-//	@Param			X-Csrf-Token	header		string					true	"CSRF-токен для защиты от подделки запросов"
-//	@Success		200				{string}	string					"Email успешно обновлён"
-//	@Failure		400				{string}	string					"Невалидные данные"
-//	@Failure		500				{string}	string					"Ошибка при обновлении email"
-//	@Security		TokenAuth
-//	@Router			/users/update-email [post]
+// @Summary		Обновить email пользователя
+// @Description	Обновляет email текущего пользователя
+// @Tags			users
+// @Accept			json
+// @Produce		json
+// @Param			body			body		dto.UpdateUserEmailDTO	true	"Новый email"
+// @Param			X-Csrf-Token	header		string					true	"CSRF-токен для защиты от подделки запросов"
+// @Success		200				{string}	string					"Email успешно обновлён"
+// @Failure		400				{string}	string					"Невалидные данные"
+// @Failure		500				{string}	string					"Ошибка при обновлении email"
+// @Security		TokenAuth
+// @Router			/users/update-email [post]
 func (h *UserHandler) UpdateUserEmail(w http.ResponseWriter, r *http.Request) {
 	const op = "UserHandler.UpdateUserEmail"
 	logger := logctx.GetLogger(r.Context()).WithField("op", op)
@@ -194,18 +200,18 @@ func (h *UserHandler) UpdateUserEmail(w http.ResponseWriter, r *http.Request) {
 	response.SendJSONResponse(r.Context(), w, http.StatusOK, nil)
 }
 
-//	@Summary		Обновить пароль пользователя
-//	@Description	Меняет пароль текущего пользователя
-//	@Tags			users
-//	@Accept			json
-//	@Produce		json
-//	@Param			body			body		dto.UpdateUserPasswordDTO	true	"Старый и новый пароли"
-//	@Param			X-Csrf-Token	header		string						true	"CSRF-токен для защиты от подделки запросов"
-//	@Success		200				{string}	string						"Пароль успешно обновлён"
-//	@Failure		400				{string}	string						"Невалидные данные"
-//	@Failure		500				{string}	string						"Ошибка при обновлении пароля"
-//	@Security		TokenAuth
-//	@Router			/users/update-password [post]
+// @Summary		Обновить пароль пользователя
+// @Description	Меняет пароль текущего пользователя
+// @Tags			users
+// @Accept			json
+// @Produce		json
+// @Param			body			body		dto.UpdateUserPasswordDTO	true	"Старый и новый пароли"
+// @Param			X-Csrf-Token	header		string						true	"CSRF-токен для защиты от подделки запросов"
+// @Success		200				{string}	string						"Пароль успешно обновлён"
+// @Failure		400				{string}	string						"Невалидные данные"
+// @Failure		500				{string}	string						"Ошибка при обновлении пароля"
+// @Security		TokenAuth
+// @Router			/users/update-password [post]
 func (h *UserHandler) UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
 	const op = "UserHandler.UpdateUserPassword"
 	logger := logctx.GetLogger(r.Context()).WithField("op", op)

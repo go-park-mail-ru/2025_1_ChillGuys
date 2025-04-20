@@ -13,7 +13,6 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/guregu/null"
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -99,7 +98,7 @@ func TestCreateAddress(t *testing.T) {
 			repo := mocks.NewMockIAddressRepository(ctrl)
 			tt.mockSetup(repo)
 
-			uc := addressus.NewAddressUsecase(repo, logrus.New())
+			uc := addressus.NewAddressUsecase(repo)
 			err := uc.CreateAddress(context.Background(), tt.userID, tt.input)
 
 			if tt.expectedError != nil {
@@ -158,7 +157,7 @@ func TestGetAddresses(t *testing.T) {
 					Return(nil, errors.New("db error"))
 			},
 			expectedResult: nil,
-			expectedError:  errors.New("db error"),
+			expectedError:  errors.New("AddressUsecase.GetAddresses: db error"),
 		},
 	}
 
@@ -167,7 +166,7 @@ func TestGetAddresses(t *testing.T) {
 			repo := mocks.NewMockIAddressRepository(ctrl)
 			tt.mockSetup(repo)
 
-			uc := addressus.NewAddressUsecase(repo, logrus.New())
+			uc := addressus.NewAddressUsecase(repo)
 			res, err := uc.GetAddresses(context.Background(), tt.userID)
 
 			if tt.expectedError != nil {
@@ -221,7 +220,7 @@ func TestGetPickupPoints(t *testing.T) {
 					Return(nil, errors.New("db error"))
 			},
 			expectedResult: nil,
-			expectedError:  errors.New("db error"),
+			expectedError:  errors.New("AddressUsecase.GetPickupPoints: db error"),
 		},
 	}
 
@@ -230,7 +229,7 @@ func TestGetPickupPoints(t *testing.T) {
 			repo := mocks.NewMockIAddressRepository(ctrl)
 			tt.mockSetup(repo)
 
-			uc := addressus.NewAddressUsecase(repo, logrus.New())
+			uc := addressus.NewAddressUsecase(repo)
 			res, err := uc.GetPickupPoints(context.Background())
 
 			if tt.expectedError != nil {

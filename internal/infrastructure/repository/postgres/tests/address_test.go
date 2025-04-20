@@ -9,7 +9,6 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 	"github.com/google/uuid"
 	"github.com/guregu/null"
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -33,7 +32,7 @@ func TestCheckAddressExists_Success(t *testing.T) {
 		WithArgs(address.AddressString, address.Coordinate).
 		WillReturnRows(rows)
 
-	repo := address2.NewAddressRepository(db, logrus.New())
+	repo := address2.NewAddressRepository(db)
 	result, err := repo.CheckAddressExists(context.Background(), address)
 
 	assert.NoError(t, err)
@@ -57,7 +56,7 @@ func TestCheckAddressExists_NotFound(t *testing.T) {
 		WithArgs(address.AddressString, address.Coordinate).
 		WillReturnError(sql.ErrNoRows)
 
-	repo := address2.NewAddressRepository(db, logrus.New())
+	repo := address2.NewAddressRepository(db)
 	result, err := repo.CheckAddressExists(context.Background(), address)
 
 	assert.NoError(t, err)
@@ -81,7 +80,7 @@ func TestCheckAddressExists_QueryError(t *testing.T) {
 		WithArgs(address.AddressString, address.Coordinate).
 		WillReturnError(errors.New("database error"))
 
-	repo := address2.NewAddressRepository(db, logrus.New())
+	repo := address2.NewAddressRepository(db)
 	result, err := repo.CheckAddressExists(context.Background(), address)
 
 	assert.Error(t, err)
@@ -115,7 +114,7 @@ func TestCreateAddress_Success(t *testing.T) {
 		).
 		WillReturnRows(sqlmock.NewRows([]string{}))
 
-	repo := address2.NewAddressRepository(db, logrus.New())
+	repo := address2.NewAddressRepository(db)
 	err = repo.CreateAddress(context.Background(), address)
 
 	assert.NoError(t, err)
@@ -147,7 +146,7 @@ func TestCreateAddress_QueryError(t *testing.T) {
 		).
 		WillReturnError(errors.New("database error"))
 
-	repo := address2.NewAddressRepository(db, logrus.New())
+	repo := address2.NewAddressRepository(db)
 	err = repo.CreateAddress(context.Background(), address)
 
 	assert.Error(t, err)
@@ -178,7 +177,7 @@ func TestCreateUserAddress_Success(t *testing.T) {
 		).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
-	repo := address2.NewAddressRepository(db, logrus.New())
+	repo := address2.NewAddressRepository(db)
 	err = repo.CreateUserAddress(context.Background(), userAddress)
 
 	assert.NoError(t, err)
@@ -208,7 +207,7 @@ func TestCreateUserAddress_ExecError(t *testing.T) {
 		).
 		WillReturnError(errors.New("database error"))
 
-	repo := address2.NewAddressRepository(db, logrus.New())
+	repo := address2.NewAddressRepository(db)
 	err = repo.CreateUserAddress(context.Background(), userAddress)
 
 	assert.Error(t, err)
@@ -240,7 +239,7 @@ func TestGetUserAddress_Success(t *testing.T) {
 		WithArgs(userID.String()).
 		WillReturnRows(rows)
 
-	repo := address2.NewAddressRepository(db, logrus.New())
+	repo := address2.NewAddressRepository(db)
 	addresses, err := repo.GetUserAddress(context.Background(), userID)
 
 	assert.NoError(t, err)
@@ -267,7 +266,7 @@ func TestGetUserAddress_QueryError(t *testing.T) {
 		WithArgs(userID.String()).
 		WillReturnError(errors.New("database error"))
 
-	repo := address2.NewAddressRepository(db, logrus.New())
+	repo := address2.NewAddressRepository(db)
 	addresses, err := repo.GetUserAddress(context.Background(), userID)
 
 	assert.Nil(t, addresses)
@@ -292,7 +291,7 @@ func TestGetUserAddress_ScanError(t *testing.T) {
 		WithArgs(userID.String()).
 		WillReturnRows(rows)
 
-	repo := address2.NewAddressRepository(db, logrus.New())
+	repo := address2.NewAddressRepository(db)
 	addresses, err := repo.GetUserAddress(context.Background(), userID)
 
 	assert.Nil(t, addresses)
@@ -321,7 +320,7 @@ func TestGetAllPickupPoints_Success(t *testing.T) {
 	mock.ExpectQuery("SELECT a.id, a.region, a.city, a.address_string, a.coordinate").
 		WillReturnRows(rows)
 
-	repo := address2.NewAddressRepository(db, logrus.New())
+	repo := address2.NewAddressRepository(db)
 	points, err := repo.GetAllPickupPoints(context.Background())
 
 	assert.NoError(t, err)
@@ -344,7 +343,7 @@ func TestGetAllPickupPoints_QueryError(t *testing.T) {
 	mock.ExpectQuery("SELECT a.id, a.region, a.city, a.address_string, a.coordinate").
 		WillReturnError(errors.New("database error"))
 
-	repo := address2.NewAddressRepository(db, logrus.New())
+	repo := address2.NewAddressRepository(db)
 	points, err := repo.GetAllPickupPoints(context.Background())
 
 	assert.Nil(t, points)
@@ -366,7 +365,7 @@ func TestGetAllPickupPoints_ScanError(t *testing.T) {
 	mock.ExpectQuery("SELECT a.id, a.region, a.city, a.address_string, a.coordinate").
 		WillReturnRows(rows)
 
-	repo := address2.NewAddressRepository(db, logrus.New())
+	repo := address2.NewAddressRepository(db)
 	points, err := repo.GetAllPickupPoints(context.Background())
 
 	assert.Nil(t, points)
