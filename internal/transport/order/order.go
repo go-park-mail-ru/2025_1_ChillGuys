@@ -1,6 +1,7 @@
 package order
 
 import (
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/validator"
 	"net/http"
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/domains"
@@ -14,14 +15,14 @@ import (
 )
 
 type OrderService struct {
-	u   order.IOrderUsecase
+	u order.IOrderUsecase
 }
 
 func NewOrderService(
 	u order.IOrderUsecase,
 ) *OrderService {
 	return &OrderService{
-		u:   u,
+		u: u,
 	}
 }
 
@@ -44,7 +45,7 @@ func NewOrderService(
 func (o *OrderService) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	const op = "OrderService.CreateOrder"
 	logger := logctx.GetLogger(r.Context()).WithField("op", op)
-	
+
 	userIDStr, isExist := r.Context().Value(domains.UserIDKey{}).(string)
 	if !isExist {
 		logger.Error("user not found in context")
@@ -62,6 +63,12 @@ func (o *OrderService) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	var createOrderReq dto.CreateOrderDTO
 	if err := request.ParseData(r, &createOrderReq); err != nil {
 		logger.WithError(err).Error("parse request data")
+		response.SendJSONError(r.Context(), w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if err := validator.ValidateCreateOrderDTO(createOrderReq); err != nil {
+		logger.WithError(err).Error("invalid order data")
 		response.SendJSONError(r.Context(), w, http.StatusBadRequest, err.Error())
 		return
 	}

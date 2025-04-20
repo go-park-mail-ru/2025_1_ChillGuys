@@ -3,7 +3,9 @@ package validator
 import (
 	"errors"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
+	"github.com/google/uuid"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -14,12 +16,17 @@ var (
 	lowercaseRegexp   = regexp.MustCompile(`[a-z]`)
 	uppercaseRegexp   = regexp.MustCompile(`[A-Z]`)
 	phoneNumberRegexp = regexp.MustCompile(`^(?:\+?\d{1,3})?[\s\-]?\(?\d{1,4}\)?[\s\-]?\d{1,4}[\s\-]?\d{1,4}$`)
+	labelRegexp       = regexp.MustCompile(`^[a-zA-Zа-яА-ЯёЁ0-9\s\-]+$`)
 	allowedImageTypes = map[string]bool{
 		"image/jpeg": true,
 		"image/png":  true,
 		"image/webp": true,
 	}
 )
+
+func itoa(i int) string {
+	return strconv.Itoa(i)
+}
 
 func ValidateLoginCreds(req dto.UserLoginRequestDTO) error {
 	if err := validateEmail(req.Email); err != nil {
@@ -153,6 +160,37 @@ func ValidateImageContentType(contentType string) error {
 	if !allowedImageTypes[contentType] {
 		return errors.New("unsupported file type")
 	}
+	return nil
+}
+
+func ValidateLabel(label string) error {
+	if len(label) < 2 || len(label) > 32 {
+		return errors.New("label must be between 2 and 32 characters")
+	}
+	if !labelRegexp.MatchString(label) {
+		return errors.New("label can only contain letters, digits, spaces, and '-'")
+	}
+	return nil
+}
+
+func ValidateCreateOrderDTO(req dto.CreateOrderDTO) error {
+	if req.AddressID == uuid.Nil {
+		return errors.New("addressID is required")
+	}
+
+	if len(req.Items) == 0 {
+		return errors.New("order must contain at least one item")
+	}
+
+	for i, item := range req.Items {
+		if item.ProductID == uuid.Nil {
+			return errors.New("productID is required for item " + itoa(i+1))
+		}
+		if item.Quantity == 0 {
+			return errors.New("quantity must be greater than zero for item " + itoa(i+1))
+		}
+	}
+
 	return nil
 }
 
