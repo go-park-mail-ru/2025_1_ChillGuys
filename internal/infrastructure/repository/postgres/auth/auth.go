@@ -4,12 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/logctx"
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -58,13 +58,11 @@ const (
 
 type AuthRepository struct {
 	db  *sql.DB
-	log *logrus.Logger
 }
 
-func NewAuthRepository(db *sql.DB, log *logrus.Logger) *AuthRepository {
+func NewAuthRepository(db *sql.DB) *AuthRepository {
 	return &AuthRepository{
 		db:  db,
-		log: log,
 	}
 }
 
@@ -75,7 +73,7 @@ func (r *AuthRepository) CreateUser(ctx context.Context, user models.UserDB) err
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		logger.WithError(err).Error("begin transaction")
-		return err
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
 	_, err = tx.ExecContext(ctx, queryCreateUser,
@@ -93,7 +91,7 @@ func (r *AuthRepository) CreateUser(ctx context.Context, user models.UserDB) err
 	if err != nil {
 		logger.WithError(err).Error("create user version")
 		tx.Rollback()
-		return err
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
 	basketID := uuid.New()
@@ -103,12 +101,13 @@ func (r *AuthRepository) CreateUser(ctx context.Context, user models.UserDB) err
     )
     if err != nil {
 		logger.WithError(err).Error("failed to create basket")
-        return err
-    }
+		tx.Rollback()
+		return fmt.Errorf("%s: %w", op, err)
+	}
 
 	if err = tx.Commit(); err != nil {
 		logger.WithError(err).Error("commit transaction")
-		return err
+		return fmt.Errorf("%s: %w", op, err)
 	}
 	return nil
 }
@@ -124,10 +123,10 @@ func (r *AuthRepository) GetUserCurrentVersion(ctx context.Context, userID strin
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			logger.Warn("user version not found")
-			return 0, errs.NewNotFoundError(op)
+			return 0, fmt.Errorf("%s: %w", op, errs.NewNotFoundError(op))
 		}
 		logger.WithError(err).Error("get user version")
-		return 0, err
+		return 0, fmt.Errorf("%s: %w", op, err)
 	}
 
 	return version, nil
@@ -152,10 +151,10 @@ func (r *AuthRepository) GetUserByEmail(ctx context.Context, email string) (*mod
 	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			logger.Warn("user not found by email")
-			return nil, errs.NewNotFoundError(op)
+			return nil, fmt.Errorf("%s: %w", op, errs.NewNotFoundError(op))
 		}
 		logger.WithError(err).Error("get user by email")
-		return nil, err
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	user.UserVersion.UserID = user.ID
@@ -186,10 +185,10 @@ func (r *AuthRepository) GetUserByID(ctx context.Context, id uuid.UUID) (*models
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			logger.Warn("user not found by ID")
-			return nil, errs.NewNotFoundError(op)
+			return nil, fmt.Errorf("%s: %w", op, errs.NewNotFoundError(op))
 		}
 		logger.WithError(err).Error("get user by ID")
-		return nil, err
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	return &user, nil
@@ -202,18 +201,18 @@ func (r *AuthRepository) IncrementUserVersion(ctx context.Context, userID string
 	res, err := r.db.ExecContext(ctx, queryIncrementUserVersion, userID)
 	if err != nil {
 		logger.WithError(err).Error("increment version")
-		return err
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
 	rowsAffected, err := res.RowsAffected()
 	if err != nil {
 		logger.WithError(err).Error("get rows affected")
-		return err
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
 	if rowsAffected == 0 {
 		logger.Warn("no rows affected when incrementing version")
-		return errs.NewNotFoundError("address not found")
+		return fmt.Errorf("%s: %w", op, errs.NewNotFoundError("address not found"))
 	}
 
 	return nil
@@ -241,7 +240,7 @@ func (r *AuthRepository) CheckUserExists(ctx context.Context, email string) (boo
 
 	if err := r.db.QueryRowContext(ctx, queryCheckUserExists, email).Scan(&exists); err != nil {
 		logger.WithError(err).Error("failed to check user existence")
-		return false, err
+		return false, fmt.Errorf("%s: %w", op, err)
 	}
 
 	return exists, nil

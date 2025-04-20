@@ -11,7 +11,6 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/guregu/null"
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
@@ -35,7 +34,7 @@ func TestGetMe_Success(t *testing.T) {
 	ctx := context.WithValue(context.Background(), domains.UserIDKey{}, userID.String())
 	mockRepo.EXPECT().GetUserByID(ctx, userID).Return(userDB, nil)
 
-	usecase := user.NewUserUsecase(mockRepo, nil, logrus.New(), nil)
+	usecase := user.NewUserUsecase(mockRepo, nil, nil)
 
 	userDTO, err := usecase.GetMe(ctx)
 	require.NoError(t, err)
@@ -73,7 +72,7 @@ func TestUpdateUserProfile_Success(t *testing.T) {
 
 	mockRepo.EXPECT().UpdateUserProfile(ctx, userID, expected).Return(nil)
 
-	usecase := user.NewUserUsecase(mockRepo, nil, logrus.New(), nil)
+	usecase := user.NewUserUsecase(mockRepo, nil, nil)
 
 	err := usecase.UpdateUserProfile(ctx, update)
 	require.NoError(t, err)
@@ -98,7 +97,7 @@ func TestUpdateUserEmail_Success(t *testing.T) {
 	mockRepo.EXPECT().GetUserByID(ctx, userID).Return(userDB, nil)
 	mockRepo.EXPECT().UpdateUserEmail(ctx, userID, "new@example.com").Return(nil)
 
-	usecase := user.NewUserUsecase(mockRepo, nil, logrus.New(), nil)
+	usecase := user.NewUserUsecase(mockRepo, nil, nil)
 
 	dto := dto.UpdateUserEmailDTO{
 		Email:    "new@example.com",
@@ -127,7 +126,7 @@ func TestUpdateUserPassword_Success(t *testing.T) {
 	mockRepo.EXPECT().GetUserByID(ctx, userID).Return(us, nil)
 	mockRepo.EXPECT().UpdateUserPassword(ctx, userID, gomock.Any()).Return(nil)
 
-	usecase := user.NewUserUsecase(mockRepo, nil, logrus.New(), nil)
+	usecase := user.NewUserUsecase(mockRepo, nil, nil)
 
 	dto := dto.UpdateUserPasswordDTO{
 		OldPassword: oldPassword,

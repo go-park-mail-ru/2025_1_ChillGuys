@@ -11,7 +11,6 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/guregu/null"
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
@@ -23,9 +22,8 @@ func TestAuthHandler_Login(t *testing.T) {
 
 	defer ctrl.Finish()
 
-	logger := logrus.New()
 	mockAuthUsecase := mocks.NewMockIAuthUsecase(ctrl)
-	handler := auth.NewAuthHandler(mockAuthUsecase, logger, &config.Config{})
+	handler := auth.NewAuthHandler(mockAuthUsecase, &config.Config{})
 
 	tests := []struct {
 		name           string
@@ -120,10 +118,9 @@ func TestAuthHandler_Register(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	logger := logrus.New()
 	mockAuthUsecase := mocks.NewMockIAuthUsecase(ctrl)
 
-	handler := auth.NewAuthHandler(mockAuthUsecase, logger, &config.Config{})
+	handler := auth.NewAuthHandler(mockAuthUsecase, &config.Config{})
 
 	tests := []struct {
 		name           string
@@ -232,10 +229,9 @@ func TestAuthHandler_Logout(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	logger := logrus.New()
 	mockAuthUsecase := mocks.NewMockIAuthUsecase(ctrl)
 
-	handler := auth.NewAuthHandler(mockAuthUsecase, logger, &config.Config{})
+	handler := auth.NewAuthHandler(mockAuthUsecase, &config.Config{})
 
 	tests := []struct {
 		name           string

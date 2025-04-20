@@ -10,7 +10,6 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/guregu/null"
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
@@ -19,13 +18,12 @@ import (
 
 // Тест для получения всех адресов пользователя
 func TestGetAddress(t *testing.T) {
-	log := logrus.New()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	// Создаем мок репозитория и юзкейса
 	addressUsecase := mocks.NewMockIAddressUsecase(ctrl)
-	addressHandler := address.NewAddressHandler(addressUsecase, log, "geoapify-api-key")
+	addressHandler := address.NewAddressHandler(addressUsecase, "geoapify-api-key")
 
 	// Данные для теста
 	userID := uuid.New()
@@ -69,13 +67,12 @@ func TestGetAddress(t *testing.T) {
 }
 
 func TestGetPickupPoints(t *testing.T) {
-	log := logrus.New()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	// Создаем мок репозитория и юзкейса
 	addressUsecase := mocks.NewMockIAddressUsecase(ctrl)
-	addressHandler := address.NewAddressHandler(addressUsecase, log, "geoapify-api-key")
+	addressHandler := address.NewAddressHandler(addressUsecase, "geoapify-api-key")
 
 	// Данные для теста
 	points := []dto.GetPointAddressResDTO{

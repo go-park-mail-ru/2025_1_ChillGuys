@@ -4,15 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/url"
+
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/domains"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/logctx"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/request"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/response"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/address"
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
-	"net/http"
-	"net/url"
 )
 
 type GeoapifyResponse struct {
@@ -32,19 +33,16 @@ type GeoapifyFeature struct {
 
 type AddressHandler struct {
 	addressService address.IAddressUsecase
-	log            *logrus.Logger
 	geoapifyAPIKey string
 	httpClient     *http.Client
 }
 
 func NewAddressHandler(
 	u address.IAddressUsecase,
-	log *logrus.Logger,
 	geoapifyAPIKey string,
 ) *AddressHandler {
 	return &AddressHandler{
 		addressService: u,
-		log:            log,
 		geoapifyAPIKey: geoapifyAPIKey,
 		httpClient:     &http.Client{},
 	}
@@ -66,14 +64,19 @@ func NewAddressHandler(
 //	@Security		TokenAuth
 //	@Router			/addresses [post]
 func (h *AddressHandler) CreateAddress(w http.ResponseWriter, r *http.Request) {
+	const op = "AddressHandler.CreateAddress"
+	logger := logctx.GetLogger(r.Context()).WithField("op", op)
+
 	var createAddressReq dto.AddressDTO
 	if err := request.ParseData(r, &createAddressReq); err != nil {
+		logger.WithError(err).Error("parse request data")
 		response.SendJSONError(r.Context(), w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	// Проверяем только addressString
 	if !createAddressReq.AddressString.Valid || createAddressReq.AddressString.String == "" {
+		logger.Error("address string is required")
 		response.SendJSONError(r.Context(), w, http.StatusBadRequest, "address string is required")
 		return
 	}
@@ -81,19 +84,23 @@ func (h *AddressHandler) CreateAddress(w http.ResponseWriter, r *http.Request) {
 	// Остальной код остается без изменений
 	userIDStr, ok := r.Context().Value(domains.UserIDKey{}).(string)
 	if !ok {
+		logger.Error("auth not found in context")
 		response.SendJSONError(r.Context(), w, http.StatusUnauthorized, "auth not found in context")
 		return
 	}
 
 	userID, err := uuid.Parse(userIDStr)
 	if err != nil {
+		logger.WithError(err).Error("parse user ID")
 		response.SendJSONError(r.Context(), w, http.StatusBadRequest, "invalid auth id format")
 		return
 	}
 
+	logger = logger.WithField("user_id", userID)
+
 	geoData, err := h.geocodeAddress(r.Context(), createAddressReq)
 	if err != nil {
-		h.log.WithContext(r.Context()).Errorf("Geoapify API error: %v", err)
+		logger.WithError(err).Error("geoapify API error")
 		response.SendJSONError(r.Context(), w, http.StatusInternalServerError, "failed to validate address")
 		return
 	}
@@ -109,12 +116,14 @@ func (h *AddressHandler) CreateAddress(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if bestMatch == nil {
+		logger.Warn("no valid building address found")
 		response.SendJSONError(r.Context(), w, http.StatusBadRequest, "no valid building address found")
 		return
 	}
 
 	if err := h.addressService.CreateAddress(r.Context(), userID, createAddressReq); err != nil {
-		response.HandleDomainError(r.Context(), w, err, "failed to create address")
+		logger.WithError(err).Error("create address")
+		response.HandleDomainError(r.Context(), w, err, op)
 		return
 	}
 
@@ -122,8 +131,12 @@ func (h *AddressHandler) CreateAddress(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AddressHandler) geocodeAddress(ctx context.Context, address dto.AddressDTO) (*GeoapifyResponse, error) {
+	const op = "AddressHandler.geocodeAddress"
+	logger := logctx.GetLogger(ctx).WithField("op", op)
+	
 	if !address.AddressString.Valid || address.AddressString.String == "" {
-		return nil, fmt.Errorf("address string is empty")
+		logger.Error("address string is empty")
+		return nil, fmt.Errorf("%s: address string is empty", op)
 	}
 
 	encodedAddress := url.QueryEscape(address.AddressString.String)
@@ -134,13 +147,15 @@ func (h *AddressHandler) geocodeAddress(ctx context.Context, address dto.Address
 
 	req, err := http.NewRequestWithContext(ctx, "GET", apiURL, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
+		logger.WithError(err).Error("create request")
+		return nil, fmt.Errorf("%s: failed to create request: %w", op, err)
 	}
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := h.httpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to call Geoapify API: %w", err)
+		logger.WithError(err).Error("call Geoapify API")
+		return nil, fmt.Errorf("%s: failed to call Geoapify API: %w", op, err)
 	}
 	defer resp.Body.Close()
 
@@ -150,7 +165,8 @@ func (h *AddressHandler) geocodeAddress(ctx context.Context, address dto.Address
 
 	var geoResponse GeoapifyResponse
 	if err = json.NewDecoder(resp.Body).Decode(&geoResponse); err != nil {
-		return nil, fmt.Errorf("failed to decode Geoapify response: %w", err)
+		logger.WithError(err).Error("decode Geoapify response")
+		return nil, fmt.Errorf("%s: failed to decode Geoapify response: %w", op, err)
 	}
 
 	return &geoResponse, nil
@@ -169,21 +185,27 @@ func (h *AddressHandler) geocodeAddress(ctx context.Context, address dto.Address
 //	@Security		TokenAuth
 //	@Router			/addresses [get]
 func (h *AddressHandler) GetAddress(w http.ResponseWriter, r *http.Request) {
+	const op = "AddressHandler.GetAddress"
+	logger := logctx.GetLogger(r.Context()).WithField("op", op)
+
 	userIDStr, isExist := r.Context().Value(domains.UserIDKey{}).(string)
 	if !isExist {
+		logger.Error("auth not found in context")
 		response.SendJSONError(r.Context(), w, http.StatusUnauthorized, "auth not found in context")
 		return
 	}
 
 	userID, err := uuid.Parse(userIDStr)
 	if err != nil {
+		logger.WithError(err).Error("parse user ID")
 		response.SendJSONError(r.Context(), w, http.StatusBadRequest, "invalid auth id format")
 		return
 	}
 
 	addresses, err := h.addressService.GetAddresses(r.Context(), userID)
 	if err != nil {
-		response.HandleDomainError(r.Context(), w, err, "failed to get addresses")
+		logger.WithError(err).Error("get addresses")
+		response.HandleDomainError(r.Context(), w, err, op)
 		return
 	}
 
@@ -206,9 +228,13 @@ func (h *AddressHandler) GetAddress(w http.ResponseWriter, r *http.Request) {
 //	@Failure		500	{object}	object				"Ошибка сервера при получении пунктов выдачи"
 //	@Router			/addresses/pickup-points [get]
 func (h *AddressHandler) GetPickupPoints(w http.ResponseWriter, r *http.Request) {
+	const op = "AddressHandler.GetPickupPoints"
+	logger := logctx.GetLogger(r.Context()).WithField("op", op)
+
 	points, err := h.addressService.GetPickupPoints(r.Context())
 	if err != nil {
-		response.HandleDomainError(r.Context(), w, err, "failed to get pickup points")
+		logger.WithError(err).Error("get pickup points")
+		response.HandleDomainError(r.Context(), w, err, op)
 		return
 	}
 

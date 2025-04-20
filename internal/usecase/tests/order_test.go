@@ -10,7 +10,6 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/order"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -20,9 +19,8 @@ func TestCreateOrder(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockRepo := mocks.NewMockIOrderRepository(ctrl)
-	logger := logrus.New()
 
-	orderUC := order.NewOrderUsecase(mockRepo, logger)
+	orderUC := order.NewOrderUsecase(mockRepo)
 
 	testUserID := uuid.New()
 	testAddressID := uuid.New()

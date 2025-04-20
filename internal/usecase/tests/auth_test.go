@@ -11,9 +11,9 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/auth"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/crypto/bcrypt"
+	"strings"
 	"testing"
 )
 
@@ -23,9 +23,8 @@ func TestRegister(t *testing.T) {
 
 	mockRepo := mocks.NewMockIAuthRepository(ctrl)
 	mockToken := mocks.NewMockITokenator(ctrl)
-	logger := logrus.New()
 
-	authUC := auth.NewAuthUsecase(mockRepo, mockToken, logger)
+	authUC := auth.NewAuthUsecase(mockRepo, mockToken)
 
 	tests := []struct {
 		name          string
@@ -62,7 +61,7 @@ func TestRegister(t *testing.T) {
 			},
 			expectedToken: "",
 			expectedID:    uuid.Nil,
-			expectedErr:   errs.ErrAlreadyExists,
+			expectedErr:   errors.New("AuthUsecase.Register: already exists"),
 		},
 		{
 			name: "Repository error on check",
@@ -76,7 +75,7 @@ func TestRegister(t *testing.T) {
 			},
 			expectedToken: "",
 			expectedID:    uuid.Nil,
-			expectedErr:   errors.New("repo error"),
+			expectedErr:   errors.New("AuthUsecase.Register: repo error"),
 		},
 	}
 
@@ -96,7 +95,12 @@ func TestRegister(t *testing.T) {
 			} else {
 				assert.Equal(t, tt.expectedID, id)
 			}
-			assert.Equal(t, tt.expectedErr, err)
+
+			if tt.expectedErr != nil {
+				assert.EqualError(t, err, tt.expectedErr.Error())
+			} else {
+				assert.NoError(t, err)
+			}
 		})
 	}
 }
@@ -107,9 +111,8 @@ func TestLogin(t *testing.T) {
 
 	mockRepo := mocks.NewMockIAuthRepository(ctrl)
 	mockToken := mocks.NewMockITokenator(ctrl)
-	logger := logrus.New()
 
-	authUC := auth.NewAuthUsecase(mockRepo, mockToken, logger)
+	authUC := auth.NewAuthUsecase(mockRepo, mockToken)
 
 	testUserID := uuid.New()
 	testUser := &models.UserDB{
@@ -185,7 +188,12 @@ func TestLogin(t *testing.T) {
 
 			assert.Equal(t, tt.expectedToken, token)
 			assert.Equal(t, tt.expectedID, id)
-			assert.Equal(t, tt.expectedErr, err)
+
+			if tt.expectedErr != nil {
+				assert.True(t, errors.Is(err, tt.expectedErr), "expected error %v, got %v", tt.expectedErr, err)
+			} else {
+				assert.NoError(t, err)
+			}
 		})
 	}
 }
@@ -196,9 +204,8 @@ func TestLogout(t *testing.T) {
 
 	mockRepo := mocks.NewMockIAuthRepository(ctrl)
 	mockToken := mocks.NewMockITokenator(ctrl)
-	logger := logrus.New()
 
-	authUC := auth.NewAuthUsecase(mockRepo, mockToken, logger)
+	authUC := auth.NewAuthUsecase(mockRepo, mockToken)
 
 	tests := []struct {
 		name          string
@@ -236,7 +243,15 @@ func TestLogout(t *testing.T) {
 
 			err := authUC.Logout(tt.ctx)
 
-			assert.Equal(t, tt.expectedErr, err)
+			if tt.expectedErr != nil {
+				assert.Error(t, err)
+				// Check either exact match or that the error contains our expected message
+				assert.True(t, errors.Is(err, tt.expectedErr) ||
+					strings.Contains(err.Error(), tt.expectedErr.Error()),
+					"expected error containing %q, got %v", tt.expectedErr, err)
+			} else {
+				assert.NoError(t, err)
+			}
 		})
 	}
 }
