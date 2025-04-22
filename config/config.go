@@ -19,6 +19,7 @@ type Config struct {
 	MigrationsConfig *MigrationsConfig
 	GeoapifyConfig   *GeoapifyConfig
 	CSRFConfig       *CSRFConfig
+	RedisConfig      *RedisConfig
 }
 
 // NewConfig загружает переменные окружения и инициализирует все компоненты конфига.
@@ -53,11 +54,16 @@ func NewConfig() (*Config, error) {
 	}
 
 	geoapifyConfig, err := newGeoapifyConfig()
-  if err != nil {
+	if err != nil {
 		return nil, err
 	}
-  
+
 	csrfConfig, err := newCSRFConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	redisConfig, err := newRedisConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -70,6 +76,7 @@ func NewConfig() (*Config, error) {
 		MigrationsConfig: migrationsConfig,
 		GeoapifyConfig:   geoapifyConfig,
 		CSRFConfig:       csrfConfig,
+		RedisConfig:      redisConfig,
 	}, nil
 }
 
@@ -294,6 +301,37 @@ func newCSRFConfig() (*CSRFConfig, error) {
 		TokenExpiry:  tokenExpiry,
 		CookieName:   cookieName,
 		SecureCookie: secureCookie,
+	}, nil
+}
+
+type RedisConfig struct {
+	Host     string
+	Port     string
+	Password string
+	DB       int
+}
+
+func newRedisConfig() (*RedisConfig, error) {
+	host, hostExists := os.LookupEnv("REDIS_HOST")
+	port, portExists := os.LookupEnv("REDIS_PORT")
+	password, _ := os.LookupEnv("REDIS_PASSWORD")
+
+	if !hostExists || !portExists {
+		return nil, errors.New("incomplete Redis configuration")
+	}
+
+	db := 0
+	if dbStr, exists := os.LookupEnv("REDIS_DB"); exists {
+		if parsed, err := strconv.Atoi(dbStr); err == nil {
+			db = parsed
+		}
+	}
+
+	return &RedisConfig{
+		Host:     host,
+		Port:     port,
+		Password: password,
+		DB:       db,
 	}, nil
 }
 

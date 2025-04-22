@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+import "google/protobuf/wrappers.proto";
+import "google/protobuf/empty.proto";
+
+package auth;
+option go_package = "2025_1_ChillGuys/internal/transport/generated/auth";
+
+/* ############### Register ############### */
+message RegisterReq {
+  string email = 1;
+  string password = 2;
+  string name = 3;
+  google.protobuf.StringValue surname = 4;
+}
+
+message RegisterRes {
+  string token = 1;
+}
+
+/* ############### Login ############### */
+message LoginReq {
+  string email = 1;
+  string password = 2;
+}
+
+message LoginRes {
+  string token = 1;
+}
+
+/* ############### AuthService ############### */
+service AuthService {
+  rpc Register(RegisterReq) returns (RegisterRes);
+  rpc Login(LoginReq) returns (LoginRes);
+  rpc Logout(google.protobuf.Empty) returns (google.protobuf.Empty);
+}

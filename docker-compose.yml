@@ -14,7 +14,7 @@ services:
       - minio
     networks:
       - bazaar-network
-      
+
   bazaar-app:
     build:
       context: .
@@ -31,6 +31,10 @@ services:
       MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
       MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      REDIS_DB: ${REDIS_DB:-0}
       WAIT_FOR_MINIO: "true"
     ports:
       - "${SERVER_PORT}:8081"
@@ -39,9 +43,11 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - bazaar-network
-    command: sh -c "while ! nc -z minio 9000; do sleep 2; done && ./migrate && ./main"
+    command: sh -c "while ! nc -z minio 9000; do sleep 2; done && while ! nc -z redis 6380; do sleep 2; done && ./migrate && ./main"
     deploy:
       replicas: ${APP_REPLICAS:-1}
 
@@ -85,6 +91,23 @@ services:
     networks:
       - bazaar-network
 
+  redis:
+    image: redis:alpine
+    command: redis-server --bind 0.0.0.0 --port 6380 --requirepass ${REDIS_PASSWORD}
+    ports:
+      - "${REDIS_PORT}:6380"
+    volumes:
+      - redis_data:/data
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -h localhost -p 6380 -a $${REDIS_PASSWORD} ping | grep PONG"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - bazaar-network
+
   createbuckets:
     image: minio/mc:latest
     depends_on:
@@ -111,3 +134,4 @@ networks:
 volumes:
   postgres_data:
   minio_data:
+  redis_data:

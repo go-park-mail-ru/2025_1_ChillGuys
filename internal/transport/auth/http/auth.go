@@ -1,11 +1,12 @@
 package auth
 
 import (
-	"context"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
+	gen "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/generated/auth"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/metadata"
+	"google.golang.org/protobuf/types/known/emptypb"
 	"net/http"
 
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/minio"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/domains"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware"
@@ -13,30 +14,20 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/cookie"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/request"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/response"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/validator"
-	"github.com/google/uuid"
 )
 
-//go:generate mockgen -source=auth.go -destination=../../usecase/mocks/auth_usecase_mock.go -package=mocks IAuthUsecase
-type IAuthUsecase interface {
-	Register(context.Context, dto.UserRegisterRequestDTO) (string, uuid.UUID, error)
-	Login(context.Context, dto.UserLoginRequestDTO) (string, uuid.UUID, error)
-	Logout(context.Context) error
-}
-
 type AuthHandler struct {
-	authService  IAuthUsecase
-	minioService minio.Provider
-	config       config.Config
+	authClient gen.AuthServiceClient
+	config     *config.Config
 }
 
 func NewAuthHandler(
-	u IAuthUsecase,
+	authClient gen.AuthServiceClient,
 	cfg *config.Config,
 ) *AuthHandler {
 	return &AuthHandler{
-		authService: u,
-		config:      *cfg,
+		authClient: authClient,
+		config:     cfg,
 	}
 }
 
@@ -57,7 +48,7 @@ func NewAuthHandler(
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	const op = "AuthHandler.Login"
 	logger := logctx.GetLogger(r.Context()).WithField("op", op)
-	
+
 	var loginReq dto.UserLoginRequestDTO
 	if err := request.ParseData(r, &loginReq); err != nil {
 		logger.WithError(err).Error("parse login request")
@@ -65,25 +56,22 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	validator.SanitizeUserLoginRequest(&loginReq)
-
-	if err := validator.ValidateLoginCreds(loginReq); err != nil {
-		logger.WithError(err).Error("validate login credentials")
-		response.SendJSONError(r.Context(), w, http.StatusBadRequest, err.Error())
-		return
-	}
-
-	token, userID, err := h.authService.Login(r.Context(), loginReq)
+	// Обращение к микросервису
+	res, err := h.authClient.Login(r.Context(), &gen.LoginReq{
+		Email:    loginReq.Email,
+		Password: loginReq.Password,
+	})
 	if err != nil {
-		logger.WithError(err).Error("login failed")
+		// FIXME: Проброс ошибок
+		logger.WithError(err).Error("login")
 		response.HandleDomainError(r.Context(), w, err, op)
 		return
 	}
+	token := res.Token
 
 	// Генерируем CSRF токен
 	csrfToken, err := middleware.GenerateCSRFToken(
 		token, // Используем JWT токен как sessionID
-		userID,
 		h.config.CSRFConfig.SecretKey,
 		h.config.CSRFConfig.TokenExpiry,
 	)
@@ -94,7 +82,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Устанавливаем JWT в куки
-	cookieProvider := cookie.NewCookieProvider(&h.config)
+	cookieProvider := cookie.NewCookieProvider(h.config)
 	cookieProvider.Set(w, token, domains.TokenCookieName)
 
 	// Устанавливаем CSRF токен в заголовок
@@ -120,7 +108,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	const op = "AuthHandler.Register"
 	logger := logctx.GetLogger(r.Context()).WithField("op", op)
-	
+
 	var registerReq dto.UserRegisterRequestDTO
 	if err := request.ParseData(r, &registerReq); err != nil {
 		logger.WithError(err).Error("parse register request")
@@ -128,25 +116,18 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	validator.SanitizeUserRegistrationRequest(&registerReq)
-
-	if err := validator.ValidateRegistrationCreds(registerReq); err != nil {
-		logger.WithError(err).Error("validate registration credentials")
-		response.SendJSONError(r.Context(), w, http.StatusBadRequest, err.Error())
+	res, err2 := h.authClient.Register(r.Context(), registerReq.ConvertToGrpcRegisterReq())
+	if err2 != nil {
+		// FIXME: Проброс ошибок
+		logger.WithError(err2).Error("register")
+		response.HandleDomainError(r.Context(), w, err2, op)
 		return
 	}
-
-	token, userID, err := h.authService.Register(r.Context(), registerReq)
-	if err != nil {
-		logger.WithError(err).Error("register user failed")
-		response.HandleDomainError(r.Context(), w, err, op)
-		return
-	}
+	token := res.Token
 
 	// Генерируем CSRF токен
 	csrfToken, err := middleware.GenerateCSRFToken(
 		token, // Используем JWT токен как sessionID
-		userID,
 		h.config.CSRFConfig.SecretKey,
 		h.config.CSRFConfig.TokenExpiry,
 	)
@@ -157,7 +138,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Устанавливаем JWT в куки
-	cookieProvider := cookie.NewCookieProvider(&h.config)
+	cookieProvider := cookie.NewCookieProvider(h.config)
 	cookieProvider.Set(w, token, domains.TokenCookieName)
 
 	// Устанавливаем CSRF токен в заголовок
@@ -181,15 +162,24 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 //	@Router			/auth/logout [post]
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	const op = "AuthHandler.Logout"
-	logger := logctx.GetLogger(r.Context()).WithField("op", op)
+	// FIXME: Обращение к сервису пользователя по инкременту версии
 
-	if err := h.authService.Logout(r.Context()); err != nil {
-		logger.WithError(err).Error("logout failed")
+	jwtCookie, err := r.Cookie(string(domains.TokenCookieName))
+	if err != nil {
+		http.Error(w, "JWT token required", http.StatusForbidden)
+		return
+	}
+	jwtToken := jwtCookie.Value
+	ctxWithToken := metadata.InjectJWTIntoContext(r.Context(), jwtToken)
+
+	// Обращаемся к gRPC-сервису, чтобы добавить токен в чёрный список
+	_, err = h.authClient.Logout(ctxWithToken, &emptypb.Empty{})
+	if err != nil {
 		response.HandleDomainError(r.Context(), w, err, op)
 		return
 	}
 
-	cookieProvider := cookie.NewCookieProvider(&h.config)
+	cookieProvider := cookie.NewCookieProvider(h.config)
 
 	cookieProvider.Unset(w, domains.TokenCookieName)
 

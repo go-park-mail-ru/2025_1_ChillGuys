@@ -50,3 +50,12 @@ migrations:
 swag:
 	swag fmt
 	swag init -g ./cmd/${APP_NAME}/main.go
+
+auth_proto:
+	@mkdir -p internal/transport/generated/auth && \
+	protoc --proto_path=proto \
+		--go_out=internal/transport/generated/auth \
+		--go-grpc_out=internal/transport/generated/auth \
+		--go-grpc_opt=paths=source_relative \
+		--go_opt=paths=source_relative \
+		proto/auth.proto

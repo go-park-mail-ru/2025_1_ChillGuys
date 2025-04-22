@@ -16,6 +16,12 @@ var (
 	ErrBusinessLogic      = errors.New("business logic error")
 	ErrProductNotApproved = errors.New("product not approved")
 	ErrNotEnoughStock     = errors.New("not enough stock")
+
+	ErrMissingToken      = errors.New("missing jwt token")
+	ErrNoMetadata        = errors.New("metadata is not provided")
+	ErrNoAuthHeader      = errors.New("authorization header is missing")
+	ErrInvalidAuthFormat = errors.New("invalid authorization header format")
+	ErrInternal          = errors.New("internal server error")
 )
 
 func NewBusinessLogicError(msg string) error {

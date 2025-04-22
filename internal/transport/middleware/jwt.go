@@ -70,9 +70,16 @@ func JWTMiddleware(tokenator *jwt.Tokenator, next http.Handler) http.Handler {
 			return
 		}
 
-		if !tokenator.VC.CheckUserVersion(ctx, claims.UserID, claims.Version) {
-			requestLogger.Warn("Token is invalid or expired")
-			response.SendJSONError(ctx, w, http.StatusUnauthorized, "Token is invalid or expired")
+		// Проверка чёрного списка
+		isInBlackList, err := tokenator.TokenChecker.IsInBlacklist(ctx, claims.UserID, tokenString)
+		if err != nil {
+			requestLogger.Warn(err)
+			response.SendJSONError(ctx, w, http.StatusInternalServerError, "failed to check if token is blacklisted")
+			return
+		}
+		if isInBlackList {
+			requestLogger.Warn("Token is blacklisted")
+			response.SendJSONError(ctx, w, http.StatusUnauthorized, "Token revoked")
 			return
 		}
 
