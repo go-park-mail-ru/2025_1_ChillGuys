@@ -1,4 +1,3 @@
-// auth/grpc_handler.go
 package auth
 
 import (
