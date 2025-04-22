@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/auth"
+	http2 "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/auth/http"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/mocks"
 	"github.com/golang/mock/gomock"
@@ -23,7 +23,7 @@ func TestAuthHandler_Login(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockAuthUsecase := mocks.NewMockIAuthUsecase(ctrl)
-	handler := auth.NewAuthHandler(mockAuthUsecase, &config.Config{})
+	handler := http2.NewAuthHandler(mockAuthUsecase, &config.Config{})
 
 	tests := []struct {
 		name           string
@@ -120,7 +120,7 @@ func TestAuthHandler_Register(t *testing.T) {
 
 	mockAuthUsecase := mocks.NewMockIAuthUsecase(ctrl)
 
-	handler := auth.NewAuthHandler(mockAuthUsecase, &config.Config{})
+	handler := http2.NewAuthHandler(mockAuthUsecase, &config.Config{})
 
 	tests := []struct {
 		name           string
@@ -231,7 +231,7 @@ func TestAuthHandler_Logout(t *testing.T) {
 
 	mockAuthUsecase := mocks.NewMockIAuthUsecase(ctrl)
 
-	handler := auth.NewAuthHandler(mockAuthUsecase, &config.Config{})
+	handler := http2.NewAuthHandler(mockAuthUsecase, &config.Config{})
 
 	tests := []struct {
 		name           string

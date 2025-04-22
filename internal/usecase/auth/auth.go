@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
-
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/domains"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
@@ -19,7 +17,7 @@ import (
 )
 
 type ITokenator interface {
-	CreateJWT(userID string, version int) (string, error)
+	CreateJWT(userID string) (string, error)
 	ParseJWT(tokenString string) (*jwt.JWTClaims, error)
 }
 
@@ -28,9 +26,6 @@ type IAuthRepository interface {
 	CreateUser(context.Context, models.UserDB) error
 	GetUserByEmail(context.Context, string) (*models.UserDB, error)
 	GetUserByID(context.Context, uuid.UUID) (*models.UserDB, error)
-	IncrementUserVersion(context.Context, string) error
-	GetUserCurrentVersion(context.Context, string) (int, error)
-	CheckUserVersion(context.Context, string, int) bool
 	CheckUserExists(context.Context, string) (bool, error)
 }
 
@@ -46,24 +41,24 @@ func NewAuthUsecase(repo IAuthRepository, token ITokenator) *AuthUsecase {
 	}
 }
 
-func (u *AuthUsecase) Register(ctx context.Context, user dto.UserRegisterRequestDTO) (string, uuid.UUID, error) {
+func (u *AuthUsecase) Register(ctx context.Context, user dto.UserRegisterRequestDTO) (string, error) {
 	const op = "AuthUsecase.Register"
 	logger := logctx.GetLogger(ctx).WithField("op", op).WithField("email", user.Email)
-	
+
 	passwordHash, err := GeneratePasswordHash(user.Password)
 	if err != nil {
 		logger.WithError(err).Error("generate password hash")
-		return "", uuid.Nil, fmt.Errorf("%s: %w", op, err)
+		return "", fmt.Errorf("%s: %w", op, err)
 	}
 
 	existed, err := u.repo.CheckUserExists(ctx, user.Email)
 	if err != nil {
 		logger.WithError(err).Error("check user existence")
-		return "", uuid.Nil, fmt.Errorf("%s: %w", op, err)
+		return "", fmt.Errorf("%s: %w", op, err)
 	}
 	if existed {
 		logger.Warn("user already exists")
-		return "", uuid.Nil, fmt.Errorf("%s: %w", op, errs.ErrAlreadyExists)
+		return "", fmt.Errorf("%s: %w", op, errs.ErrAlreadyExists)
 	}
 
 	userID := uuid.New()
@@ -73,29 +68,23 @@ func (u *AuthUsecase) Register(ctx context.Context, user dto.UserRegisterRequest
 		Name:         user.Name,
 		Surname:      user.Surname,
 		PasswordHash: passwordHash,
-		UserVersion: models.UserVersionDB{
-			ID:        uuid.New(),
-			UserID:    userID,
-			Version:   1,
-			UpdatedAt: time.Now(),
-		},
 	}
 
 	if err = u.repo.CreateUser(ctx, userDB); err != nil {
 		logger.WithError(err).Error("create user in repository")
-		return "", uuid.Nil, fmt.Errorf("%s: %w", op, err)
+		return "", fmt.Errorf("%s: %w", op, err)
 	}
 
-	token, err := u.token.CreateJWT(userDB.ID.String(), userDB.UserVersion.Version)
+	token, err := u.token.CreateJWT(userDB.ID.String())
 	if err != nil {
 		logger.WithError(err).Error("create JWT token")
-		return "", uuid.Nil, fmt.Errorf("%s: %w", op, err)
+		return "", fmt.Errorf("%s: %w", op, err)
 	}
 
-	return token, userDB.ID, nil
+	return token, nil
 }
 
-func (u *AuthUsecase) Login(ctx context.Context, user dto.UserLoginRequestDTO) (string, uuid.UUID, error) {
+func (u *AuthUsecase) Login(ctx context.Context, user dto.UserLoginRequestDTO) (string, error) {
 	const op = "AuthUsecase.Login"
 	logger := logctx.GetLogger(ctx).WithField("op", op).WithField("email", user.Email)
 
@@ -106,21 +95,21 @@ func (u *AuthUsecase) Login(ctx context.Context, user dto.UserLoginRequestDTO) (
 		} else {
 			logger.WithError(err).Error("get user by email")
 		}
-		return "", uuid.Nil, fmt.Errorf("%s: %w", op, err)
+		return "", fmt.Errorf("%s: %w", op, err)
 	}
 
 	if err := bcrypt.CompareHashAndPassword(userDB.PasswordHash, []byte(user.Password)); err != nil {
 		logger.Warn("invalid credentials")
-		return "", uuid.Nil, fmt.Errorf("%s: %w", op, errs.ErrInvalidCredentials)
+		return "", fmt.Errorf("%s: %w", op, errs.ErrInvalidCredentials)
 	}
 
-	token, err := u.token.CreateJWT(userDB.ID.String(), userDB.UserVersion.Version)
+	token, err := u.token.CreateJWT(userDB.ID.String())
 	if err != nil {
 		logger.WithError(err).Error("create JWT token")
-		return "", uuid.Nil, fmt.Errorf("%s: %w", op, err)
+		return "", fmt.Errorf("%s: %w", op, err)
 	}
 
-	return token, userDB.ID, nil
+	return token, nil
 }
 
 func (u *AuthUsecase) Logout(ctx context.Context) error {
@@ -134,10 +123,6 @@ func (u *AuthUsecase) Logout(ctx context.Context) error {
 	}
 
 	logger = logger.WithField("user_id", userID)
-	if err := u.repo.IncrementUserVersion(ctx, userID); err != nil {
-		logger.WithError(err).Error("increment user version")
-		return fmt.Errorf("%s: %w", op, err)
-	}
 
 	return nil
 }

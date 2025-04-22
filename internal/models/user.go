@@ -28,7 +28,6 @@ type UserDB struct {
 	ImageURL     null.String
 	PhoneNumber  null.String
 	PasswordHash []byte
-	UserVersion  UserVersionDB
 }
 
 func (u *UserDB) ConvertToUser() *User {
@@ -43,8 +42,4 @@ func (u *UserDB) ConvertToUser() *User {
 		ImageURL:    u.ImageURL,
 		PhoneNumber: u.PhoneNumber,
 	}
-}
-
-func (u *UserDB) IsVersionValid(version int) bool {
-	return u.UserVersion.Version == version
 }

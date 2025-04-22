@@ -11,8 +11,8 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 )
 
-type VersionChecker interface {
-	CheckUserVersion(ctx context.Context, userID string, version int) bool
+type TokenChecker interface {
+	IsInBlacklist(ctx context.Context, userID, token string) (bool, error)
 }
 
 // JWTClaims структура для данных токена
@@ -27,26 +27,25 @@ type JWTClaims struct {
 type Tokenator struct {
 	sign          string
 	tokenLifeSpan time.Duration
-	VC            VersionChecker
+	TokenChecker  TokenChecker
 }
 
 // NewTokenator создает новый экземпляр Tokenator
-func NewTokenator(vc VersionChecker, conf *config.JWTConfig) *Tokenator {
+func NewTokenator(tokenChecker TokenChecker, conf *config.JWTConfig) *Tokenator {
 	return &Tokenator{
 		sign:          conf.Signature,
 		tokenLifeSpan: conf.TokenLifeSpan,
-		VC:            vc,
+		TokenChecker:  tokenChecker,
 	}
 }
 
 // CreateJWT генерирует JWT токен для заданного userID и version
-func (t *Tokenator) CreateJWT(userID string, version int) (string, error) {
+func (t *Tokenator) CreateJWT(userID string) (string, error) {
 	now := time.Now()
 	expiration := now.Add(t.tokenLifeSpan)
 
 	claims := JWTClaims{
 		UserID:    userID,
-		Version:   version,
 		ExpiresAt: expiration.Unix(),
 		StandardClaims: jwt.StandardClaims{
 			IssuedAt:  now.Unix(),

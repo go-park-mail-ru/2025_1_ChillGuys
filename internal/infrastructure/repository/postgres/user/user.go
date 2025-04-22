@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
 	"github.com/google/uuid"
@@ -17,12 +18,8 @@ const (
 		u.name,
 		u.surname,
 		u.password_hash,
-		u.image_url,
-		uv.id AS user_version_id,
-		uv.version,
-		uv.updated_at
+		u.image_url
 	FROM bazaar.user u
-			 LEFT JOIN bazaar.user_version uv ON u.id = uv.user_id
 	WHERE u.email = $1;
 	`
 	queryGetUserByID = `
@@ -33,12 +30,8 @@ const (
 		u.surname, 
 		u.password_hash, 
 		u.image_url, 
-		u.phone_number,
-		uv.id AS user_version_id, 
-		uv.version, 
-		uv.updated_at
+		u.phone_number
 	FROM bazaar.user u
-	LEFT JOIN bazaar.user_version uv ON u.id = uv.user_id
 	WHERE u.id = $1;
 	`
 	queryUpdateUserImageURL = `UPDATE bazaar.user SET image_url = $1 WHERE id = $2`
@@ -111,17 +104,12 @@ func (r *UserRepository) GetUserByEmail(ctx context.Context, email string) (*mod
 		&user.Surname,
 		&user.PasswordHash,
 		&user.ImageURL,
-		&user.UserVersion.ID,
-		&user.UserVersion.Version,
-		&user.UserVersion.UpdatedAt,
 	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errs.NewNotFoundError("user with given email not found")
 		}
 		return nil, err
 	}
-
-	user.UserVersion.UserID = user.ID
 
 	return &user, nil
 }
@@ -137,12 +125,7 @@ func (r *UserRepository) GetUserByID(ctx context.Context, id uuid.UUID) (*models
 		&user.PasswordHash,
 		&user.ImageURL,
 		&user.PhoneNumber,
-		&user.UserVersion.ID,
-		&user.UserVersion.Version,
-		&user.UserVersion.UpdatedAt,
 	)
-	user.UserVersion.UserID = user.ID
-
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errs.NewNotFoundError("user with given id not found")

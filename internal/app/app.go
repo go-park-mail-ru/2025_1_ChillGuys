@@ -3,6 +3,12 @@ package app
 import (
 	"database/sql"
 	"fmt"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/redis"
+	http2 "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/auth/http"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/generated/auth"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+	"log"
 	"net/http"
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
@@ -10,14 +16,12 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/minio"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres"
 	addressrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/address"
-	authrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/auth"
 	basketrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/basket"
 	categoryrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/category"
 	orderrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/order"
 	productrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/product"
 	userrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/user"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/address"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/auth"
 	baskett "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/basket"
 	categoryt "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/category"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
@@ -26,7 +30,6 @@ import (
 	producttr "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/product"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/user"
 	addressus "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/address"
-	authus "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/auth"
 	basketuc "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/basket"
 	categoryuc "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/category"
 	orderus "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/order"
@@ -39,10 +42,11 @@ import (
 
 // App объединяет в себе все компоненты приложения.
 type App struct {
-	conf   *config.Config
-	logger *logrus.Logger
-	db     *sql.DB
-	router *mux.Router
+	conf        *config.Config
+	logger      *logrus.Logger
+	db          *sql.DB
+	redisClient *redis.Client
+	router      *mux.Router
 }
 
 func OptionsRequest(w http.ResponseWriter, r *http.Request) {
@@ -63,6 +67,15 @@ func NewApp(conf *config.Config) (*App, error) {
 		return nil, fmt.Errorf("database connection error: %w", err)
 	}
 
+	// Подключение к Redis
+	redisClient, err := redis.NewClient(conf.RedisConfig)
+	if err != nil {
+		log.Fatalf("redis connection error: %v", err)
+	}
+
+	// Создаем Redis репозиторий
+	redisAuthRepo := redis.NewAuthRepository(redisClient, conf.JWTConfig)
+
 	// Применяем параметры пула соединений из конфигурации.
 	config.ConfigureDB(db, conf.DBConfig)
 
@@ -72,11 +85,17 @@ func NewApp(conf *config.Config) (*App, error) {
 		return nil, fmt.Errorf("minio initialization error: %w", err)
 	}
 
+	// Инициализация микросервисов
+	authConn, err := grpc.Dial(
+		"localhost:50051",
+		//":8010",
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	authClient := auth.NewAuthServiceClient(authConn)
+
 	// Инициализация репозиториев и use-case-ов.
-	authRepo := authrepo.NewAuthRepository(db)
-	tokenator := jwt.NewTokenator(authRepo, conf.JWTConfig)
-	authUsecase := authus.NewAuthUsecase(authRepo, tokenator)
-	authHandler := auth.NewAuthHandler(authUsecase, conf)
+	tokenator := jwt.NewTokenator(redisAuthRepo, conf.JWTConfig)
+	authHandler := http2.NewAuthHandler(authClient, conf)
 
 	userRepository := userrepo.NewUserRepository(db)
 	userUsecase := userus.NewUserUsecase(userRepository, tokenator, minioClient)
@@ -92,7 +111,7 @@ func NewApp(conf *config.Config) (*App, error) {
 
 	orderRepo := orderrepo.NewOrderRepository(db)
 	orderUsecase := orderus.NewOrderUsecase(orderRepo)
-	orderService := order.NewOrderService(orderUsecase,)
+	orderService := order.NewOrderService(orderUsecase)
 
 	basketRepo := basketrepo.NewBasketRepository(db)
 	basketUsecase := basketuc.NewBasketUsecase(basketRepo)
@@ -239,10 +258,11 @@ func NewApp(conf *config.Config) (*App, error) {
 	}
 
 	app := &App{
-		conf:   conf,
-		logger: logger,
-		db:     db,
-		router: router,
+		conf:        conf,
+		logger:      logger,
+		db:          db,
+		redisClient: redisClient,
+		router:      router,
 	}
 
 	return app, nil
@@ -250,6 +270,7 @@ func NewApp(conf *config.Config) (*App, error) {
 
 // Run запускает HTTP-сервер.
 func (a *App) Run() {
+
 	server := &http.Server{
 		Handler:      a.router,
 		Addr:         fmt.Sprintf(":%s", a.conf.ServerConfig.Port),
