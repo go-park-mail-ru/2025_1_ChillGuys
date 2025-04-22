@@ -28,9 +28,19 @@ message LoginRes {
   string token = 1;
 }
 
+/* ############### CheckToken ############### */
+message CheckTokenReq {
+  string token = 1;
+}
+
+message CheckTokenRes {
+  bool valid = 1;
+}
+
 /* ############### AuthService ############### */
 service AuthService {
   rpc Register(RegisterReq) returns (RegisterRes);
   rpc Login(LoginReq) returns (LoginRes);
   rpc Logout(google.protobuf.Empty) returns (google.protobuf.Empty);
+  rpc CheckToken(CheckTokenReq) returns (CheckTokenRes);
 }

@@ -233,6 +233,95 @@ func (x *LoginRes) GetToken() string {
 	return ""
 }
 
+// ############### CheckToken ###############
+type CheckTokenReq struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CheckTokenReq) Reset() {
+	*x = CheckTokenReq{}
+	mi := &file_auth_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CheckTokenReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CheckTokenReq) ProtoMessage() {}
+
+func (x *CheckTokenReq) ProtoReflect() protoreflect.Message {
+	mi := &file_auth_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CheckTokenReq.ProtoReflect.Descriptor instead.
+func (*CheckTokenReq) Descriptor() ([]byte, []int) {
+	return file_auth_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *CheckTokenReq) GetToken() string {
+	if x != nil {
+		return x.Token
+	}
+	return ""
+}
+
+type CheckTokenRes struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Valid         bool                   `protobuf:"varint,1,opt,name=valid,proto3" json:"valid,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CheckTokenRes) Reset() {
+	*x = CheckTokenRes{}
+	mi := &file_auth_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CheckTokenRes) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CheckTokenRes) ProtoMessage() {}
+
+func (x *CheckTokenRes) ProtoReflect() protoreflect.Message {
+	mi := &file_auth_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CheckTokenRes.ProtoReflect.Descriptor instead.
+func (*CheckTokenRes) Descriptor() ([]byte, []int) {
+	return file_auth_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *CheckTokenRes) GetValid() bool {
+	if x != nil {
+		return x.Valid
+	}
+	return false
+}
+
 var File_auth_proto protoreflect.FileDescriptor
 
 const file_auth_proto_rawDesc = "" +
@@ -250,11 +339,17 @@ const file_auth_proto_rawDesc = "" +
 	"\x05email\x18\x01 \x01(\tR\x05email\x12\x1a\n" +
 	"\bpassword\x18\x02 \x01(\tR\bpassword\" \n" +
 	"\bLoginRes\x12\x14\n" +
-	"\x05token\x18\x01 \x01(\tR\x05token2\xa2\x01\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token\"%\n" +
+	"\rCheckTokenReq\x12\x14\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token\"%\n" +
+	"\rCheckTokenRes\x12\x14\n" +
+	"\x05valid\x18\x01 \x01(\bR\x05valid2\xda\x01\n" +
 	"\vAuthService\x120\n" +
 	"\bRegister\x12\x11.auth.RegisterReq\x1a\x11.auth.RegisterRes\x12'\n" +
 	"\x05Login\x12\x0e.auth.LoginReq\x1a\x0e.auth.LoginRes\x128\n" +
-	"\x06Logout\x12\x16.google.protobuf.Empty\x1a\x16.google.protobuf.EmptyB4Z22025_1_ChillGuys/internal/transport/generated/authb\x06proto3"
+	"\x06Logout\x12\x16.google.protobuf.Empty\x1a\x16.google.protobuf.Empty\x126\n" +
+	"\n" +
+	"CheckToken\x12\x13.auth.CheckTokenReq\x1a\x13.auth.CheckTokenResB4Z22025_1_ChillGuys/internal/transport/generated/authb\x06proto3"
 
 var (
 	file_auth_proto_rawDescOnce sync.Once
@@ -268,25 +363,29 @@ func file_auth_proto_rawDescGZIP() []byte {
 	return file_auth_proto_rawDescData
 }
 
-var file_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_auth_proto_goTypes = []any{
 	(*RegisterReq)(nil),            // 0: auth.RegisterReq
 	(*RegisterRes)(nil),            // 1: auth.RegisterRes
 	(*LoginReq)(nil),               // 2: auth.LoginReq
 	(*LoginRes)(nil),               // 3: auth.LoginRes
-	(*wrapperspb.StringValue)(nil), // 4: google.protobuf.StringValue
-	(*emptypb.Empty)(nil),          // 5: google.protobuf.Empty
+	(*CheckTokenReq)(nil),          // 4: auth.CheckTokenReq
+	(*CheckTokenRes)(nil),          // 5: auth.CheckTokenRes
+	(*wrapperspb.StringValue)(nil), // 6: google.protobuf.StringValue
+	(*emptypb.Empty)(nil),          // 7: google.protobuf.Empty
 }
 var file_auth_proto_depIdxs = []int32{
-	4, // 0: auth.RegisterReq.surname:type_name -> google.protobuf.StringValue
+	6, // 0: auth.RegisterReq.surname:type_name -> google.protobuf.StringValue
 	0, // 1: auth.AuthService.Register:input_type -> auth.RegisterReq
 	2, // 2: auth.AuthService.Login:input_type -> auth.LoginReq
-	5, // 3: auth.AuthService.Logout:input_type -> google.protobuf.Empty
-	1, // 4: auth.AuthService.Register:output_type -> auth.RegisterRes
-	3, // 5: auth.AuthService.Login:output_type -> auth.LoginRes
-	5, // 6: auth.AuthService.Logout:output_type -> google.protobuf.Empty
-	4, // [4:7] is the sub-list for method output_type
-	1, // [1:4] is the sub-list for method input_type
+	7, // 3: auth.AuthService.Logout:input_type -> google.protobuf.Empty
+	4, // 4: auth.AuthService.CheckToken:input_type -> auth.CheckTokenReq
+	1, // 5: auth.AuthService.Register:output_type -> auth.RegisterRes
+	3, // 6: auth.AuthService.Login:output_type -> auth.LoginRes
+	7, // 7: auth.AuthService.Logout:output_type -> google.protobuf.Empty
+	5, // 8: auth.AuthService.CheckToken:output_type -> auth.CheckTokenRes
+	5, // [5:9] is the sub-list for method output_type
+	1, // [1:5] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name
 	1, // [1:1] is the sub-list for extension extendee
 	0, // [0:1] is the sub-list for field type_name
@@ -303,7 +402,7 @@ func file_auth_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_auth_proto_rawDesc), len(file_auth_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

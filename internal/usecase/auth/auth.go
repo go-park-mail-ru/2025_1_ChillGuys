@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/domains"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/redis"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/logctx"
@@ -30,14 +30,16 @@ type IAuthRepository interface {
 }
 
 type AuthUsecase struct {
-	token ITokenator
-	repo  IAuthRepository
+	token     ITokenator
+	repo      IAuthRepository
+	redisRepo *redis.AuthRepository
 }
 
-func NewAuthUsecase(repo IAuthRepository, token ITokenator) *AuthUsecase {
+func NewAuthUsecase(repo IAuthRepository, redisRepo *redis.AuthRepository, token ITokenator) *AuthUsecase {
 	return &AuthUsecase{
-		repo:  repo,
-		token: token,
+		repo:      repo,
+		redisRepo: redisRepo,
+		token:     token,
 	}
 }
 
@@ -112,17 +114,21 @@ func (u *AuthUsecase) Login(ctx context.Context, user dto.UserLoginRequestDTO) (
 	return token, nil
 }
 
-func (u *AuthUsecase) Logout(ctx context.Context) error {
+func (u *AuthUsecase) Logout(ctx context.Context, token string) error {
 	const op = "AuthUsecase.Logout"
 	logger := logctx.GetLogger(ctx).WithField("op", op)
 
-	userID, isExist := ctx.Value(domains.UserIDKey{}).(string)
-	if !isExist {
-		logger.Warn("user ID not found in context")
-		return fmt.Errorf("%s: %w", op, errs.ErrNotFound)
+	claims, err := u.token.ParseJWT(token)
+	if err != nil {
+		logger.WithError(err).Error("failed to parse token")
+		return fmt.Errorf("%s: %w", op, errs.ErrInvalidToken)
 	}
 
-	logger = logger.WithField("user_id", userID)
+	// Add token to blacklist with userID association
+	if err := u.redisRepo.AddToBlacklist(ctx, claims.UserID, token); err != nil {
+		logger.WithError(err).Error("failed to add token to blacklist")
+		return fmt.Errorf("%s: %w", op, errs.ErrInternal)
+	}
 
 	return nil
 }

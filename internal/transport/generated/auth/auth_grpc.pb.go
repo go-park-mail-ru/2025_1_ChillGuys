@@ -20,9 +20,10 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AuthService_Register_FullMethodName = "/auth.AuthService/Register"
-	AuthService_Login_FullMethodName    = "/auth.AuthService/Login"
-	AuthService_Logout_FullMethodName   = "/auth.AuthService/Logout"
+	AuthService_Register_FullMethodName   = "/auth.AuthService/Register"
+	AuthService_Login_FullMethodName      = "/auth.AuthService/Login"
+	AuthService_Logout_FullMethodName     = "/auth.AuthService/Logout"
+	AuthService_CheckToken_FullMethodName = "/auth.AuthService/CheckToken"
 )
 
 // AuthServiceClient is the client API for AuthService service.
@@ -34,6 +35,7 @@ type AuthServiceClient interface {
 	Register(ctx context.Context, in *RegisterReq, opts ...grpc.CallOption) (*RegisterRes, error)
 	Login(ctx context.Context, in *LoginReq, opts ...grpc.CallOption) (*LoginRes, error)
 	Logout(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	CheckToken(ctx context.Context, in *CheckTokenReq, opts ...grpc.CallOption) (*CheckTokenRes, error)
 }
 
 type authServiceClient struct {
@@ -74,6 +76,16 @@ func (c *authServiceClient) Logout(ctx context.Context, in *emptypb.Empty, opts 
 	return out, nil
 }
 
+func (c *authServiceClient) CheckToken(ctx context.Context, in *CheckTokenReq, opts ...grpc.CallOption) (*CheckTokenRes, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CheckTokenRes)
+	err := c.cc.Invoke(ctx, AuthService_CheckToken_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthServiceServer is the server API for AuthService service.
 // All implementations must embed UnimplementedAuthServiceServer
 // for forward compatibility.
@@ -83,6 +95,7 @@ type AuthServiceServer interface {
 	Register(context.Context, *RegisterReq) (*RegisterRes, error)
 	Login(context.Context, *LoginReq) (*LoginRes, error)
 	Logout(context.Context, *emptypb.Empty) (*emptypb.Empty, error)
+	CheckToken(context.Context, *CheckTokenReq) (*CheckTokenRes, error)
 	mustEmbedUnimplementedAuthServiceServer()
 }
 
@@ -101,6 +114,9 @@ func (UnimplementedAuthServiceServer) Login(context.Context, *LoginReq) (*LoginR
 }
 func (UnimplementedAuthServiceServer) Logout(context.Context, *emptypb.Empty) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Logout not implemented")
+}
+func (UnimplementedAuthServiceServer) CheckToken(context.Context, *CheckTokenReq) (*CheckTokenRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CheckToken not implemented")
 }
 func (UnimplementedAuthServiceServer) mustEmbedUnimplementedAuthServiceServer() {}
 func (UnimplementedAuthServiceServer) testEmbeddedByValue()                     {}
@@ -177,6 +193,24 @@ func _AuthService_Logout_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthService_CheckToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CheckTokenReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).CheckToken(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_CheckToken_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).CheckToken(ctx, req.(*CheckTokenReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthService_ServiceDesc is the grpc.ServiceDesc for AuthService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -195,6 +229,10 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Logout",
 			Handler:    _AuthService_Logout_Handler,
+		},
+		{
+			MethodName: "CheckToken",
+			Handler:    _AuthService_CheckToken_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

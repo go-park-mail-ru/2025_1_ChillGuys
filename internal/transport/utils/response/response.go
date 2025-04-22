@@ -8,6 +8,8 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/logctx"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"net/http"
 )
 
@@ -101,5 +103,29 @@ func HandleDomainError(ctx context.Context, w http.ResponseWriter, err error, de
 	default:
 		SendJSONError(ctx, w, http.StatusInternalServerError, err.Error())
 		log.Error("unexpected error: ", description, err.Error())
+	}
+}
+
+func HandleGRPCError(ctx context.Context, w http.ResponseWriter, err error, op string) {
+	logger := logctx.GetLogger(ctx)
+	st, ok := status.FromError(err)
+	if !ok {
+		logger.WithError(err).Error(op + ": unexpected error type")
+		SendJSONError(ctx, w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+
+	switch st.Code() {
+	case codes.Unauthenticated:
+		SendJSONError(ctx, w, http.StatusUnauthorized, st.Message())
+	case codes.AlreadyExists:
+		SendJSONError(ctx, w, http.StatusConflict, st.Message())
+	case codes.NotFound:
+		SendJSONError(ctx, w, http.StatusNotFound, st.Message())
+	case codes.InvalidArgument:
+		SendJSONError(ctx, w, http.StatusBadRequest, st.Message())
+	default:
+		logger.WithError(err).Error(op + ": unexpected gRPC status code")
+		SendJSONError(ctx, w, http.StatusInternalServerError, "internal server error")
 	}
 }
