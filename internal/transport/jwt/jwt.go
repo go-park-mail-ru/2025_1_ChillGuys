@@ -1,7 +1,6 @@
 package jwt
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
@@ -10,10 +9,6 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
 	"github.com/golang-jwt/jwt/v4"
 )
-
-type TokenChecker interface {
-	IsInBlacklist(ctx context.Context, userID, token string) (bool, error)
-}
 
 // JWTClaims структура для данных токена
 type JWTClaims struct {
@@ -27,15 +22,13 @@ type JWTClaims struct {
 type Tokenator struct {
 	sign          string
 	tokenLifeSpan time.Duration
-	TokenChecker  TokenChecker
 }
 
 // NewTokenator создает новый экземпляр Tokenator
-func NewTokenator(tokenChecker TokenChecker, conf *config.JWTConfig) *Tokenator {
+func NewTokenator(conf *config.JWTConfig) *Tokenator {
 	return &Tokenator{
 		sign:          conf.Signature,
 		tokenLifeSpan: conf.TokenLifeSpan,
-		TokenChecker:  tokenChecker,
 	}
 }
 

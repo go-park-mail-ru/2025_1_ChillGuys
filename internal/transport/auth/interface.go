@@ -9,5 +9,5 @@ import (
 type IAuthUsecase interface {
 	Register(context.Context, dto.UserRegisterRequestDTO) (string, error)
 	Login(context.Context, dto.UserLoginRequestDTO) (string, error)
-	Logout(context.Context) error
+	Logout(context.Context, string) error
 }

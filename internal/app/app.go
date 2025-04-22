@@ -3,12 +3,10 @@ package app
 import (
 	"database/sql"
 	"fmt"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/redis"
 	http2 "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/auth/http"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/generated/auth"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	"log"
 	"net/http"
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
@@ -42,11 +40,10 @@ import (
 
 // App объединяет в себе все компоненты приложения.
 type App struct {
-	conf        *config.Config
-	logger      *logrus.Logger
-	db          *sql.DB
-	redisClient *redis.Client
-	router      *mux.Router
+	conf   *config.Config
+	logger *logrus.Logger
+	db     *sql.DB
+	router *mux.Router
 }
 
 func OptionsRequest(w http.ResponseWriter, r *http.Request) {
@@ -67,15 +64,6 @@ func NewApp(conf *config.Config) (*App, error) {
 		return nil, fmt.Errorf("database connection error: %w", err)
 	}
 
-	// Подключение к Redis
-	redisClient, err := redis.NewClient(conf.RedisConfig)
-	if err != nil {
-		log.Fatalf("redis connection error: %v", err)
-	}
-
-	// Создаем Redis репозиторий
-	redisAuthRepo := redis.NewAuthRepository(redisClient, conf.JWTConfig)
-
 	// Применяем параметры пула соединений из конфигурации.
 	config.ConfigureDB(db, conf.DBConfig)
 
@@ -94,7 +82,7 @@ func NewApp(conf *config.Config) (*App, error) {
 	authClient := auth.NewAuthServiceClient(authConn)
 
 	// Инициализация репозиториев и use-case-ов.
-	tokenator := jwt.NewTokenator(redisAuthRepo, conf.JWTConfig)
+	tokenator := jwt.NewTokenator(conf.JWTConfig)
 	authHandler := http2.NewAuthHandler(authClient, conf)
 
 	userRepository := userrepo.NewUserRepository(db)
@@ -140,7 +128,7 @@ func NewApp(conf *config.Config) (*App, error) {
 	{
 		productsRouter.Handle("/batch",
 			middleware.CSRFMiddleware(tokenator,
-				middleware.JWTMiddleware(tokenator, http.HandlerFunc(ProductService.GetProductsByIDs)),
+				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(ProductService.GetProductsByIDs)),
 				conf.CSRFConfig,
 			)).Methods(http.MethodPost)
 		productsRouter.HandleFunc("", ProductService.GetAllProducts).Methods(http.MethodGet)
@@ -157,31 +145,32 @@ func NewApp(conf *config.Config) (*App, error) {
 	basketRouter := apiRouter.PathPrefix("/basket").Subrouter()
 	{
 		basketRouter.Handle("", middleware.JWTMiddleware(
+			authClient,
 			tokenator,
 			http.HandlerFunc(basketService.Get)),
 		).Methods(http.MethodGet)
 
 		basketRouter.Handle("/{id}",
 			middleware.CSRFMiddleware(tokenator,
-				middleware.JWTMiddleware(tokenator, http.HandlerFunc(basketService.Add)),
+				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(basketService.Add)),
 				conf.CSRFConfig,
 			)).Methods(http.MethodPost)
 
 		basketRouter.Handle("/{id}",
 			middleware.CSRFMiddleware(tokenator,
-				middleware.JWTMiddleware(tokenator, http.HandlerFunc(basketService.Delete)),
+				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(basketService.Delete)),
 				conf.CSRFConfig,
 			)).Methods(http.MethodDelete)
 
 		basketRouter.Handle("/{id}",
 			middleware.CSRFMiddleware(tokenator,
-				middleware.JWTMiddleware(tokenator, http.HandlerFunc(basketService.UpdateQuantity)),
+				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(basketService.UpdateQuantity)),
 				conf.CSRFConfig,
 			)).Methods(http.MethodPatch)
 
 		basketRouter.Handle("",
 			middleware.CSRFMiddleware(tokenator,
-				middleware.JWTMiddleware(tokenator, http.HandlerFunc(basketService.Clear)),
+				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(basketService.Clear)),
 				conf.CSRFConfig,
 			)).Methods(http.MethodDelete)
 	}
@@ -198,7 +187,7 @@ func NewApp(conf *config.Config) (*App, error) {
 		authRouter.HandleFunc("/register", authHandler.Register).Methods(http.MethodPost)
 		authRouter.Handle("/logout",
 			middleware.CSRFMiddleware(tokenator,
-				middleware.JWTMiddleware(tokenator, http.HandlerFunc(authHandler.Logout)),
+				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(authHandler.Logout)),
 				conf.CSRFConfig,
 			)).Methods(http.MethodPost)
 	}
@@ -206,26 +195,26 @@ func NewApp(conf *config.Config) (*App, error) {
 	// Маршруты для работы с пользователями.
 	userRouter := apiRouter.PathPrefix("/users").Subrouter()
 	{
-		userRouter.Handle("/me", middleware.JWTMiddleware(tokenator, http.HandlerFunc(userService.GetMe))).
+		userRouter.Handle("/me", middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(userService.GetMe))).
 			Methods(http.MethodGet)
 		userRouter.Handle("/upload-avatar",
 			middleware.CSRFMiddleware(tokenator,
-				middleware.JWTMiddleware(tokenator, http.HandlerFunc(userService.UploadAvatar)),
+				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(userService.UploadAvatar)),
 				conf.CSRFConfig,
 			)).Methods(http.MethodPost)
 		userRouter.Handle("/update-profile",
 			middleware.CSRFMiddleware(tokenator,
-				middleware.JWTMiddleware(tokenator, http.HandlerFunc(userService.UpdateUserProfile)),
+				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(userService.UpdateUserProfile)),
 				conf.CSRFConfig,
 			)).Methods(http.MethodPost)
 		userRouter.Handle("/update-email",
 			middleware.CSRFMiddleware(tokenator,
-				middleware.JWTMiddleware(tokenator, http.HandlerFunc(userService.UpdateUserEmail)),
+				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(userService.UpdateUserEmail)),
 				conf.CSRFConfig,
 			)).Methods(http.MethodPost)
 		userRouter.Handle("/update-password",
 			middleware.CSRFMiddleware(tokenator,
-				middleware.JWTMiddleware(tokenator, http.HandlerFunc(userService.UpdateUserPassword)),
+				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(userService.UpdateUserPassword)),
 				conf.CSRFConfig,
 			)).Methods(http.MethodPost)
 	}
@@ -234,10 +223,11 @@ func NewApp(conf *config.Config) (*App, error) {
 	{
 		orderRouter.Handle("",
 			middleware.CSRFMiddleware(tokenator,
-				middleware.JWTMiddleware(tokenator, http.HandlerFunc(orderService.CreateOrder)),
+				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(orderService.CreateOrder)),
 				conf.CSRFConfig,
 			)).Methods(http.MethodPost)
 		orderRouter.Handle("", middleware.JWTMiddleware(
+			authClient,
 			tokenator,
 			http.HandlerFunc(orderService.GetOrders),
 		)).Methods(http.MethodGet)
@@ -247,10 +237,11 @@ func NewApp(conf *config.Config) (*App, error) {
 	{
 		addressRouter.Handle("",
 			middleware.CSRFMiddleware(tokenator,
-				middleware.JWTMiddleware(tokenator, http.HandlerFunc(addressService.CreateAddress)),
+				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(addressService.CreateAddress)),
 				conf.CSRFConfig,
 			)).Methods(http.MethodPost)
 		addressRouter.Handle("", middleware.JWTMiddleware(
+			authClient,
 			tokenator,
 			http.HandlerFunc(addressService.GetAddress),
 		)).Methods(http.MethodGet)
@@ -258,11 +249,10 @@ func NewApp(conf *config.Config) (*App, error) {
 	}
 
 	app := &App{
-		conf:        conf,
-		logger:      logger,
-		db:          db,
-		redisClient: redisClient,
-		router:      router,
+		conf:   conf,
+		logger: logger,
+		db:     db,
+		router: router,
 	}
 
 	return app, nil

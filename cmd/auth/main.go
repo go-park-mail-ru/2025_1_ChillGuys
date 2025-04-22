@@ -49,13 +49,13 @@ func main() {
 	// Применяем параметры пула соединений из конфигурации
 	config.ConfigureDB(db, conf.DBConfig)
 
-	tokenator := jwt.NewTokenator(redisAuthRepo, conf.JWTConfig)
+	tokenator := jwt.NewTokenator(conf.JWTConfig)
 
 	// Инициализация репозиториев
 	authRepo := authrepo.NewAuthRepository(db)
 
 	// Инициализация usecase с Redis репозиторием
-	authUsecase := au.NewAuthUsecase(authRepo, tokenator)
+	authUsecase := au.NewAuthUsecase(authRepo, redisAuthRepo, tokenator)
 
 	// Создаем хендлер с передачей всех необходимых зависимостей
 	handler := auth.NewAuthGRPCHandler(authUsecase, redisAuthRepo, tokenator)

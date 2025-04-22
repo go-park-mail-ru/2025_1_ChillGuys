@@ -1,11 +1,11 @@
-package auth
+package http
 
 import (
+	"net/http"
+
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
 	gen "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/generated/auth"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/metadata"
-	"google.golang.org/protobuf/types/known/emptypb"
-	"net/http"
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/domains"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
@@ -14,6 +14,7 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/cookie"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/request"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/response"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 type AuthHandler struct {
@@ -56,22 +57,17 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Обращение к микросервису
 	res, err := h.authClient.Login(r.Context(), &gen.LoginReq{
 		Email:    loginReq.Email,
 		Password: loginReq.Password,
 	})
 	if err != nil {
-		// FIXME: Проброс ошибок
-		logger.WithError(err).Error("login")
-		response.HandleDomainError(r.Context(), w, err, op)
+		response.HandleGRPCError(r.Context(), w, err, op)
 		return
 	}
-	token := res.Token
 
-	// Генерируем CSRF токен
 	csrfToken, err := middleware.GenerateCSRFToken(
-		token, // Используем JWT токен как sessionID
+		res.Token,
 		h.config.CSRFConfig.SecretKey,
 		h.config.CSRFConfig.TokenExpiry,
 	)
@@ -81,11 +77,8 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Устанавливаем JWT в куки
 	cookieProvider := cookie.NewCookieProvider(h.config)
-	cookieProvider.Set(w, token, domains.TokenCookieName)
-
-	// Устанавливаем CSRF токен в заголовок
+	cookieProvider.Set(w, res.Token, domains.TokenCookieName)
 	w.Header().Set("X-CSRF-Token", csrfToken)
 
 	response.SendJSONResponse(r.Context(), w, http.StatusOK, nil)
@@ -116,18 +109,14 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	res, err2 := h.authClient.Register(r.Context(), registerReq.ConvertToGrpcRegisterReq())
-	if err2 != nil {
-		// FIXME: Проброс ошибок
-		logger.WithError(err2).Error("register")
-		response.HandleDomainError(r.Context(), w, err2, op)
+	res, err := h.authClient.Register(r.Context(), registerReq.ConvertToGrpcRegisterReq())
+	if err != nil {
+		response.HandleGRPCError(r.Context(), w, err, op)
 		return
 	}
-	token := res.Token
 
-	// Генерируем CSRF токен
 	csrfToken, err := middleware.GenerateCSRFToken(
-		token, // Используем JWT токен как sessionID
+		res.Token,
 		h.config.CSRFConfig.SecretKey,
 		h.config.CSRFConfig.TokenExpiry,
 	)
@@ -137,11 +126,8 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Устанавливаем JWT в куки
 	cookieProvider := cookie.NewCookieProvider(h.config)
-	cookieProvider.Set(w, token, domains.TokenCookieName)
-
-	// Устанавливаем CSRF токен в заголовок
+	cookieProvider.Set(w, res.Token, domains.TokenCookieName)
 	w.Header().Set("X-CSRF-Token", csrfToken)
 
 	response.SendJSONResponse(r.Context(), w, http.StatusOK, nil)
@@ -162,25 +148,21 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 //	@Router			/auth/logout [post]
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	const op = "AuthHandler.Logout"
-	// FIXME: Обращение к сервису пользователя по инкременту версии
 
 	jwtCookie, err := r.Cookie(string(domains.TokenCookieName))
 	if err != nil {
-		http.Error(w, "JWT token required", http.StatusForbidden)
+		response.SendJSONError(r.Context(), w, http.StatusUnauthorized, "JWT token required")
 		return
 	}
-	jwtToken := jwtCookie.Value
-	ctxWithToken := metadata.InjectJWTIntoContext(r.Context(), jwtToken)
 
-	// Обращаемся к gRPC-сервису, чтобы добавить токен в чёрный список
+	ctxWithToken := metadata.InjectJWTIntoContext(r.Context(), jwtCookie.Value)
 	_, err = h.authClient.Logout(ctxWithToken, &emptypb.Empty{})
 	if err != nil {
-		response.HandleDomainError(r.Context(), w, err, op)
+		response.HandleGRPCError(r.Context(), w, err, op)
 		return
 	}
 
 	cookieProvider := cookie.NewCookieProvider(h.config)
-
 	cookieProvider.Unset(w, domains.TokenCookieName)
 
 	response.SendJSONResponse(r.Context(), w, http.StatusOK, nil)
