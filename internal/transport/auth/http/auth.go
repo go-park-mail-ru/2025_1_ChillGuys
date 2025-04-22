@@ -65,6 +65,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		response.HandleGRPCError(r.Context(), w, err, op)
 		return
 	}
+	token := res.Token
 
 	csrfToken, err := middleware.GenerateCSRFToken(
 		res.Token,

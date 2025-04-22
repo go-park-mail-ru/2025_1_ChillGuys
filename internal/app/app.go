@@ -40,10 +40,11 @@ import (
 
 // App объединяет в себе все компоненты приложения.
 type App struct {
-	conf   *config.Config
-	logger *logrus.Logger
-	db     *sql.DB
-	router *mux.Router
+	conf        *config.Config
+	logger      *logrus.Logger
+	db          *sql.DB
+	redisClient *redis.Client
+	router      *mux.Router
 }
 
 func OptionsRequest(w http.ResponseWriter, r *http.Request) {
@@ -63,6 +64,15 @@ func NewApp(conf *config.Config) (*App, error) {
 	if err != nil {
 		return nil, fmt.Errorf("database connection error: %w", err)
 	}
+
+	// Подключение к Redis
+	redisClient, err := redis.NewClient(conf.RedisConfig)
+	if err != nil {
+		log.Fatalf("redis connection error: %v", err)
+	}
+
+	// Создаем Redis репозиторий
+	redisAuthRepo := redis.NewAuthRepository(redisClient, conf.JWTConfig)
 
 	// Применяем параметры пула соединений из конфигурации.
 	config.ConfigureDB(db, conf.DBConfig)
@@ -249,10 +259,11 @@ func NewApp(conf *config.Config) (*App, error) {
 	}
 
 	app := &App{
-		conf:   conf,
-		logger: logger,
-		db:     db,
-		router: router,
+		conf:        conf,
+		logger:      logger,
+		db:          db,
+		redisClient: redisClient,
+		router:      router,
 	}
 
 	return app, nil
