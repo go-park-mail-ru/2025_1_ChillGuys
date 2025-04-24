@@ -2,13 +2,15 @@ package middleware
 
 import (
 	"context"
+	"net/http"
+	"time"
+
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/domains"
 	gen "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/generated/auth"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/response"
 	"github.com/sirupsen/logrus"
-	"net/http"
-	"time"
+	"google.golang.org/grpc/metadata"
 )
 
 // JWTMiddleware проверяет наличие и валидность JWT-токена в куках
@@ -83,6 +85,10 @@ func JWTMiddleware(authClient gen.AuthServiceClient, tokenator *jwt.Tokenator, n
 
 		// Передаем userID в контекст
 		ctx = context.WithValue(ctx, domains.UserIDKey{}, claims.UserID)
+
+		// Добавляем user-id в метаданные для gRPC
+		ctx = metadata.AppendToOutgoingContext(ctx, "user-id", claims.UserID)
+
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

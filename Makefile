@@ -59,3 +59,12 @@ auth_proto:
 		--go-grpc_opt=paths=source_relative \
 		--go_opt=paths=source_relative \
 		proto/auth.proto
+
+user_proto:
+	@mkdir -p internal/transport/generated/user && \
+	protoc --proto_path=proto \
+		--go_out=internal/transport/generated/user \
+		--go-grpc_out=internal/transport/generated/user \
+		--go-grpc_opt=paths=source_relative \
+		--go_opt=paths=source_relative \
+		proto/user.proto

@@ -1,43 +1,30 @@
 package user
 
 import (
-	"context"
 	"io"
 	"net/http"
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/minio"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
+	gen "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/generated/user"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/logctx"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/request"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/response"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/validator"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
-//go:generate mockgen -source=user.go -destination=../../usecase/mocks/user_usecase_mock.go -package=mocks IUserUsecase
-type IUserUsecase interface {
-	GetMe(context.Context) (*dto.UserDTO, error)
-	UploadAvatar(context.Context, minio.FileData) (string, error)
-	UpdateUserProfile(context.Context, dto.UpdateUserProfileRequestDTO) error
-	UpdateUserEmail(ctx context.Context, user dto.UpdateUserEmailDTO) error
-	UpdateUserPassword(context.Context, dto.UpdateUserPasswordDTO) error
-}
-
 type UserHandler struct {
-	userService  IUserUsecase
-	minioService minio.Provider
-	config       config.Config
+	userClient gen.UserServiceClient
+	config     *config.Config
 }
 
 func NewUserHandler(
-	u IUserUsecase,
-	ms minio.Provider,
+	userClient gen.UserServiceClient,
 	cfg *config.Config,
 ) *UserHandler {
 	return &UserHandler{
-		userService:  u,
-		minioService: ms,
-		config:       *cfg,
+		userClient: userClient,
+		config:     cfg,
 	}
 }
 
@@ -54,10 +41,16 @@ func (h *UserHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 	const op = "UserHandler.GetMe"
 	logger := logctx.GetLogger(r.Context()).WithField("op", op)
 
-	user, err := h.userService.GetMe(r.Context())
+	res, err := h.userClient.GetMe(r.Context(), &emptypb.Empty{})
 	if err != nil {
-		logger.WithError(err).Error("failed to get current user")
-		response.HandleDomainError(r.Context(), w, err, op)
+		response.HandleGRPCError(r.Context(), w, err, op)
+		return
+	}
+
+	user, err := dto.ConvertGrpcToUserDTO(res)
+	if err != nil {
+		logger.WithError(err).Error("failed to convert user")
+		response.SendJSONError(r.Context(), w, http.StatusInternalServerError, "failed to process user data")
 		return
 	}
 
@@ -85,7 +78,7 @@ func (h *UserHandler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	file, header, err := r.FormFile(h.config.ServerConfig.AvatarKey)
+	file, _, err := r.FormFile(h.config.ServerConfig.AvatarKey)
 	if err != nil {
 		logger.WithError(err).Error("no file uploaded")
 		response.SendJSONError(r.Context(), w, http.StatusBadRequest, "no file uploaded")
@@ -93,34 +86,41 @@ func (h *UserHandler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	fileBytes, err := io.ReadAll(file)
+	stream, err := h.userClient.UploadAvatar(r.Context())
 	if err != nil {
-		logger.WithError(err).Error("failed to read file")
-		response.SendJSONError(r.Context(), w, http.StatusInternalServerError, "failed to read file")
+		logger.WithError(err).Error("failed to create upload stream")
+		response.SendJSONError(r.Context(), w, http.StatusInternalServerError, "failed to start upload")
 		return
 	}
 
-	contentType := http.DetectContentType(fileBytes)
-	if err := validator.ValidateImageContentType(contentType); err != nil {
-		logger.WithField("contentType", contentType).Error(err.Error())
-		response.SendJSONError(r.Context(), w, http.StatusBadRequest, err.Error())
-		return
+	buf := make([]byte, 1024)
+	for {
+		n, err := file.Read(buf)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			logger.WithError(err).Error("failed to read file chunk")
+			response.SendJSONError(r.Context(), w, http.StatusInternalServerError, "failed to read file")
+			return
+		}
+
+		if err := stream.Send(&gen.BytesValue{Value: buf[:n]}); err != nil {
+			logger.WithError(err).Error("failed to send chunk")
+			response.SendJSONError(r.Context(), w, http.StatusInternalServerError, "failed to upload file")
+			return
+		}
 	}
 
-	fileData := minio.FileData{
-		Name: header.Filename,
-		Data: fileBytes,
-	}
-
-	avatarURL, err := h.userService.UploadAvatar(r.Context(), fileData)
+	res, err := stream.CloseAndRecv()
 	if err != nil {
-		logger.WithError(err).Error("upload failed")
-		response.SendJSONError(r.Context(), w, http.StatusInternalServerError, "upload failed")
+		logger.WithError(err).Error("failed to close stream")
+		response.SendJSONError(r.Context(), w, http.StatusInternalServerError, "failed to complete upload")
 		return
 	}
 
 	response.SendJSONResponse(r.Context(), w, http.StatusOK, map[string]string{
-		"imageURL": avatarURL,
+		"imageURL": res.ImageURL,
 	})
 }
 
@@ -147,15 +147,9 @@ func (h *UserHandler) UpdateUserProfile(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	validator.SanitizeUserProfileUpdateRequest(&updateReq)
-
-	if err := validator.ValidateUserUpdateProfileCreds(updateReq); err != nil {
-		response.SendJSONError(r.Context(), w, http.StatusBadRequest, err.Error())
-		return
-	}
-
-	if err := h.userService.UpdateUserProfile(r.Context(), updateReq); err != nil {
-		response.HandleDomainError(r.Context(), w, err, "failed to update user profile")
+	_, err := h.userClient.UpdateUserProfile(r.Context(), updateReq.ConvertToGrpcUpdateProfileReq())
+	if err != nil {
+		response.HandleGRPCError(r.Context(), w, err, op)
 		return
 	}
 
@@ -185,15 +179,12 @@ func (h *UserHandler) UpdateUserEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	validator.SanitizeUserEmailUpdateRequest(&updateReq)
-
-	if err := validator.ValidateEmailCreds(updateReq); err != nil {
-		response.SendJSONError(r.Context(), w, http.StatusBadRequest, err.Error())
-		return
-	}
-
-	if err := h.userService.UpdateUserEmail(r.Context(), updateReq); err != nil {
-		response.HandleDomainError(r.Context(), w, err, "failed to update user email")
+	_, err := h.userClient.UpdateUserEmail(r.Context(), &gen.UpdateUserEmailRequest{
+		Email:    updateReq.Email,
+		Password: updateReq.Password,
+	})
+	if err != nil {
+		response.HandleGRPCError(r.Context(), w, err, op)
 		return
 	}
 
@@ -223,15 +214,12 @@ func (h *UserHandler) UpdateUserPassword(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	validator.SanitizeUserPasswordUpdateRequest(&updateReq)
-
-	if err := validator.ValidatePasswordCreds(updateReq); err != nil {
-		response.SendJSONError(r.Context(), w, http.StatusBadRequest, err.Error())
-		return
-	}
-
-	if err := h.userService.UpdateUserPassword(r.Context(), updateReq); err != nil {
-		response.HandleDomainError(r.Context(), w, err, "failed to update user password")
+	_, err := h.userClient.UpdateUserPassword(r.Context(), &gen.UpdateUserPasswordRequest{
+		OldPassword: updateReq.OldPassword,
+		NewPassword: updateReq.NewPassword,
+	})
+	if err != nil {
+		response.HandleGRPCError(r.Context(), w, err, op)
 		return
 	}
 
