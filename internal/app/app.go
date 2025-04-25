@@ -6,6 +6,7 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/redis"
 	http2 "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/auth/http"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/generated/auth"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/generated/user"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/search"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/suggestions"
 	"google.golang.org/grpc"
@@ -32,7 +33,6 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/order"
 	producttr "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/product"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/user"
 	addressus "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/address"
 	basketuc "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/basket"
 	categoryuc "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/category"
@@ -44,6 +44,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
 	httpSwagger "github.com/swaggo/http-swagger"
+	usert "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/user/http"
 )
 
 // App объединяет в себе все компоненты приложения.
@@ -83,7 +84,7 @@ func NewApp(conf *config.Config) (*App, error) {
 
 	// Инициализация микросервисов
 	authConn, err := grpc.Dial(
-		"localhost:50051",
+		"auth-service:50051",
 		//":8010",
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
@@ -99,13 +100,20 @@ func NewApp(conf *config.Config) (*App, error) {
 
 	authClient := auth.NewAuthServiceClient(authConn)
 
+	userConn, err := grpc.Dial(
+		"user-service:50052", 
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("user service connection error: %w", err)
+	}
+	userClient := user.NewUserServiceClient(userConn)
+
+	userHandler := usert.NewUserHandler(userClient, conf)
+
 	// Инициализация репозиториев и use-case-ов.
 	tokenator := jwt.NewTokenator(conf.JWTConfig)
 	authHandler := http2.NewAuthHandler(authClient, conf)
-
-	userRepository := userrepo.NewUserRepository(db)
-	userUsecase := userus.NewUserUsecase(userRepository, tokenator, minioClient)
-	userService := user.NewUserHandler(userUsecase, minioClient, conf)
 
 	addressRepo := addressrepo.NewAddressRepository(db)
 	addressUsecase := addressus.NewAddressUsecase(addressRepo)
@@ -231,26 +239,26 @@ func NewApp(conf *config.Config) (*App, error) {
 	// Маршруты для работы с пользователями.
 	userRouter := apiRouter.PathPrefix("/users").Subrouter()
 	{
-		userRouter.Handle("/me", middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(userService.GetMe))).
+		userRouter.Handle("/me", middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(userHandler.GetMe))).
 			Methods(http.MethodGet)
 		userRouter.Handle("/upload-avatar",
 			middleware.CSRFMiddleware(tokenator,
-				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(userService.UploadAvatar)),
+				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(userHandler.UploadAvatar)),
 				conf.CSRFConfig,
 			)).Methods(http.MethodPost)
 		userRouter.Handle("/update-profile",
 			middleware.CSRFMiddleware(tokenator,
-				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(userService.UpdateUserProfile)),
+				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(userHandler.UpdateUserProfile)),
 				conf.CSRFConfig,
 			)).Methods(http.MethodPost)
 		userRouter.Handle("/update-email",
 			middleware.CSRFMiddleware(tokenator,
-				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(userService.UpdateUserEmail)),
+				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(userHandler.UpdateUserEmail)),
 				conf.CSRFConfig,
 			)).Methods(http.MethodPost)
 		userRouter.Handle("/update-password",
 			middleware.CSRFMiddleware(tokenator,
-				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(userService.UpdateUserPassword)),
+				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(userHandler.UpdateUserPassword)),
 				conf.CSRFConfig,
 			)).Methods(http.MethodPost)
 	}

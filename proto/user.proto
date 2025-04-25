@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+import "google/protobuf/wrappers.proto";
+import "google/protobuf/empty.proto";
+
+package user;
+option go_package = "2025_1_ChillGuys/internal/transport/generated/user";
+
+/* ############### User ############### */
+message User {
+  string id = 1;
+  string email = 2;
+  string name = 3;
+  google.protobuf.StringValue surname = 4;
+  google.protobuf.StringValue imageURL = 5;
+  google.protobuf.StringValue phoneNumber = 6;
+}
+
+message UpdateUserProfileRequest {
+  google.protobuf.StringValue name = 1;
+  google.protobuf.StringValue surname = 2;
+  google.protobuf.StringValue phoneNumber = 3;
+}
+
+message UpdateUserEmailRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message BytesValue {
+  bytes value = 1;
+}
+
+message UpdateUserPasswordRequest {
+  string oldPassword = 1;
+  string newPassword = 2;
+}
+
+message UploadAvatarResponse {
+  string imageURL = 1;
+}
+
+/* ############### UserService ############### */
+service UserService {
+  rpc GetMe(google.protobuf.Empty) returns (User);
+  rpc UploadAvatar(stream BytesValue) returns (UploadAvatarResponse);
+  rpc UpdateUserProfile(UpdateUserProfileRequest) returns (google.protobuf.Empty);
+  rpc UpdateUserEmail(UpdateUserEmailRequest) returns (google.protobuf.Empty);
+  rpc UpdateUserPassword(UpdateUserPasswordRequest) returns (google.protobuf.Empty);
+}
