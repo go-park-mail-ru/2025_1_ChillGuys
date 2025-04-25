@@ -62,7 +62,12 @@ func main() {
 
 	// Создаём gRPC сервер
 	grpcServer := grpc.NewServer(
-		grpc.UnaryInterceptor(grpcmw.UserIDInterceptor()),
+		grpc.ChainUnaryInterceptor(
+			grpcmw.UserIDInterceptor(),
+		),
+		grpc.ChainStreamInterceptor(
+			grpcmw.UserIDStreamInterceptor(),
+		),
 	)
 
 	lis, err := net.Listen("tcp", ":50052")
