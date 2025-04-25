@@ -45,7 +45,7 @@ func NewUserUsecase(repo IUserRepository, token auth.ITokenator, minioService mi
 func (u *UserUsecase) GetMe(ctx context.Context) (*dto.UserDTO, error) {
 	const op = "UserUsecase.GetMe"
 	logger := logctx.GetLogger(ctx).WithField("op", op)
-	
+
 	userIDStr, isExist := ctx.Value(domains.UserIDKey{}).(string)
 	if !isExist {
 		logger.Warn("user ID not found in context")
@@ -71,7 +71,7 @@ func (u *UserUsecase) GetMe(ctx context.Context) (*dto.UserDTO, error) {
 
 	user := userRepo.ConvertToUser()
 	if user == nil {
-		logger.Error("failed to convert user from DB model")
+		logger.Error("failed to convert user from db model")
 		return nil, fmt.Errorf("%s: %w", op, errs.ErrBusinessLogic)
 	}
 

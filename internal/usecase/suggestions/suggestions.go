@@ -103,7 +103,7 @@ func filterSuggestions(names []string, sub string) []string {
 	for _, fullName := range names {
 		lowerFull := strings.ToLower(fullName)
 
-		if strings.Contains(lowerFull, lowerSub) {
+		if strings.HasPrefix(lowerFull, lowerSub) {
 			if _, ok := seen[fullName]; !ok {
 				result = append(result, fullName)
 				seen[fullName] = struct{}{}
@@ -111,17 +111,13 @@ func filterSuggestions(names []string, sub string) []string {
 			continue
 		}
 
-		words := strings.Fields(lowerFull)
-		for i := 0; i < len(words); i++ {
-			for j := i + 1; j <= len(words); j++ {
-				phrase := strings.Join(words[i:j], " ")
-				if strings.HasPrefix(phrase, lowerSub) {
-					if _, ok := seen[fullName]; !ok {
-						result = append(result, fullName)
-						seen[fullName] = struct{}{}
-					}
-					break
+		for _, word := range strings.Fields(lowerFull) {
+			if strings.HasPrefix(word, lowerSub) {
+				if _, ok := seen[fullName]; !ok {
+					result = append(result, fullName)
+					seen[fullName] = struct{}{}
 				}
+				break
 			}
 		}
 	}

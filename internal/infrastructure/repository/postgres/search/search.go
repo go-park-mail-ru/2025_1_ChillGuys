@@ -16,21 +16,19 @@ const (
 	FROM bazaar.product p 
 	LEFT JOIN bazaar.discount d ON p.id = d.product_id
 	WHERE p.status = 'approved' AND LOWER(p.name) LIKE LOWER($1)
-	LIMIT 10
-`
+	LIMIT 10`
 	queryGetCategoryByName = `
 	SELECT id, name FROM bazaar.category
-	WHERE LOWER(name) = LOWER($1)
-`
+	WHERE LOWER(name) = LOWER($1)`
 )
 
 type SearchRepository struct {
-	DB *sql.DB
+	db *sql.DB
 }
 
 func NewSearchRepository(db *sql.DB) *SearchRepository {
 	return &SearchRepository{
-		DB: db,
+		db: db,
 	}
 }
 
@@ -44,7 +42,7 @@ func (s *SearchRepository) GetProductsByName(ctx context.Context, name string) (
 	pattern := fmt.Sprintf("%%%s%%", name)
 
 	// Выполнение запроса
-	rows, err := s.DB.QueryContext(ctx, querySearchProductsByName, pattern)
+	rows, err := s.db.QueryContext(ctx, querySearchProductsByName, pattern)
 	if err != nil {
 		logger.WithError(err).Error("query search products by name")
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -55,7 +53,7 @@ func (s *SearchRepository) GetProductsByName(ctx context.Context, name string) (
 	for rows.Next() {
 		var priceDiscount sql.NullFloat64
 		product := &models.Product{}
-		err = rows.Scan(
+		if err = rows.Scan(
 			&product.ID,
 			&product.SellerID,
 			&product.Name,
@@ -68,8 +66,7 @@ func (s *SearchRepository) GetProductsByName(ctx context.Context, name string) (
 			&product.Rating,
 			&product.ReviewsCount,
 			&priceDiscount,
-		)
-		if err != nil {
+		); err != nil {
 			logger.WithError(err).Error("scan product row")
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
@@ -92,8 +89,7 @@ func (s *SearchRepository) GetCategoryByName(ctx context.Context, name string) (
 
 	var category models.Category
 
-	err := s.DB.QueryRowContext(ctx, queryGetCategoryByName, name).Scan(&category.ID, &category.Name)
-	if err != nil {
+	if err := s.db.QueryRowContext(ctx, queryGetCategoryByName, name).Scan(&category.ID, &category.Name); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
