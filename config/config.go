@@ -317,7 +317,12 @@ func newRedisConfig() (*RedisConfig, error) {
 	password, _ := os.LookupEnv("REDIS_PASSWORD")
 
 	if !hostExists || !portExists {
-		return nil, errors.New("incomplete Redis configuration")
+		return &RedisConfig{
+			Host:     "",
+			Port:     "",
+			Password: "",
+			DB:       0,
+		}, nil
 	}
 
 	db := 0

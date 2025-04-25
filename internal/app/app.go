@@ -74,14 +74,14 @@ func NewApp(conf *config.Config) (*App, error) {
 
 	// Инициализация микросервисов
 	authConn, err := grpc.Dial(
-		"localhost:50051",
+		"auth-service:50051",
 		//":8010",
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	authClient := auth.NewAuthServiceClient(authConn)
 
 	userConn, err := grpc.Dial(
-		"localhost:50052",
+		"user-service:50052", 
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {
