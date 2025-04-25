@@ -5,11 +5,13 @@ import (
 	"net/http"
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/domains"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	gen "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/generated/user"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/logctx"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/request"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/response"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
@@ -72,6 +74,16 @@ func (h *UserHandler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 	const op = "UserHandler.UploadAvatar"
 	logger := logctx.GetLogger(r.Context()).WithField("op", op)
 
+	userID, ok := r.Context().Value(domains.UserIDKey{}).(string)
+    if !ok {
+        logger.Error("user ID not found in context")
+        response.SendJSONError(r.Context(), w, http.StatusUnauthorized, "user not authenticated")
+        return
+    }
+
+    // Создаем контекст с метаданными для gRPC
+    ctx := metadata.AppendToOutgoingContext(r.Context(), "user-id", userID)
+
 	if err := r.ParseMultipartForm(h.config.ServerConfig.MaxMultipartMemory); err != nil {
 		logger.WithError(err).Error("failed to parse form data")
 		response.SendJSONError(r.Context(), w, http.StatusBadRequest, "failed to parse form data")
@@ -86,7 +98,7 @@ func (h *UserHandler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	stream, err := h.userClient.UploadAvatar(r.Context())
+	stream, err := h.userClient.UploadAvatar(ctx)
 	if err != nil {
 		logger.WithError(err).Error("failed to create upload stream")
 		response.SendJSONError(r.Context(), w, http.StatusInternalServerError, "failed to start upload")
