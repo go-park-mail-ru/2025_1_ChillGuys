@@ -11,6 +11,7 @@ type BriefProduct struct {
 	ImageURL      string    `json:"image"`
 	Price         float64   `json:"price"`
 	PriceDiscount float64   `json:"discount_price"`
+	Quantity      uint      `json:"quantity"`
 	ReviewsCount  uint      `json:"reviews_count"`
 	Rating        uint      `json:"rating,omitempty"`
 }
@@ -22,6 +23,7 @@ func ConvertToBriefProduct(product *models.Product) BriefProduct {
 		ImageURL:      product.PreviewImageURL,
 		Price:         product.Price,
 		PriceDiscount: product.PriceDiscount,
+		Quantity:      product.Quantity,
 		ReviewsCount:  product.ReviewsCount,
 		Rating:        product.Rating,
 	}

@@ -31,10 +31,14 @@ services:
       MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
       MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME}
-      REDIS_HOST: ${REDIS_HOST}
-      REDIS_PORT: ${REDIS_PORT}
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
-      REDIS_DB: ${REDIS_DB:-0}
+      AUTH_REDIS_HOST: ${AUTH_REDIS_HOST}
+      AUTH_REDIS_PORT: ${AUTH_REDIS_PORT}
+      AUTH_REDIS_PASSWORD: ${AUTH_REDIS_PASSWORD}
+      AUTH_REDIS_DB: ${AUTH_REDIS_DB:-0}
+      SEARCH_REDIS_HOST: ${SEARCH_REDIS_HOST}
+      SEARCH_REDIS_PORT: ${SEARCH_REDIS_PORT}
+      SEARCH_REDIS_PASSWORD: ${SEARCH_REDIS_PASSWORD}
+      SEARCH_REDIS_DB: ${SEARCH_REDIS_DB:-1}
       WAIT_FOR_MINIO: "true"
     ports:
       - "${SERVER_PORT}:8081"
@@ -43,11 +47,13 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
-      redis:
+      auth_redis:
+        condition: service_healthy
+      search_redis:
         condition: service_healthy
     networks:
       - bazaar-network
-    command: sh -c "while ! nc -z minio 9000; do sleep 2; done && while ! nc -z redis 6380; do sleep 2; done && ./migrate && ./main"
+    command: sh -c "while ! nc -z minio 9000; do sleep 2; done && while ! nc -z auth_redis 6380; do sleep 2; done && while ! nc -z search_redis 6381; do sleep 2; done && ./migrate && ./main"
     deploy:
       replicas: ${APP_REPLICAS:-1}
 
@@ -91,17 +97,34 @@ services:
     networks:
       - bazaar-network
 
-  redis:
+  auth_redis:
     image: redis:alpine
-    command: redis-server --bind 0.0.0.0 --port 6380 --requirepass ${REDIS_PASSWORD}
+    command: redis-server --bind 0.0.0.0 --port 6380 --requirepass ${AUTH_REDIS_PASSWORD}
     ports:
-      - "${REDIS_PORT}:6380"
+      - "${AUTH_REDIS_PORT}:6380"
     volumes:
-      - redis_data:/data
+      - auth_redis_data:/data
     environment:
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      REDIS_PASSWORD: ${AUTH_REDIS_PASSWORD}
     healthcheck:
-      test: ["CMD-SHELL", "redis-cli -h localhost -p 6380 -a $${REDIS_PASSWORD} ping | grep PONG"]
+      test: ["CMD-SHELL", "redis-cli -h localhost -p 6380 -a ${AUTH_REDIS_PASSWORD} ping | grep PONG"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - bazaar-network
+
+  search_redis:
+    image: redis:alpine
+    command: redis-server --bind 0.0.0.0 --port 6381 --requirepass ${SEARCH_REDIS_PASSWORD}
+    ports:
+      - "${SEARCH_REDIS_PORT}:6381"
+    volumes:
+      - search_redis_data:/data
+    environment:
+      REDIS_PASSWORD: ${SEARCH_REDIS_PASSWORD}
+    healthcheck:
+      test: [ "CMD-SHELL", "redis-cli -h localhost -p 6381 -a ${SEARCH_REDIS_PASSWORD} ping | grep PONG" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -134,4 +157,5 @@ networks:
 volumes:
   postgres_data:
   minio_data:
-  redis_data:
+  auth_redis_data:
+  search_redis_data:
