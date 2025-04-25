@@ -23,14 +23,14 @@ func main() {
 		log.Fatalf("config error: %v", err)
 	}
 
-	// Подключение к Redis
-	redisClient, err := redis.NewClient(conf.RedisConfig)
+	// Подключение к Redis для аутентификации
+	redisAuthClient, err := redis.NewClient(conf.AuthRedisConfig)
 	if err != nil {
-		log.Fatalf("redis connection error: %v", err)
+		log.Fatalf("redis auth connection error: %v", err)
 	}
 
-	// Создаем Redis репозиторий
-	redisAuthRepo := redis.NewAuthRepository(redisClient, conf.JWTConfig)
+	// Создаем Redis репозиторий для аутентификации
+	redisAuthRepo := redis.NewAuthRepository(redisAuthClient, conf.JWTConfig)
 
 	// Подключение к базе данных
 	str, err := postgres.GetConnectionString(conf.DBConfig)
@@ -48,6 +48,7 @@ func main() {
 	// Применяем параметры пула соединений из конфигурации
 	config.ConfigureDB(db, conf.DBConfig)
 
+	// Создание токенатора JWT
 	tokenator := jwt.NewTokenator(conf.JWTConfig)
 
 	// Инициализация репозиториев
@@ -66,6 +67,7 @@ func main() {
 		log.Fatalf("failed to listen: %v", err)
 	}
 
+	// Регистрируем сервис
 	auth2.RegisterAuthServiceServer(grpcServer, handler)
 
 	log.Println("gRPC server starting on :50051")

@@ -3,11 +3,15 @@ package app
 import (
 	"database/sql"
 	"fmt"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/redis"
 	http2 "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/auth/http"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/generated/auth"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/generated/user"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/search"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/suggestions"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"log"
 	"net/http"
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
@@ -19,6 +23,9 @@ import (
 	categoryrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/category"
 	orderrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/order"
 	productrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/product"
+	searchrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/search"
+	suggestionrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/suggestions"
+	userrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/user"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/address"
 	baskett "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/basket"
 	categoryt "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/category"
@@ -31,6 +38,9 @@ import (
 	categoryuc "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/category"
 	orderus "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/order"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/product"
+	searchus "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/search"
+	suggestionsus "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/suggestions"
+	userus "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/user"
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
 	httpSwagger "github.com/swaggo/http-swagger"
@@ -78,6 +88,16 @@ func NewApp(conf *config.Config) (*App, error) {
 		//":8010",
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
+
+	// Подключение к Redis
+	redisSearchClient, err := redis.NewClient(conf.SearchRedisConfig)
+	if err != nil {
+		log.Fatalf("redis auth connection error: %v", err)
+	}
+
+	// Создаем Redis репозиторий
+	redisSearchRepo := redis.NewSuggestionsRepository(redisSearchClient)
+
 	authClient := auth.NewAuthServiceClient(authConn)
 
 	userConn, err := grpc.Dial(
@@ -115,6 +135,14 @@ func NewApp(conf *config.Config) (*App, error) {
 	categoryUsecase := categoryuc.NewCategoryUsecase(categoryRepo)
 	categoryService := categoryt.NewCategoryService(categoryUsecase)
 
+	suggestionsRepo := suggestionrepo.NewSuggestionsRepository(db)
+	suggestionsUsecase := suggestionsus.NewSuggestionsUsecase(suggestionsRepo, redisSearchRepo)
+	suggestionsService := suggestions.NewSuggestionsService(suggestionsUsecase)
+
+	searchRepo := searchrepo.NewSearchRepository(db)
+	searchUsecase := searchus.NewSearchUsecase(searchRepo)
+	searchService := search.NewSearchService(searchUsecase, suggestionsUsecase)
+
 	router := mux.NewRouter()
 	router.PathPrefix("/swagger/").Handler(httpSwagger.WrapHandler)
 	apiRouter := router.PathPrefix("/api").Subrouter()
@@ -146,6 +174,16 @@ func NewApp(conf *config.Config) (*App, error) {
 	catalogRouter := apiRouter.PathPrefix("/categories").Subrouter()
 	{
 		catalogRouter.HandleFunc("", categoryService.GetAllCategories).Methods(http.MethodGet)
+	}
+
+	suggestionsRouter := apiRouter.PathPrefix("/suggestions").Subrouter()
+	{
+		suggestionsRouter.HandleFunc("", suggestionsService.GetSuggestions).Methods(http.MethodGet)
+	}
+
+	searchRouter := apiRouter.PathPrefix("/search").Subrouter()
+	{
+		searchRouter.HandleFunc("", searchService.Search).Methods(http.MethodGet)
 	}
 
 	basketRouter := apiRouter.PathPrefix("/basket").Subrouter()
