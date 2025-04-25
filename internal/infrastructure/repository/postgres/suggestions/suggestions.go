@@ -9,21 +9,17 @@ import (
 )
 
 const (
-	queryGetAllCategoriesName = `
-			SELECT name FROM bazaar.category
-		`
-	queryGetAllProductsName = `
-		SELECT name FROM bazaar.product WHERE status = 'approved'
-	`
+	queryGetAllCategoriesName = `SELECT name FROM bazaar.category`
+	queryGetAllProductsName   = `SELECT name FROM bazaar.product WHERE status = 'approved'`
 )
 
 type SuggestionsRepository struct {
-	DB *sql.DB
+	db *sql.DB
 }
 
 func NewSuggestionsRepository(db *sql.DB) *SuggestionsRepository {
 	return &SuggestionsRepository{
-		DB: db,
+		db: db,
 	}
 }
 
@@ -33,7 +29,7 @@ func (p *SuggestionsRepository) GetAllCategoriesName(ctx context.Context) ([]*mo
 
 	categoriesList := []*models.CategorySuggestion{}
 
-	rows, err := p.DB.QueryContext(ctx, queryGetAllCategoriesName)
+	rows, err := p.db.QueryContext(ctx, queryGetAllCategoriesName)
 	if err != nil {
 		logger.WithError(err).Error("query all categories")
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -42,10 +38,9 @@ func (p *SuggestionsRepository) GetAllCategoriesName(ctx context.Context) ([]*mo
 
 	for rows.Next() {
 		category := &models.CategorySuggestion{}
-		err = rows.Scan(
+		if err = rows.Scan(
 			&category.Name,
-		)
-		if err != nil {
+		); err != nil {
 			logger.WithError(err).Error("scan category row")
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
@@ -66,7 +61,7 @@ func (p *SuggestionsRepository) GetAllProductsName(ctx context.Context) ([]*mode
 
 	productsList := []*models.ProductSuggestion{}
 
-	rows, err := p.DB.QueryContext(ctx, queryGetAllProductsName)
+	rows, err := p.db.QueryContext(ctx, queryGetAllProductsName)
 	if err != nil {
 		logger.WithError(err).Error("query all products")
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -75,10 +70,9 @@ func (p *SuggestionsRepository) GetAllProductsName(ctx context.Context) ([]*mode
 
 	for rows.Next() {
 		product := &models.ProductSuggestion{}
-		err = rows.Scan(
+		if err = rows.Scan(
 			&product.Name,
-		)
-		if err != nil {
+		); err != nil {
 			logger.WithError(err).Error("scan product row")
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
