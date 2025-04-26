@@ -256,3 +256,77 @@ VALUES ('550e8400-e29b-41d4-a716-446655441301', '550e8400-e29b-41d4-a716-4466554
        ('550e8400-e29b-41d4-a716-446655441314', '550e8400-e29b-41d4-a716-446655440013', 'lg_ms2042db_1.jpg', 0),
        ('550e8400-e29b-41d4-a716-446655441315', '550e8400-e29b-41d4-a716-446655440014', 'playstation5_1.jpg', 0),
        ('550e8400-e29b-41d4-a716-446655441316', '550e8400-e29b-41d4-a716-446655440015', 'pocketbook_740_1.jpg', 0);
+
+
+
+
+
+INSERT INTO bazaar.topic (id, name)
+VALUES
+    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Выбор категории'),
+    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'Профиль'),
+    ('cccccccc-cccc-cccc-cccc-cccccccccccc', 'Корзина'),
+    ('dddddddd-dddd-dddd-dddd-dddddddddddd', 'Заказы'),
+    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', 'Основная страница'),
+    ('ffffffff-ffff-ffff-ffff-ffffffffffff', 'Обслуживание');
+
+-- Опрос по "Выбор категории"
+INSERT INTO bazaar.survey (id, topic_id, title, description)
+VALUES ('11111111-1111-1111-1111-111111111111', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Опрос по выбору категории', 'Пожалуйста, оцените процесс выбора категории.');
+
+-- Опрос по "Профиль"
+INSERT INTO bazaar.survey (id, topic_id, title, description)
+VALUES ('22222222-2222-2222-2222-222222222222', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'Опрос по профилю', 'Пожалуйста, оцените работу с профилем.');
+
+-- Опрос по "Корзина"
+INSERT INTO bazaar.survey (id, topic_id, title, description)
+VALUES ('33333333-3333-3333-3333-333333333333', 'cccccccc-cccc-cccc-cccc-cccccccccccc', 'Опрос по корзине', 'Пожалуйста, оцените удобство корзины.');
+
+-- Опрос по "Заказы"
+INSERT INTO bazaar.survey (id, topic_id, title, description)
+VALUES ('44444444-4444-4444-4444-444444444444', 'dddddddd-dddd-dddd-dddd-dddddddddddd', 'Опрос по заказам', 'Пожалуйста, оцените оформление и отслеживание заказов.');
+
+-- Опрос по "Основная страница"
+INSERT INTO bazaar.survey (id, topic_id, title, description)
+VALUES ('55555555-5555-5555-5555-555555555555', 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', 'Опрос по главной странице', 'Пожалуйста, оцените главную страницу.');
+
+-- Опрос по "Обслуживание"
+INSERT INTO bazaar.survey (id, topic_id, title, description)
+VALUES ('66666666-6666-6666-6666-666666666666', 'ffffffff-ffff-ffff-ffff-ffffffffffff', 'Опрос по качеству обслуживания', 'Пожалуйста, оцените качество обслуживания.');
+
+-- Основная страница
+INSERT INTO bazaar.question (id, survey_id, text, position)
+VALUES
+    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '55555555-5555-5555-5555-555555555555', 'Как бы вы оценили удобство навигации на главной странице?', 1),
+    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', '55555555-5555-5555-5555-555555555555', 'Насколько легко вам было найти нужную информацию на главной странице?', 2);
+
+-- Выбор категории
+INSERT INTO bazaar.question (id, survey_id, text, position)
+VALUES
+    ('cccccccc-cccc-cccc-cccc-cccccccccccc', '11111111-1111-1111-1111-111111111111', 'Насколько удобен процесс выбора категории товаров?', 1),
+    ('dddddddd-dddd-dddd-dddd-dddddddddddd', '11111111-1111-1111-1111-111111111111', 'Оцените, насколько легко вам было найти нужную категорию товаров.', 2);
+
+-- Профиль
+INSERT INTO bazaar.question (id, survey_id, text, position)
+VALUES
+    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', '22222222-2222-2222-2222-222222222222', 'Как бы вы оценили удобство редактирования профиля?', 1),
+    ('ffffffff-ffff-ffff-ffff-ffffffffffff', '22222222-2222-2222-2222-222222222222', 'Насколько удобно вам использовать функции профиля, такие как изменение данных и просмотр истории заказов?', 2);
+
+-- Корзина
+INSERT INTO bazaar.question (id, survey_id, text, position)
+VALUES
+    ('11111111-aaaa-aaaa-aaaa-111111111111', '33333333-3333-3333-3333-333333333333', 'Как бы вы оценили удобство использования корзины?', 1),
+    ('22222222-bbbb-bbbb-bbbb-222222222222', '33333333-3333-3333-3333-333333333333', 'Насколько вам удобно добавлять и удалять товары из корзины?', 2);
+
+-- Заказы
+INSERT INTO bazaar.question (id, survey_id, text, position)
+VALUES
+    ('33333333-cccc-cccc-cccc-333333333333', '44444444-4444-4444-4444-444444444444', 'Как бы вы оценили процесс оформления заказа?', 1),
+    ('44444444-dddd-dddd-dddd-444444444444', '44444444-4444-4444-4444-444444444444', 'Насколько понятным и удобным был процесс отслеживания состояния вашего заказа?', 2);
+
+
+-- Обслуживание
+INSERT INTO bazaar.question (id, survey_id, text, position)
+VALUES
+    ('55555555-eeee-eeee-eeee-555555555555', '66666666-6666-6666-6666-666666666666', 'Как вы оцениваете скорость обслуживания?', 1),
+    ('66666666-ffff-ffff-ffff-666666666666', '66666666-6666-6666-6666-666666666666', 'Как вы оцениваете вежливость персонала?', 2);

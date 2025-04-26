@@ -112,3 +112,13 @@ type AnswerRequestDTO struct {
 	QuestionID uuid.UUID `json:"questionId"`
 	Value      uint      `json:"value"`
 }
+
+type GetStatisticsResponse struct {
+	Questions []QuestionStatisticsDTO `json:"questions"`
+}
+
+type QuestionStatisticsDTO struct {
+	ID      uuid.UUID `json:"questionId"`
+	Text    string    `json:"text"`
+	Answers []uint    `json:"answer"`
+}

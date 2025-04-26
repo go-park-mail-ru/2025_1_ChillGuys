@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
@@ -30,12 +31,16 @@ const (
 	insertSubmissionQuery = `
 		INSERT INTO bazaar.submission (id, user_id, survey_id)
 		VALUES ($1, $2, $3);`
+	
+	queryGetStatistics = `
+		SELECT
+			q.id AS question_id,
+			q.text AS question_text,
+			a.value AS answer_value
+			FROM bazaar.question q
+			LEFT JOIN bazaar.answer a ON a.question_id = q.id
+			ORDER BY q.id;`
 )
-
-type ISurveyRepository interface {
-	GetSurvey(ctx context.Context, topicName string) (models.SurveyWithQuestions, error)
-	AddSurveySubmission(ctx context.Context, answer dto.SubmitAnswersRequest, userID uuid.UUID) error
-}
 
 type SurveyRepository struct {
 	db *sql.DB
@@ -47,24 +52,24 @@ func NewSurveyRepository(db *sql.DB) *SurveyRepository {
 	}
 }
 
-func (r *SurveyRepository) GetSurvey(ctx context.Context, topicName string) (models.SurveyWithQuestions, error) {
+func (r *SurveyRepository) GetSurvey(ctx context.Context, topicName string) (*models.SurveyWithQuestions, error) {
 	const op = "SurveyRepository.GetSurvey"
 	logger := logctx.GetLogger(ctx).WithField("op", op)
 
 	rows, err := r.db.QueryContext(ctx, queryGetSurvey, topicName)
 	if err != nil {
 		logger.WithError(err).Error("failed to query survey")
-		return models.SurveyWithQuestions{}, fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	defer rows.Close()
 
-	var survey models.SurveyWithQuestions
+	survey := &models.SurveyWithQuestions{}
 	survey.Questions = make([]models.Question, 0)
 
 	first := true
 
 	for rows.Next() {
-		var surveyData models.SurveyQuestionData
+		surveyData := &models.SurveyQuestionData{}
 
 		if err = rows.Scan(
 			&surveyData.SurveyID,
@@ -75,7 +80,7 @@ func (r *SurveyRepository) GetSurvey(ctx context.Context, topicName string) (mod
 			&surveyData.QuestionText,
 		); err != nil {
 			logger.WithError(err).Error("failed to scan survey data")
-			return models.SurveyWithQuestions{}, fmt.Errorf("scan survey: %w", err)
+			return nil, fmt.Errorf("scan survey: %w", err)
 		}
 
 		if first {
@@ -94,18 +99,18 @@ func (r *SurveyRepository) GetSurvey(ctx context.Context, topicName string) (mod
 
 	if err = rows.Err(); err != nil {
 		logger.WithError(err).Error("rows iteration error")
-		return models.SurveyWithQuestions{}, fmt.Errorf("rows error: %w", err)
+		return nil, fmt.Errorf("rows error: %w", err)
 	}
 
 	if len(survey.Questions) == 0 {
 		logger.Warn("no questions found for survey")
-		return models.SurveyWithQuestions{}, errs.NewNotFoundError("survey not found for topic")
+		return nil, errs.NewNotFoundError("survey not found for topic")
 	}
 
 	return survey, nil
 }
 
-func (r *SurveyRepository) AddSurveySubmission(ctx context.Context, answer dto.SubmitAnswersRequest, userID uuid.UUID) error {
+func (r *SurveyRepository) AddSurveySubmission(ctx context.Context, surveyID uuid.UUID, answers []models.Answer, userID uuid.UUID) error {
 	const op = "SurveyRepository.AddSurveySubmission"
 	logger := logctx.GetLogger(ctx).WithField("op", op)
 
@@ -117,13 +122,13 @@ func (r *SurveyRepository) AddSurveySubmission(ctx context.Context, answer dto.S
 	defer func() {
 		if p := recover(); p != nil {
 			tx.Rollback()
-			panic(p)
+			fmt.Errorf("failed rollback")
 		}
 	}()
 
 	submissionID := uuid.New()
 
-	_, err = tx.ExecContext(ctx, insertSubmissionQuery, submissionID, userID, answer.SurveyID)
+	_, err = tx.ExecContext(ctx, insertSubmissionQuery, submissionID, userID, surveyID)
 	if err != nil {
 		logger.WithError(err).Error("failed to insert submission")
 		tx.Rollback()
@@ -138,7 +143,7 @@ func (r *SurveyRepository) AddSurveySubmission(ctx context.Context, answer dto.S
 	}
 	defer stmt.Close()
 
-	for _, ans := range answer.Answers {
+	for _, ans := range answers {
 		answerID := uuid.New()
 		_, err = stmt.ExecContext(ctx, answerID, submissionID, ans.QuestionID, ans.Value)
 		if err != nil {
@@ -155,3 +160,55 @@ func (r *SurveyRepository) AddSurveySubmission(ctx context.Context, answer dto.S
 
 	return nil
 }
+
+func (r *SurveyRepository) GetStatistics(ctx context.Context) (*dto.GetStatisticsResponse, error) {
+	const op = "SurveyRepository.GetStatistics"
+	logger := logctx.GetLogger(ctx).WithField("op", op)
+  
+	rows, err := r.db.QueryContext(ctx, queryGetStatistics)
+	if err != nil {
+	  logger.WithError(err).Error("failed to query statistics")
+	  return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	defer rows.Close()
+  
+	questionMap := make(map[uuid.UUID]*dto.QuestionStatisticsDTO)
+  
+	for rows.Next() {
+	  var questionID uuid.UUID
+	  var questionText string
+	  var answerValue sql.NullInt64
+  
+	  if err := rows.Scan(&questionID, &questionText, &answerValue); err != nil {
+		logger.WithError(err).Error("failed to scan statistics data")
+		return nil, fmt.Errorf("%s: %w", op, err)
+	  }
+  
+	  question, ok := questionMap[questionID]
+	  if !ok {
+		question = &dto.QuestionStatisticsDTO{
+		  ID:      questionID,
+		  Text:    questionText,
+		  Answers: make([]uint, 0),
+		}
+		questionMap[questionID] = question
+	  }
+  
+	  if answerValue.Valid {
+		question.Answers = append(question.Answers, uint(answerValue.Int64))
+	  }
+	}
+  
+	if err = rows.Err(); err != nil {
+	  logger.WithError(err).Error("rows iteration error")
+	  return nil, fmt.Errorf("%s: %w", op, err)
+	}
+  
+	var response dto.GetStatisticsResponse
+	response.Questions = make([]dto.QuestionStatisticsDTO, 0, len(questionMap))
+	for _, question := range questionMap {
+	  response.Questions = append(response.Questions, *question)
+	}
+  
+	return &response, nil
+  }

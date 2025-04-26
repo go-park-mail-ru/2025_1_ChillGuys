@@ -7,6 +7,7 @@ import (
 	http2 "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/auth/http"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/generated/auth"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/generated/user"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/generated/csat"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/search"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/suggestions"
 	"google.golang.org/grpc"
@@ -43,6 +44,7 @@ import (
 	"github.com/sirupsen/logrus"
 	httpSwagger "github.com/swaggo/http-swagger"
 	usert "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/user/http"
+	csatt "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/csat/http"
 )
 
 // App объединяет в себе все компоненты приложения.
@@ -108,6 +110,17 @@ func NewApp(conf *config.Config) (*App, error) {
 	userClient := user.NewUserServiceClient(userConn)
 
 	userHandler := usert.NewUserHandler(userClient, conf)
+
+	csatConn, err := grpc.Dial(
+		"csat-service:50053",
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("csat service connection error: %w", err)
+	}
+	csatClient := csat.NewSurveyServiceClient(csatConn)
+
+	csatHandler := csatt.NewCsatHandler(csatClient)
 
 	// Инициализация репозиториев и use-case-ов.
 	tokenator := jwt.NewTokenator(conf.JWTConfig)
@@ -288,6 +301,21 @@ func NewApp(conf *config.Config) (*App, error) {
 			http.HandlerFunc(addressService.GetAddress),
 		)).Methods(http.MethodGet)
 		addressRouter.HandleFunc("/pickup-points", addressService.GetPickupPoints).Methods(http.MethodGet)
+	}
+
+	csatRouter := apiRouter.PathPrefix("/csat").Subrouter()
+	{
+		csatRouter.Handle("/{name}", 
+			middleware.CSRFMiddleware(tokenator,
+				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(csatHandler.GetSurvey)),
+				conf.CSRFConfig,
+		)).Methods(http.MethodGet)
+
+		csatRouter.Handle("",
+			middleware.CSRFMiddleware(tokenator,
+				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(csatHandler.SubmitAnswer)),
+				conf.CSRFConfig,
+		)).Methods(http.MethodPost)
 	}
 
 	app := &App{

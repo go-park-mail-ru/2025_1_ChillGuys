@@ -15,7 +15,7 @@ type CsatHandler struct {
 	csatClient gen.SurveyServiceClient
 }
 
-func NewUserHandler(csatClient gen.SurveyServiceClient) *CsatHandler {
+func NewCsatHandler(csatClient gen.SurveyServiceClient) *CsatHandler {
 	return &CsatHandler{
 		csatClient: csatClient,
 	}
