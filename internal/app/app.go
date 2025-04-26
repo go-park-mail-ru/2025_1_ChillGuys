@@ -6,6 +6,7 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/redis"
 	http2 "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/auth/http"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/generated/auth"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/generated/csat"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/generated/user"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/search"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/suggestions"
@@ -28,10 +29,12 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/address"
 	baskett "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/basket"
 	categoryt "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/category"
+	csatt "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/csat/http"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/order"
 	producttr "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/product"
+	usert "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/user/http"
 	addressus "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/address"
 	basketuc "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/basket"
 	categoryuc "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/category"
@@ -42,7 +45,6 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
 	httpSwagger "github.com/swaggo/http-swagger"
-	usert "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/user/http"
 )
 
 // App объединяет в себе все компоненты приложения.
@@ -99,7 +101,7 @@ func NewApp(conf *config.Config) (*App, error) {
 	authClient := auth.NewAuthServiceClient(authConn)
 
 	userConn, err := grpc.Dial(
-		"user-service:50052", 
+		"user-service:50052",
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {
@@ -108,6 +110,17 @@ func NewApp(conf *config.Config) (*App, error) {
 	userClient := user.NewUserServiceClient(userConn)
 
 	userHandler := usert.NewUserHandler(userClient, conf)
+
+	csatConn, err := grpc.Dial(
+		"csat-service:50053",
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("csat service connection error: %w", err)
+	}
+	csatClient := csat.NewSurveyServiceClient(csatConn)
+
+	csatHandler := csatt.NewCsatHandler(csatClient)
 
 	// Инициализация репозиториев и use-case-ов.
 	tokenator := jwt.NewTokenator(conf.JWTConfig)
@@ -176,12 +189,12 @@ func NewApp(conf *config.Config) (*App, error) {
 
 	suggestionsRouter := apiRouter.PathPrefix("/suggestions").Subrouter()
 	{
-		suggestionsRouter.HandleFunc("", suggestionsService.GetSuggestions).Methods(http.MethodGet)
+		suggestionsRouter.HandleFunc("", suggestionsService.GetSuggestions).Methods(http.MethodPost)
 	}
 
 	searchRouter := apiRouter.PathPrefix("/search").Subrouter()
 	{
-		searchRouter.HandleFunc("", searchService.Search).Methods(http.MethodGet)
+		searchRouter.HandleFunc("", searchService.Search).Methods(http.MethodPost)
 	}
 
 	basketRouter := apiRouter.PathPrefix("/basket").Subrouter()
@@ -288,6 +301,33 @@ func NewApp(conf *config.Config) (*App, error) {
 			http.HandlerFunc(addressService.GetAddress),
 		)).Methods(http.MethodGet)
 		addressRouter.HandleFunc("/pickup-points", addressService.GetPickupPoints).Methods(http.MethodGet)
+	}
+
+	csatRouter := apiRouter.PathPrefix("").Subrouter()
+	{
+		csatRouter.Handle("/csat/{name}", 
+			middleware.CSRFMiddleware(tokenator,
+				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(csatHandler.GetSurvey)),
+				conf.CSRFConfig,
+			)).Methods(http.MethodGet)
+
+		csatRouter.Handle("/csat",
+			middleware.CSRFMiddleware(tokenator,
+				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(csatHandler.SubmitAnswer)),
+				conf.CSRFConfig,
+		)).Methods(http.MethodPost)
+
+		csatRouter.Handle("/survey", 
+			middleware.CSRFMiddleware(tokenator,
+				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(csatHandler.GetAllSurveys)),
+				conf.CSRFConfig,
+		)).Methods(http.MethodGet)
+
+		csatRouter.Handle("/stat/{surveyId}",
+			middleware.CSRFMiddleware(tokenator,
+				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(csatHandler.GetSurveyStatistics)),
+				conf.CSRFConfig,
+			)).Methods(http.MethodGet)
 	}
 
 	app := &App{

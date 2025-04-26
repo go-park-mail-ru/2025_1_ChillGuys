@@ -68,3 +68,12 @@ user_proto:
 		--go-grpc_opt=paths=source_relative \
 		--go_opt=paths=source_relative \
 		proto/user.proto
+
+csat_proto:
+	@mkdir -p internal/transport/generated/csat && \
+	protoc --proto_path=proto \
+		--go_out=internal/transport/generated/csat \
+		--go-grpc_out=internal/transport/generated/csat \
+		--go-grpc_opt=paths=source_relative \
+		--go_opt=paths=source_relative \
+		proto/csat.proto
