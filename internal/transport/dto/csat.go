@@ -1,6 +1,7 @@
 package dto
 
 import (
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 	gen "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/generated/csat"
 	"github.com/google/uuid"
 )
@@ -124,6 +125,63 @@ type QuestionStatisticsDTO struct {
 	Stats []uint32  `json:"stats"`
 }
 
+type BriefSurveyDTO struct {
+	ID    uuid.UUID `json:"id"`
+	Title string    `json:"title"`
+}
+
+type SurveysListDTO struct {
+	Surveys []BriefSurveyDTO `json:"surveys"`
+}
+
+func ConvertModelsToSurveysListDTO(surveys []models.Survey) *SurveysListDTO {
+	result := &SurveysListDTO{
+		Surveys: make([]BriefSurveyDTO, 0, len(surveys)),
+	}
+
+	for _, s := range surveys {
+		result.Surveys = append(result.Surveys, BriefSurveyDTO{
+			ID:    s.ID,
+			Title: s.Title,
+		})
+	}
+
+	return result
+}
+
+func ConvertSurveysListToGrpc(s *SurveysListDTO) *gen.SurveysList {
+	surveys := make([]*gen.BriefSurvey, 0, len(s.Surveys))
+	for _, survey := range s.Surveys {
+		surveys = append(surveys, &gen.BriefSurvey{
+			Id:    survey.ID.String(),
+			Title: survey.Title,
+		})
+	}
+
+	return &gen.SurveysList{
+		Surveys: surveys,
+	}
+}
+
+func ConvertGrpcToSurveyList(grpcList *gen.SurveysList) (*SurveysListDTO, error) {
+	surveys := make([]BriefSurveyDTO, 0, len(grpcList.Surveys))
+	
+	for _, grpcSurvey := range grpcList.Surveys {
+		id, err := uuid.Parse(grpcSurvey.Id)
+		if err != nil {
+			return nil, err
+		}
+
+		surveys = append(surveys, BriefSurveyDTO{
+			ID:    id,
+			Title: grpcSurvey.Title,
+		})
+	}
+
+	return &SurveysListDTO{
+		Surveys: surveys,
+	}, nil
+}
 func ConvertGrpcToStatisticsRequest(grpcReq *gen.GetStatisticsRequest) (uuid.UUID, error) {
 	return uuid.Parse(grpcReq.SurveyId)
 }

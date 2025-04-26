@@ -38,9 +38,12 @@ const (
 			a.value AS answer_value
 		FROM bazaar.question q
 		LEFT JOIN bazaar.answer a ON a.question_id = q.id
-		INNER JOIN bazaar.survey s ON s.id = q.survey_id
 		WHERE q.survey_id = $1
 		ORDER BY q.id;`
+
+	queryGetAllSurvey = `
+		SELECT s.id, s.title FROM bazaar.survey s
+	`
 )
 
 type SurveyRepository struct {
@@ -223,4 +226,42 @@ func (r *SurveyRepository) GetStatistics(ctx context.Context, surveyID uuid.UUID
 	}
 
 	return &response, nil
+  }
+
+func (r *SurveyRepository) GetAllSurvey(ctx context.Context) ([]models.Survey, error) {
+	const op = "SurveyRepository.GetAllSurvey"
+    logger := logctx.GetLogger(ctx).WithField("op", op)
+
+	rows, err := r.db.QueryContext(ctx, queryGetAllSurvey)
+    if err != nil {
+        logger.WithError(err).Error("failed to query surveys")
+        return nil, fmt.Errorf("%s: %w", op, err)
+    }
+    defer rows.Close()
+
+	surveys := make([]models.Survey, 0)
+
+	for rows.Next() {
+        var survey models.Survey
+        if err := rows.Scan(
+            &survey.ID,
+            &survey.Title,
+        ); err != nil {
+            logger.WithError(err).Error("failed to scan survey data")
+            return nil, fmt.Errorf("%s: %w", op, err)
+        }
+        surveys = append(surveys, survey)
+    }
+
+	if err := rows.Err(); err != nil {
+        logger.WithError(err).Error("rows iteration error")
+        return nil, fmt.Errorf("%s: %w", op, err)
+    }
+
+    if len(surveys) == 0 {
+        logger.Info("no surveys found")
+        return []models.Survey{}, nil
+    }
+
+    return surveys, nil
 }

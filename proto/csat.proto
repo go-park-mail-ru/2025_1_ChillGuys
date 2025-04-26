@@ -22,6 +22,15 @@ message QuestionResponseDTO {
   string text = 2;
 }
 
+message BriefSurvey {
+  string id = 1;
+  string title = 2;
+}
+
+message SurveysList {
+  repeated BriefSurvey surveys = 1;
+}
+
 /* ############### Answers ############### */
 message SubmitAnswerRequest {
   string surveyId = 1;
@@ -60,4 +69,7 @@ service SurveyService {
   // Получение статистики по опросу
   rpc GetSurveyStatistics(GetStatisticsRequest) returns (SurveyStatisticsResponse);
 
+
+  // Получение всех опросов
+  rpc GetAllSurveys(google.protobuf.Empty) returns (SurveysList);
 }

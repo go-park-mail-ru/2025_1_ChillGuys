@@ -10,4 +10,5 @@ type ICsatUsecase interface {
 	GetSurveyWithQuestions(ctx context.Context, name string) (*dto.SurveyWithQuestionsResponse, error)
 	SubmitAnswer(ctx context.Context, req *dto.SubmitAnswersRequest) error
 	GetSurveyStatistics(ctx context.Context, surveyID uuid.UUID) (*dto.SurveyStatisticsResponse, error)
+	GetAllSurveys(ctx context.Context) (*dto.SurveysListDTO, error)
 }
