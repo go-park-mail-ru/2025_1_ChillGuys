@@ -37,9 +37,10 @@ const (
 			q.text AS question_text,
 			a.value AS answer_value
 		FROM bazaar.question q
+		JOIN bazaar.survey s ON q.survey_id = s.id
 		LEFT JOIN bazaar.answer a ON a.question_id = q.id
 		WHERE q.survey_id = $1
-		ORDER BY q.id;`
+		ORDER BY q.position;`
 
 	queryGetAllSurvey = `
 		SELECT s.id, s.title FROM bazaar.survey s

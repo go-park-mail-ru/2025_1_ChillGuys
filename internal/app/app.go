@@ -305,13 +305,13 @@ func NewApp(conf *config.Config) (*App, error) {
 
 	csatRouter := apiRouter.PathPrefix("").Subrouter()
 	{
-		csatRouter.Handle("csat/{name}", 
+		csatRouter.Handle("/csat/{name}", 
 			middleware.CSRFMiddleware(tokenator,
 				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(csatHandler.GetSurvey)),
 				conf.CSRFConfig,
 			)).Methods(http.MethodGet)
 
-		csatRouter.Handle("csat",
+		csatRouter.Handle("/csat",
 			middleware.CSRFMiddleware(tokenator,
 				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(csatHandler.SubmitAnswer)),
 				conf.CSRFConfig,

@@ -139,7 +139,7 @@ func convertStatisticsQuestionsToDTO(questions []models.QuestionStatistics) []dt
 	result := make([]dto.QuestionStatisticsDTO, 0, len(questions))
 
 	for _, q := range questions {
-		stats := make([]uint, 11)
+		stats := make([]uint32, 11)
 
 		for _, answer := range q.Answers {
 			if answer <= 10 {
