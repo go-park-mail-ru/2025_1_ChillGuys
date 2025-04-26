@@ -189,12 +189,12 @@ func NewApp(conf *config.Config) (*App, error) {
 
 	suggestionsRouter := apiRouter.PathPrefix("/suggestions").Subrouter()
 	{
-		suggestionsRouter.HandleFunc("", suggestionsService.GetSuggestions).Methods(http.MethodGet)
+		suggestionsRouter.HandleFunc("", suggestionsService.GetSuggestions).Methods(http.MethodPost)
 	}
 
 	searchRouter := apiRouter.PathPrefix("/search").Subrouter()
 	{
-		searchRouter.HandleFunc("", searchService.Search).Methods(http.MethodGet)
+		searchRouter.HandleFunc("", searchService.Search).Methods(http.MethodPost)
 	}
 
 	basketRouter := apiRouter.PathPrefix("/basket").Subrouter()
