@@ -398,7 +398,7 @@ type GetStatisticsRequest struct {
 
 func (x *GetStatisticsRequest) Reset() {
 	*x = GetStatisticsRequest{}
-	mi := &file_csat_proto_msgTypes[5]
+	mi := &file_csat_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -410,7 +410,7 @@ func (x *GetStatisticsRequest) String() string {
 func (*GetStatisticsRequest) ProtoMessage() {}
 
 func (x *GetStatisticsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_csat_proto_msgTypes[5]
+	mi := &file_csat_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -423,7 +423,7 @@ func (x *GetStatisticsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetStatisticsRequest.ProtoReflect.Descriptor instead.
 func (*GetStatisticsRequest) Descriptor() ([]byte, []int) {
-	return file_csat_proto_rawDescGZIP(), []int{5}
+	return file_csat_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *GetStatisticsRequest) GetSurveyId() string {
@@ -444,7 +444,7 @@ type QuestionStatisticsDTO struct {
 
 func (x *QuestionStatisticsDTO) Reset() {
 	*x = QuestionStatisticsDTO{}
-	mi := &file_csat_proto_msgTypes[6]
+	mi := &file_csat_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -456,7 +456,7 @@ func (x *QuestionStatisticsDTO) String() string {
 func (*QuestionStatisticsDTO) ProtoMessage() {}
 
 func (x *QuestionStatisticsDTO) ProtoReflect() protoreflect.Message {
-	mi := &file_csat_proto_msgTypes[6]
+	mi := &file_csat_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -469,7 +469,7 @@ func (x *QuestionStatisticsDTO) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use QuestionStatisticsDTO.ProtoReflect.Descriptor instead.
 func (*QuestionStatisticsDTO) Descriptor() ([]byte, []int) {
-	return file_csat_proto_rawDescGZIP(), []int{6}
+	return file_csat_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *QuestionStatisticsDTO) GetQuestionId() string {
@@ -503,7 +503,7 @@ type SurveyStatisticsResponse struct {
 
 func (x *SurveyStatisticsResponse) Reset() {
 	*x = SurveyStatisticsResponse{}
-	mi := &file_csat_proto_msgTypes[7]
+	mi := &file_csat_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -515,7 +515,7 @@ func (x *SurveyStatisticsResponse) String() string {
 func (*SurveyStatisticsResponse) ProtoMessage() {}
 
 func (x *SurveyStatisticsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_csat_proto_msgTypes[7]
+	mi := &file_csat_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -528,7 +528,7 @@ func (x *SurveyStatisticsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SurveyStatisticsResponse.ProtoReflect.Descriptor instead.
 func (*SurveyStatisticsResponse) Descriptor() ([]byte, []int) {
-	return file_csat_proto_rawDescGZIP(), []int{7}
+	return file_csat_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *SurveyStatisticsResponse) GetDescription() string {
@@ -574,7 +574,6 @@ const file_csat_proto_rawDesc = "" +
 	"\n" +
 	"questionId\x18\x01 \x01(\tR\n" +
 	"questionId\x12\x14\n" +
-<<<<<<< HEAD
 	"\x05value\x18\x02 \x01(\rR\x05value\"2\n" +
 	"\x14GetStatisticsRequest\x12\x1a\n" +
 	"\bsurveyId\x18\x01 \x01(\tR\bsurveyId\"b\n" +
@@ -585,18 +584,12 @@ const file_csat_proto_rawDesc = "" +
 	"\x05stats\x18\x03 \x03(\rR\x05stats\"w\n" +
 	"\x18SurveyStatisticsResponse\x12 \n" +
 	"\vdescription\x18\x01 \x01(\tR\vdescription\x129\n" +
-	"\tquestions\x18\x02 \x03(\v2\x1b.csat.QuestionStatisticsDTOR\tquestions2\xfa\x01\n" +
+	"\tquestions\x18\x02 \x03(\v2\x1b.csat.QuestionStatisticsDTOR\tquestions2\xb6\x02\n" +
 	"\rSurveyService\x12S\n" +
 	"\x16GetSurveyWithQuestions\x12\x16.csat.GetSurveyRequest\x1a!.csat.SurveyWithQuestionsResponse\x12A\n" +
 	"\fSubmitAnswer\x12\x19.csat.SubmitAnswerRequest\x1a\x16.google.protobuf.Empty\x12Q\n" +
-	"\x13GetSurveyStatistics\x12\x1a.csat.GetStatisticsRequest\x1a\x1e.csat.SurveyStatisticsResponseB4Z22025_1_ChillGuys/internal/transport/generated/csatb\x06proto3"
-=======
-	"\x05value\x18\x02 \x01(\rR\x05value2\xe3\x01\n" +
-	"\rSurveyService\x12S\n" +
-	"\x16GetSurveyWithQuestions\x12\x16.csat.GetSurveyRequest\x1a!.csat.SurveyWithQuestionsResponse\x12A\n" +
-	"\fSubmitAnswer\x12\x19.csat.SubmitAnswerRequest\x1a\x16.google.protobuf.Empty\x12:\n" +
+	"\x13GetSurveyStatistics\x12\x1a.csat.GetStatisticsRequest\x1a\x1e.csat.SurveyStatisticsResponse\x12:\n" +
 	"\rGetAllSurveys\x12\x16.google.protobuf.Empty\x1a\x11.csat.SurveysListB4Z22025_1_ChillGuys/internal/transport/generated/csatb\x06proto3"
->>>>>>> origin/feature/hackathon
 
 var (
 	file_csat_proto_rawDescOnce sync.Once
@@ -610,56 +603,38 @@ func file_csat_proto_rawDescGZIP() []byte {
 	return file_csat_proto_rawDescData
 }
 
-<<<<<<< HEAD
-var file_csat_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
-=======
-var file_csat_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
->>>>>>> origin/feature/hackathon
+var file_csat_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_csat_proto_goTypes = []any{
 	(*GetSurveyRequest)(nil),            // 0: csat.GetSurveyRequest
 	(*SurveyWithQuestionsResponse)(nil), // 1: csat.SurveyWithQuestionsResponse
 	(*QuestionResponseDTO)(nil),         // 2: csat.QuestionResponseDTO
-<<<<<<< HEAD
-	(*SubmitAnswerRequest)(nil),         // 3: csat.SubmitAnswerRequest
-	(*AnswerRequestDTO)(nil),            // 4: csat.AnswerRequestDTO
-	(*GetStatisticsRequest)(nil),        // 5: csat.GetStatisticsRequest
-	(*QuestionStatisticsDTO)(nil),       // 6: csat.QuestionStatisticsDTO
-	(*SurveyStatisticsResponse)(nil),    // 7: csat.SurveyStatisticsResponse
-	(*emptypb.Empty)(nil),               // 8: google.protobuf.Empty
-}
-var file_csat_proto_depIdxs = []int32{
-	2, // 0: csat.SurveyWithQuestionsResponse.questions:type_name -> csat.QuestionResponseDTO
-	4, // 1: csat.SubmitAnswerRequest.answers:type_name -> csat.AnswerRequestDTO
-	6, // 2: csat.SurveyStatisticsResponse.questions:type_name -> csat.QuestionStatisticsDTO
-	0, // 3: csat.SurveyService.GetSurveyWithQuestions:input_type -> csat.GetSurveyRequest
-	3, // 4: csat.SurveyService.SubmitAnswer:input_type -> csat.SubmitAnswerRequest
-	5, // 5: csat.SurveyService.GetSurveyStatistics:input_type -> csat.GetStatisticsRequest
-	1, // 6: csat.SurveyService.GetSurveyWithQuestions:output_type -> csat.SurveyWithQuestionsResponse
-	8, // 7: csat.SurveyService.SubmitAnswer:output_type -> google.protobuf.Empty
-	7, // 8: csat.SurveyService.GetSurveyStatistics:output_type -> csat.SurveyStatisticsResponse
-=======
 	(*BriefSurvey)(nil),                 // 3: csat.BriefSurvey
 	(*SurveysList)(nil),                 // 4: csat.SurveysList
 	(*SubmitAnswerRequest)(nil),         // 5: csat.SubmitAnswerRequest
 	(*AnswerRequestDTO)(nil),            // 6: csat.AnswerRequestDTO
-	(*emptypb.Empty)(nil),               // 7: google.protobuf.Empty
+	(*GetStatisticsRequest)(nil),        // 7: csat.GetStatisticsRequest
+	(*QuestionStatisticsDTO)(nil),       // 8: csat.QuestionStatisticsDTO
+	(*SurveyStatisticsResponse)(nil),    // 9: csat.SurveyStatisticsResponse
+	(*emptypb.Empty)(nil),               // 10: google.protobuf.Empty
 }
 var file_csat_proto_depIdxs = []int32{
-	2, // 0: csat.SurveyWithQuestionsResponse.questions:type_name -> csat.QuestionResponseDTO
-	3, // 1: csat.SurveysList.surveys:type_name -> csat.BriefSurvey
-	6, // 2: csat.SubmitAnswerRequest.answers:type_name -> csat.AnswerRequestDTO
-	0, // 3: csat.SurveyService.GetSurveyWithQuestions:input_type -> csat.GetSurveyRequest
-	5, // 4: csat.SurveyService.SubmitAnswer:input_type -> csat.SubmitAnswerRequest
-	7, // 5: csat.SurveyService.GetAllSurveys:input_type -> google.protobuf.Empty
-	1, // 6: csat.SurveyService.GetSurveyWithQuestions:output_type -> csat.SurveyWithQuestionsResponse
-	7, // 7: csat.SurveyService.SubmitAnswer:output_type -> google.protobuf.Empty
-	4, // 8: csat.SurveyService.GetAllSurveys:output_type -> csat.SurveysList
->>>>>>> origin/feature/hackathon
-	6, // [6:9] is the sub-list for method output_type
-	3, // [3:6] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	2,  // 0: csat.SurveyWithQuestionsResponse.questions:type_name -> csat.QuestionResponseDTO
+	3,  // 1: csat.SurveysList.surveys:type_name -> csat.BriefSurvey
+	6,  // 2: csat.SubmitAnswerRequest.answers:type_name -> csat.AnswerRequestDTO
+	8,  // 3: csat.SurveyStatisticsResponse.questions:type_name -> csat.QuestionStatisticsDTO
+	0,  // 4: csat.SurveyService.GetSurveyWithQuestions:input_type -> csat.GetSurveyRequest
+	5,  // 5: csat.SurveyService.SubmitAnswer:input_type -> csat.SubmitAnswerRequest
+	7,  // 6: csat.SurveyService.GetSurveyStatistics:input_type -> csat.GetStatisticsRequest
+	10, // 7: csat.SurveyService.GetAllSurveys:input_type -> google.protobuf.Empty
+	1,  // 8: csat.SurveyService.GetSurveyWithQuestions:output_type -> csat.SurveyWithQuestionsResponse
+	10, // 9: csat.SurveyService.SubmitAnswer:output_type -> google.protobuf.Empty
+	9,  // 10: csat.SurveyService.GetSurveyStatistics:output_type -> csat.SurveyStatisticsResponse
+	4,  // 11: csat.SurveyService.GetAllSurveys:output_type -> csat.SurveysList
+	8,  // [8:12] is the sub-list for method output_type
+	4,  // [4:8] is the sub-list for method input_type
+	4,  // [4:4] is the sub-list for extension type_name
+	4,  // [4:4] is the sub-list for extension extendee
+	0,  // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_csat_proto_init() }
@@ -673,11 +648,7 @@ func file_csat_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_csat_proto_rawDesc), len(file_csat_proto_rawDesc)),
 			NumEnums:      0,
-<<<<<<< HEAD
-			NumMessages:   8,
-=======
-			NumMessages:   7,
->>>>>>> origin/feature/hackathon
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

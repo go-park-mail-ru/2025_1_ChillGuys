@@ -22,8 +22,8 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	SurveyService_GetSurveyWithQuestions_FullMethodName = "/csat.SurveyService/GetSurveyWithQuestions"
 	SurveyService_SubmitAnswer_FullMethodName           = "/csat.SurveyService/SubmitAnswer"
-	SurveyService_GetAllSurveys_FullMethodName          = "/csat.SurveyService/GetAllSurveys"
 	SurveyService_GetSurveyStatistics_FullMethodName    = "/csat.SurveyService/GetSurveyStatistics"
+	SurveyService_GetAllSurveys_FullMethodName          = "/csat.SurveyService/GetAllSurveys"
 )
 
 // SurveyServiceClient is the client API for SurveyService service.
