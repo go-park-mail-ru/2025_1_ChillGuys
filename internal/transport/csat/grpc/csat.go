@@ -53,3 +53,16 @@ func (h *CsatGRPCHandler) SubmitAnswer(ctx context.Context, req *gen.SubmitAnswe
 
 	return &emptypb.Empty{}, nil
 }
+
+func (h *CsatGRPCHandler) GetAllSurveys(ctx context.Context, _ *emptypb.Empty) (*gen.SurveysList, error) {
+	const op = "CsatGRPCHandler.GetAllSurveys"
+	logger := logctx.GetLogger(ctx).WithField("op", op)
+
+	surveys, err := h.csatUseCase.GetAllSurveys(ctx)
+	if err != nil {
+		logger.WithError(err).Error("failed to get surveys")
+		return nil, errs.MapErrorToGRPC(err)
+	}
+
+	return dto.ConvertSurveysListToGrpc(surveys), nil
+}

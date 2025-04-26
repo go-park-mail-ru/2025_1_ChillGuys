@@ -9,6 +9,7 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/request"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/response"
 	"github.com/gorilla/mux"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 type CsatHandler struct {
@@ -65,4 +66,24 @@ func (h *CsatHandler) SubmitAnswer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.SendJSONResponse(r.Context(), w, http.StatusOK, nil)
+}
+
+func (h *CsatHandler) GetAllSurveys(w http.ResponseWriter, r *http.Request) {
+	const op = "CsatHandler.GetAllSurveys"
+	logger := logctx.GetLogger(r.Context()).WithField("op", op)
+
+	res, err := h.csatClient.GetAllSurveys(r.Context(), &emptypb.Empty{})
+	if err != nil {
+		response.HandleGRPCError(r.Context(), w, err, op)
+		return
+	}
+
+	surveys, err := dto.ConvertGrpcToSurveyList(res)
+	if err != nil {
+		logger.WithError(err).Error("failed to convert surveys")
+		response.SendJSONError(r.Context(), w, http.StatusInternalServerError, "failed to process surveys data")
+		return
+	}
+
+	response.SendJSONResponse(r.Context(), w, http.StatusOK, surveys)
 }

@@ -303,19 +303,25 @@ func NewApp(conf *config.Config) (*App, error) {
 		addressRouter.HandleFunc("/pickup-points", addressService.GetPickupPoints).Methods(http.MethodGet)
 	}
 
-	csatRouter := apiRouter.PathPrefix("/csat").Subrouter()
+	csatRouter := apiRouter.PathPrefix("").Subrouter()
 	{
-		csatRouter.Handle("/{name}", 
+		csatRouter.Handle("csat/{name}", 
 			middleware.CSRFMiddleware(tokenator,
 				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(csatHandler.GetSurvey)),
 				conf.CSRFConfig,
 		)).Methods(http.MethodGet)
 
-		csatRouter.Handle("",
+		csatRouter.Handle("csat",
 			middleware.CSRFMiddleware(tokenator,
 				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(csatHandler.SubmitAnswer)),
 				conf.CSRFConfig,
 		)).Methods(http.MethodPost)
+
+		csatRouter.Handle("/survey", 
+			middleware.CSRFMiddleware(tokenator,
+				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(csatHandler.GetAllSurveys)),
+				conf.CSRFConfig,
+		)).Methods(http.MethodGet)
 	}
 
 	app := &App{

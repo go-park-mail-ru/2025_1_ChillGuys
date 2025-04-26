@@ -16,6 +16,7 @@ type ICsatRepository interface {
 	GetSurvey(ctx context.Context, topicName string) (*models.SurveyWithQuestions, error)
 	AddSurveySubmission(ctx context.Context, surveyID uuid.UUID, answers []models.Answer, userID uuid.UUID) error
 	GetStatistics(ctx context.Context) (*dto.GetStatisticsResponse, error)
+	GetAllSurvey(ctx context.Context) ([]models.Survey, error)
 }
 
 type CsatUsecase struct {
@@ -117,4 +118,17 @@ func convertQuestionsToDTO(questions []models.Question) []dto.QuestionResponseDT
 		})
 	}
 	return result
+}
+
+func (u *CsatUsecase) GetAllSurveys(ctx context.Context) (*dto.SurveysListDTO, error) {
+	const op = "CsatUsecase.GetAllSurveys"
+	logger := logctx.GetLogger(ctx).WithField("op", op)
+
+	surveys, err := u.repo.GetAllSurvey(ctx)
+	if err != nil {
+		logger.WithError(err).Error("failed to get surveys from repository")
+		return nil, errs.ErrInternal
+	}
+
+	return dto.ConvertModelsToSurveysListDTO(surveys), nil
 }
