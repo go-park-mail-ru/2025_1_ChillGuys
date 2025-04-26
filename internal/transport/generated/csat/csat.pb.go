@@ -292,6 +292,163 @@ func (x *AnswerRequestDTO) GetValue() uint32 {
 	return 0
 }
 
+// ############### Statistics ###############
+type GetStatisticsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SurveyId      string                 `protobuf:"bytes,1,opt,name=surveyId,proto3" json:"surveyId,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetStatisticsRequest) Reset() {
+	*x = GetStatisticsRequest{}
+	mi := &file_csat_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetStatisticsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetStatisticsRequest) ProtoMessage() {}
+
+func (x *GetStatisticsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_csat_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetStatisticsRequest.ProtoReflect.Descriptor instead.
+func (*GetStatisticsRequest) Descriptor() ([]byte, []int) {
+	return file_csat_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *GetStatisticsRequest) GetSurveyId() string {
+	if x != nil {
+		return x.SurveyId
+	}
+	return ""
+}
+
+type QuestionStatisticsDTO struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	QuestionId    string                 `protobuf:"bytes,1,opt,name=question_id,json=questionId,proto3" json:"question_id,omitempty"`
+	Text          string                 `protobuf:"bytes,2,opt,name=text,proto3" json:"text,omitempty"`
+	Stats         []uint32               `protobuf:"varint,3,rep,packed,name=stats,proto3" json:"stats,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *QuestionStatisticsDTO) Reset() {
+	*x = QuestionStatisticsDTO{}
+	mi := &file_csat_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *QuestionStatisticsDTO) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*QuestionStatisticsDTO) ProtoMessage() {}
+
+func (x *QuestionStatisticsDTO) ProtoReflect() protoreflect.Message {
+	mi := &file_csat_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use QuestionStatisticsDTO.ProtoReflect.Descriptor instead.
+func (*QuestionStatisticsDTO) Descriptor() ([]byte, []int) {
+	return file_csat_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *QuestionStatisticsDTO) GetQuestionId() string {
+	if x != nil {
+		return x.QuestionId
+	}
+	return ""
+}
+
+func (x *QuestionStatisticsDTO) GetText() string {
+	if x != nil {
+		return x.Text
+	}
+	return ""
+}
+
+func (x *QuestionStatisticsDTO) GetStats() []uint32 {
+	if x != nil {
+		return x.Stats
+	}
+	return nil
+}
+
+type SurveyStatisticsResponse struct {
+	state         protoimpl.MessageState   `protogen:"open.v1"`
+	Description   string                   `protobuf:"bytes,1,opt,name=description,proto3" json:"description,omitempty"`
+	Questions     []*QuestionStatisticsDTO `protobuf:"bytes,2,rep,name=questions,proto3" json:"questions,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SurveyStatisticsResponse) Reset() {
+	*x = SurveyStatisticsResponse{}
+	mi := &file_csat_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SurveyStatisticsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SurveyStatisticsResponse) ProtoMessage() {}
+
+func (x *SurveyStatisticsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_csat_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SurveyStatisticsResponse.ProtoReflect.Descriptor instead.
+func (*SurveyStatisticsResponse) Descriptor() ([]byte, []int) {
+	return file_csat_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *SurveyStatisticsResponse) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *SurveyStatisticsResponse) GetQuestions() []*QuestionStatisticsDTO {
+	if x != nil {
+		return x.Questions
+	}
+	return nil
+}
+
 var File_csat_proto protoreflect.FileDescriptor
 
 const file_csat_proto_rawDesc = "" +
@@ -316,10 +473,21 @@ const file_csat_proto_rawDesc = "" +
 	"\n" +
 	"questionId\x18\x01 \x01(\tR\n" +
 	"questionId\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\rR\x05value2\xa7\x01\n" +
+	"\x05value\x18\x02 \x01(\rR\x05value\"2\n" +
+	"\x14GetStatisticsRequest\x12\x1a\n" +
+	"\bsurveyId\x18\x01 \x01(\tR\bsurveyId\"b\n" +
+	"\x15QuestionStatisticsDTO\x12\x1f\n" +
+	"\vquestion_id\x18\x01 \x01(\tR\n" +
+	"questionId\x12\x12\n" +
+	"\x04text\x18\x02 \x01(\tR\x04text\x12\x14\n" +
+	"\x05stats\x18\x03 \x03(\rR\x05stats\"w\n" +
+	"\x18SurveyStatisticsResponse\x12 \n" +
+	"\vdescription\x18\x01 \x01(\tR\vdescription\x129\n" +
+	"\tquestions\x18\x02 \x03(\v2\x1b.csat.QuestionStatisticsDTOR\tquestions2\xfa\x01\n" +
 	"\rSurveyService\x12S\n" +
 	"\x16GetSurveyWithQuestions\x12\x16.csat.GetSurveyRequest\x1a!.csat.SurveyWithQuestionsResponse\x12A\n" +
-	"\fSubmitAnswer\x12\x19.csat.SubmitAnswerRequest\x1a\x16.google.protobuf.EmptyB4Z22025_1_ChillGuys/internal/transport/generated/csatb\x06proto3"
+	"\fSubmitAnswer\x12\x19.csat.SubmitAnswerRequest\x1a\x16.google.protobuf.Empty\x12Q\n" +
+	"\x13GetSurveyStatistics\x12\x1a.csat.GetStatisticsRequest\x1a\x1e.csat.SurveyStatisticsResponseB4Z22025_1_ChillGuys/internal/transport/generated/csatb\x06proto3"
 
 var (
 	file_csat_proto_rawDescOnce sync.Once
@@ -333,27 +501,33 @@ func file_csat_proto_rawDescGZIP() []byte {
 	return file_csat_proto_rawDescData
 }
 
-var file_csat_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_csat_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_csat_proto_goTypes = []any{
 	(*GetSurveyRequest)(nil),            // 0: csat.GetSurveyRequest
 	(*SurveyWithQuestionsResponse)(nil), // 1: csat.SurveyWithQuestionsResponse
 	(*QuestionResponseDTO)(nil),         // 2: csat.QuestionResponseDTO
 	(*SubmitAnswerRequest)(nil),         // 3: csat.SubmitAnswerRequest
 	(*AnswerRequestDTO)(nil),            // 4: csat.AnswerRequestDTO
-	(*emptypb.Empty)(nil),               // 5: google.protobuf.Empty
+	(*GetStatisticsRequest)(nil),        // 5: csat.GetStatisticsRequest
+	(*QuestionStatisticsDTO)(nil),       // 6: csat.QuestionStatisticsDTO
+	(*SurveyStatisticsResponse)(nil),    // 7: csat.SurveyStatisticsResponse
+	(*emptypb.Empty)(nil),               // 8: google.protobuf.Empty
 }
 var file_csat_proto_depIdxs = []int32{
 	2, // 0: csat.SurveyWithQuestionsResponse.questions:type_name -> csat.QuestionResponseDTO
 	4, // 1: csat.SubmitAnswerRequest.answers:type_name -> csat.AnswerRequestDTO
-	0, // 2: csat.SurveyService.GetSurveyWithQuestions:input_type -> csat.GetSurveyRequest
-	3, // 3: csat.SurveyService.SubmitAnswer:input_type -> csat.SubmitAnswerRequest
-	1, // 4: csat.SurveyService.GetSurveyWithQuestions:output_type -> csat.SurveyWithQuestionsResponse
-	5, // 5: csat.SurveyService.SubmitAnswer:output_type -> google.protobuf.Empty
-	4, // [4:6] is the sub-list for method output_type
-	2, // [2:4] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	6, // 2: csat.SurveyStatisticsResponse.questions:type_name -> csat.QuestionStatisticsDTO
+	0, // 3: csat.SurveyService.GetSurveyWithQuestions:input_type -> csat.GetSurveyRequest
+	3, // 4: csat.SurveyService.SubmitAnswer:input_type -> csat.SubmitAnswerRequest
+	5, // 5: csat.SurveyService.GetSurveyStatistics:input_type -> csat.GetStatisticsRequest
+	1, // 6: csat.SurveyService.GetSurveyWithQuestions:output_type -> csat.SurveyWithQuestionsResponse
+	8, // 7: csat.SurveyService.SubmitAnswer:output_type -> google.protobuf.Empty
+	7, // 8: csat.SurveyService.GetSurveyStatistics:output_type -> csat.SurveyStatisticsResponse
+	6, // [6:9] is the sub-list for method output_type
+	3, // [3:6] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_csat_proto_init() }
@@ -367,7 +541,7 @@ func file_csat_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_csat_proto_rawDesc), len(file_csat_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

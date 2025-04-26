@@ -7,7 +7,6 @@ import (
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/logctx"
 	"github.com/google/uuid"
 )
@@ -31,15 +30,17 @@ const (
 	insertSubmissionQuery = `
 		INSERT INTO bazaar.submission (id, user_id, survey_id)
 		VALUES ($1, $2, $3);`
-	
 	queryGetStatistics = `
 		SELECT
+			s.description AS survey_description,
 			q.id AS question_id,
 			q.text AS question_text,
 			a.value AS answer_value
-			FROM bazaar.question q
-			LEFT JOIN bazaar.answer a ON a.question_id = q.id
-			ORDER BY q.id;`
+		FROM bazaar.question q
+		LEFT JOIN bazaar.answer a ON a.question_id = q.id
+		INNER JOIN bazaar.survey s ON s.id = q.survey_id
+		WHERE q.survey_id = $1
+		ORDER BY q.id;`
 )
 
 type SurveyRepository struct {
@@ -161,54 +162,65 @@ func (r *SurveyRepository) AddSurveySubmission(ctx context.Context, surveyID uui
 	return nil
 }
 
-func (r *SurveyRepository) GetStatistics(ctx context.Context) (*dto.GetStatisticsResponse, error) {
+func (r *SurveyRepository) GetStatistics(ctx context.Context, surveyID uuid.UUID) (*models.GetStatisticsResponse, error) {
 	const op = "SurveyRepository.GetStatistics"
 	logger := logctx.GetLogger(ctx).WithField("op", op)
-  
-	rows, err := r.db.QueryContext(ctx, queryGetStatistics)
+
+	rows, err := r.db.QueryContext(ctx, queryGetStatistics, surveyID)
 	if err != nil {
-	  logger.WithError(err).Error("failed to query statistics")
-	  return nil, fmt.Errorf("%s: %w", op, err)
+		logger.WithError(err).Error("failed to query statistics")
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	defer rows.Close()
-  
-	questionMap := make(map[uuid.UUID]*dto.QuestionStatisticsDTO)
-  
+
+	questionMap := make(map[uuid.UUID]*models.QuestionStatistics)
+	var surveyDescription string
+	surveyDescriptionSet := false
+
 	for rows.Next() {
-	  var questionID uuid.UUID
-	  var questionText string
-	  var answerValue sql.NullInt64
-  
-	  if err := rows.Scan(&questionID, &questionText, &answerValue); err != nil {
-		logger.WithError(err).Error("failed to scan statistics data")
-		return nil, fmt.Errorf("%s: %w", op, err)
-	  }
-  
-	  question, ok := questionMap[questionID]
-	  if !ok {
-		question = &dto.QuestionStatisticsDTO{
-		  ID:      questionID,
-		  Text:    questionText,
-		  Answers: make([]uint, 0),
+		var (
+			description  string
+			questionID   uuid.UUID
+			questionText string
+			answerValue  sql.NullInt64
+		)
+
+		if err := rows.Scan(&description, &questionID, &questionText, &answerValue); err != nil {
+			logger.WithError(err).Error("failed to scan statistics data")
+			return nil, fmt.Errorf("%s: %w", op, err)
 		}
-		questionMap[questionID] = question
-	  }
-  
-	  if answerValue.Valid {
-		question.Answers = append(question.Answers, uint(answerValue.Int64))
-	  }
+
+		if !surveyDescriptionSet {
+			surveyDescription = description
+			surveyDescriptionSet = true
+		}
+
+		question, ok := questionMap[questionID]
+		if !ok {
+			question = &models.QuestionStatistics{
+				ID:      questionID,
+				Text:    questionText,
+				Answers: make([]uint32, 0),
+			}
+			questionMap[questionID] = question
+		}
+
+		if answerValue.Valid {
+			question.Answers = append(question.Answers, uint32(answerValue.Int64))
+		}
 	}
-  
+
 	if err = rows.Err(); err != nil {
-	  logger.WithError(err).Error("rows iteration error")
-	  return nil, fmt.Errorf("%s: %w", op, err)
+		logger.WithError(err).Error("rows iteration error")
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
-  
-	var response dto.GetStatisticsResponse
-	response.Questions = make([]dto.QuestionStatisticsDTO, 0, len(questionMap))
+
+	var response models.GetStatisticsResponse
+	response.Description = surveyDescription
+	response.Questions = make([]models.QuestionStatistics, 0, len(questionMap))
 	for _, question := range questionMap {
-	  response.Questions = append(response.Questions, *question)
+		response.Questions = append(response.Questions, *question)
 	}
-  
+
 	return &response, nil
-  }
+}

@@ -2,6 +2,9 @@ package csat
 
 import (
 	"context"
+	"github.com/google/uuid"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/csat"
@@ -52,4 +55,23 @@ func (h *CsatGRPCHandler) SubmitAnswer(ctx context.Context, req *gen.SubmitAnswe
 	}
 
 	return &emptypb.Empty{}, nil
+}
+
+func (h *CsatGRPCHandler) GetSurveyStatistics(ctx context.Context, req *gen.GetStatisticsRequest) (*gen.SurveyStatisticsResponse, error) {
+	const op = "CsatGRPCHandler.GetSurveyStatistics"
+	logger := logctx.GetLogger(ctx).WithField("op", op)
+
+	surveyID, err := uuid.Parse(req.SurveyId)
+	if err != nil {
+		logger.WithError(err).Error("invalid survey ID format")
+		return nil, status.Error(codes.InvalidArgument, "invalid survey ID")
+	}
+
+	stats, err := h.csatUseCase.GetSurveyStatistics(ctx, surveyID)
+	if err != nil {
+		logger.WithError(err).Error("failed to get survey statistics")
+		return nil, errs.MapErrorToGRPC(err)
+	}
+
+	return dto.ConvertModelsToGrpcStatisticsResponse(stats), nil
 }

@@ -22,6 +22,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	SurveyService_GetSurveyWithQuestions_FullMethodName = "/csat.SurveyService/GetSurveyWithQuestions"
 	SurveyService_SubmitAnswer_FullMethodName           = "/csat.SurveyService/SubmitAnswer"
+	SurveyService_GetSurveyStatistics_FullMethodName    = "/csat.SurveyService/GetSurveyStatistics"
 )
 
 // SurveyServiceClient is the client API for SurveyService service.
@@ -34,6 +35,8 @@ type SurveyServiceClient interface {
 	GetSurveyWithQuestions(ctx context.Context, in *GetSurveyRequest, opts ...grpc.CallOption) (*SurveyWithQuestionsResponse, error)
 	// Отправка ответов на опрос
 	SubmitAnswer(ctx context.Context, in *SubmitAnswerRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	// Получение статистики по опросу
+	GetSurveyStatistics(ctx context.Context, in *GetStatisticsRequest, opts ...grpc.CallOption) (*SurveyStatisticsResponse, error)
 }
 
 type surveyServiceClient struct {
@@ -64,6 +67,16 @@ func (c *surveyServiceClient) SubmitAnswer(ctx context.Context, in *SubmitAnswer
 	return out, nil
 }
 
+func (c *surveyServiceClient) GetSurveyStatistics(ctx context.Context, in *GetStatisticsRequest, opts ...grpc.CallOption) (*SurveyStatisticsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SurveyStatisticsResponse)
+	err := c.cc.Invoke(ctx, SurveyService_GetSurveyStatistics_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // SurveyServiceServer is the server API for SurveyService service.
 // All implementations must embed UnimplementedSurveyServiceServer
 // for forward compatibility.
@@ -74,6 +87,8 @@ type SurveyServiceServer interface {
 	GetSurveyWithQuestions(context.Context, *GetSurveyRequest) (*SurveyWithQuestionsResponse, error)
 	// Отправка ответов на опрос
 	SubmitAnswer(context.Context, *SubmitAnswerRequest) (*emptypb.Empty, error)
+	// Получение статистики по опросу
+	GetSurveyStatistics(context.Context, *GetStatisticsRequest) (*SurveyStatisticsResponse, error)
 	mustEmbedUnimplementedSurveyServiceServer()
 }
 
@@ -89,6 +104,9 @@ func (UnimplementedSurveyServiceServer) GetSurveyWithQuestions(context.Context, 
 }
 func (UnimplementedSurveyServiceServer) SubmitAnswer(context.Context, *SubmitAnswerRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SubmitAnswer not implemented")
+}
+func (UnimplementedSurveyServiceServer) GetSurveyStatistics(context.Context, *GetStatisticsRequest) (*SurveyStatisticsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetSurveyStatistics not implemented")
 }
 func (UnimplementedSurveyServiceServer) mustEmbedUnimplementedSurveyServiceServer() {}
 func (UnimplementedSurveyServiceServer) testEmbeddedByValue()                       {}
@@ -147,6 +165,24 @@ func _SurveyService_SubmitAnswer_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _SurveyService_GetSurveyStatistics_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetStatisticsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SurveyServiceServer).GetSurveyStatistics(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SurveyService_GetSurveyStatistics_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SurveyServiceServer).GetSurveyStatistics(ctx, req.(*GetStatisticsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // SurveyService_ServiceDesc is the grpc.ServiceDesc for SurveyService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -161,6 +197,10 @@ var SurveyService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SubmitAnswer",
 			Handler:    _SurveyService_SubmitAnswer_Handler,
+		},
+		{
+			MethodName: "GetSurveyStatistics",
+			Handler:    _SurveyService_GetSurveyStatistics_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

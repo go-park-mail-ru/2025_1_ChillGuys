@@ -15,7 +15,7 @@ import (
 type ICsatRepository interface {
 	GetSurvey(ctx context.Context, topicName string) (*models.SurveyWithQuestions, error)
 	AddSurveySubmission(ctx context.Context, surveyID uuid.UUID, answers []models.Answer, userID uuid.UUID) error
-	GetStatistics(ctx context.Context) (*dto.GetStatisticsResponse, error)
+	GetStatistics(context.Context, uuid.UUID) (*models.GetStatisticsResponse, error)
 }
 
 type CsatUsecase struct {
@@ -106,6 +106,54 @@ func (u *CsatUsecase) SubmitAnswer(ctx context.Context, req *dto.SubmitAnswersRe
 	}
 
 	return nil
+}
+
+func (u *CsatUsecase) GetSurveyStatistics(ctx context.Context, surveyID uuid.UUID) (*dto.SurveyStatisticsResponse, error) {
+	const op = "CsatUsecase.GetSurveyStatistics"
+	logger := logctx.GetLogger(ctx).WithField("op", op)
+
+	if surveyID == uuid.Nil {
+		logger.Error("empty survey ID")
+		return nil, errs.NewBusinessLogicError("empty survey ID")
+	}
+
+	stats, err := u.repo.GetStatistics(ctx, surveyID)
+	if err != nil {
+		logger.WithError(err).Error("failed to get survey statistics")
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	if stats == nil {
+		logger.Error("survey statistics not found")
+		return nil, errs.NewNotFoundError("survey statistics not found")
+	}
+
+	return &dto.SurveyStatisticsResponse{
+		Description: stats.Description,
+		Questions:   convertStatisticsQuestionsToDTO(stats.Questions),
+	}, nil
+}
+
+func convertStatisticsQuestionsToDTO(questions []models.QuestionStatistics) []dto.QuestionStatisticsDTO {
+	result := make([]dto.QuestionStatisticsDTO, 0, len(questions))
+
+	for _, q := range questions {
+		stats := make([]uint, 11)
+
+		for _, answer := range q.Answers {
+			if answer <= 10 {
+				stats[answer]++
+			}
+		}
+
+		result = append(result, dto.QuestionStatisticsDTO{
+			ID:    q.ID,
+			Text:  q.Text,
+			Stats: stats,
+		})
+	}
+
+	return result
 }
 
 func convertQuestionsToDTO(questions []models.Question) []dto.QuestionResponseDTO {

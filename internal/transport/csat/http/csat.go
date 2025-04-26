@@ -21,7 +21,7 @@ func NewCsatHandler(csatClient gen.SurveyServiceClient) *CsatHandler {
 	}
 }
 
-func (h *CsatHandler) GetSurvey (w http.ResponseWriter, r *http.Request) {
+func (h *CsatHandler) GetSurvey(w http.ResponseWriter, r *http.Request) {
 	const op = "CsatHandler.Get"
 	logger := logctx.GetLogger(r.Context()).WithField("op", op)
 
@@ -30,7 +30,7 @@ func (h *CsatHandler) GetSurvey (w http.ResponseWriter, r *http.Request) {
 
 	logger = logger.WithField("topic_name", name)
 
-	res, err := h.csatClient.GetSurveyWithQuestions(r.Context(), &gen.GetSurveyRequest{Name:name})
+	res, err := h.csatClient.GetSurveyWithQuestions(r.Context(), &gen.GetSurveyRequest{Name: name})
 	if err != nil {
 		logger.WithError(err).Error("failed get survey")
 		response.HandleGRPCError(r.Context(), w, err, op)
@@ -65,4 +65,29 @@ func (h *CsatHandler) SubmitAnswer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.SendJSONResponse(r.Context(), w, http.StatusOK, nil)
+}
+
+func (h *CsatHandler) GetSurveyStatistics(w http.ResponseWriter, r *http.Request) {
+	const op = "CsatHandler.GetSurveyStatistics"
+	logger := logctx.GetLogger(r.Context()).WithField("op", op)
+
+	vars := mux.Vars(r)
+	surveyID := vars["surveyId"]
+
+	res, err := h.csatClient.GetSurveyStatistics(r.Context(), &gen.GetStatisticsRequest{
+		SurveyId: surveyID,
+	})
+	if err != nil {
+		response.HandleGRPCError(r.Context(), w, err, op)
+		return
+	}
+
+	stats, err := dto.ConvertGrpcToStatisticsResponse(res)
+	if err != nil {
+		logger.WithError(err).Error("failed to convert statistics")
+		response.SendJSONError(r.Context(), w, http.StatusInternalServerError, "failed to process statistics data")
+		return
+	}
+
+	response.SendJSONResponse(r.Context(), w, http.StatusOK, stats)
 }

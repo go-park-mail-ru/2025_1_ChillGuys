@@ -6,8 +6,8 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/redis"
 	http2 "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/auth/http"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/generated/auth"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/generated/user"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/generated/csat"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/generated/user"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/search"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/suggestions"
 	"google.golang.org/grpc"
@@ -29,10 +29,12 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/address"
 	baskett "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/basket"
 	categoryt "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/category"
+	csatt "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/csat/http"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/order"
 	producttr "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/product"
+	usert "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/user/http"
 	addressus "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/address"
 	basketuc "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/basket"
 	categoryuc "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/category"
@@ -43,8 +45,6 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
 	httpSwagger "github.com/swaggo/http-swagger"
-	usert "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/user/http"
-	csatt "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/csat/http"
 )
 
 // App объединяет в себе все компоненты приложения.
@@ -101,7 +101,7 @@ func NewApp(conf *config.Config) (*App, error) {
 	authClient := auth.NewAuthServiceClient(authConn)
 
 	userConn, err := grpc.Dial(
-		"user-service:50052", 
+		"user-service:50052",
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {
@@ -305,17 +305,23 @@ func NewApp(conf *config.Config) (*App, error) {
 
 	csatRouter := apiRouter.PathPrefix("/csat").Subrouter()
 	{
-		csatRouter.Handle("/{name}", 
+		csatRouter.Handle("/{name}",
 			middleware.CSRFMiddleware(tokenator,
 				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(csatHandler.GetSurvey)),
 				conf.CSRFConfig,
-		)).Methods(http.MethodGet)
+			)).Methods(http.MethodGet)
 
 		csatRouter.Handle("",
 			middleware.CSRFMiddleware(tokenator,
 				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(csatHandler.SubmitAnswer)),
 				conf.CSRFConfig,
-		)).Methods(http.MethodPost)
+			)).Methods(http.MethodPost)
+
+		csatRouter.Handle("/stat/{surveyId}",
+			middleware.CSRFMiddleware(tokenator,
+				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(csatHandler.GetSurveyStatistics)),
+				conf.CSRFConfig,
+			)).Methods(http.MethodGet)
 	}
 
 	app := &App{

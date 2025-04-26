@@ -49,3 +49,14 @@ type SurveyQuestionData struct {
 	QuestionPosition  uint
 	QuestionText      string
 }
+
+type GetStatisticsResponse struct {
+	Description string
+	Questions   []QuestionStatistics `json:"questions"`
+}
+
+type QuestionStatistics struct {
+	ID      uuid.UUID `json:"questionId"`
+	Text    string    `json:"text"`
+	Answers []uint32  `json:"answer"`
+}

@@ -1,8 +1,8 @@
 package dto
 
 import (
-	"github.com/google/uuid"
 	gen "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/generated/csat"
+	"github.com/google/uuid"
 )
 
 type SurveyWithQuestionsResponse struct {
@@ -62,8 +62,8 @@ type QuestionResponseDTO struct {
 
 // Запрос на отправку ответов
 type SubmitAnswersRequest struct {
-	SurveyID  uuid.UUID          `json:"surveyId"`
-	Answers   []AnswerRequestDTO `json:"answers"`
+	SurveyID uuid.UUID          `json:"surveyId"`
+	Answers  []AnswerRequestDTO `json:"answers"`
 }
 
 func ConvertToGrpcSubmitRequest(s *SubmitAnswersRequest) *gen.SubmitAnswerRequest {
@@ -83,28 +83,28 @@ func ConvertToGrpcSubmitRequest(s *SubmitAnswersRequest) *gen.SubmitAnswerReques
 
 // ConvertGrpcToSubmitRequest конвертирует gRPC SubmitAnswerRequest в DTO SubmitAnswersRequest
 func ConvertGrpcToSubmitRequest(grpcReq *gen.SubmitAnswerRequest) (*SubmitAnswersRequest, error) {
-    surveyID, err := uuid.Parse(grpcReq.SurveyId)
-    if err != nil {
-        return nil, err
-    }
+	surveyID, err := uuid.Parse(grpcReq.SurveyId)
+	if err != nil {
+		return nil, err
+	}
 
-    answers := make([]AnswerRequestDTO, 0, len(grpcReq.Answers))
-    for _, grpcAnswer := range grpcReq.Answers {
-        questionID, err := uuid.Parse(grpcAnswer.QuestionId)
-        if err != nil {
-            return nil, err
-        }
+	answers := make([]AnswerRequestDTO, 0, len(grpcReq.Answers))
+	for _, grpcAnswer := range grpcReq.Answers {
+		questionID, err := uuid.Parse(grpcAnswer.QuestionId)
+		if err != nil {
+			return nil, err
+		}
 
-        answers = append(answers, AnswerRequestDTO{
-            QuestionID: questionID,
-            Value:      uint(grpcAnswer.Value),
-        })
-    }
+		answers = append(answers, AnswerRequestDTO{
+			QuestionID: questionID,
+			Value:      uint(grpcAnswer.Value),
+		})
+	}
 
-    return &SubmitAnswersRequest{
-        SurveyID: surveyID,
-        Answers:  answers,
-    }, nil
+	return &SubmitAnswersRequest{
+		SurveyID: surveyID,
+		Answers:  answers,
+	}, nil
 }
 
 // DTO для ответа в запросе
@@ -113,12 +113,56 @@ type AnswerRequestDTO struct {
 	Value      uint      `json:"value"`
 }
 
-type GetStatisticsResponse struct {
-	Questions []QuestionStatisticsDTO `json:"questions"`
+type SurveyStatisticsResponse struct {
+	Description string                  `json:"description"`
+	Questions   []QuestionStatisticsDTO `json:"questions"`
 }
 
 type QuestionStatisticsDTO struct {
-	ID      uuid.UUID `json:"questionId"`
-	Text    string    `json:"text"`
-	Answers []uint    `json:"answer"`
+	ID    uuid.UUID `json:"id"`
+	Text  string    `json:"text"`
+	Stats []uint32  `json:"stats"`
+}
+
+func ConvertGrpcToStatisticsRequest(grpcReq *gen.GetStatisticsRequest) (uuid.UUID, error) {
+	return uuid.Parse(grpcReq.SurveyId)
+}
+
+func ConvertModelsToGrpcStatisticsResponse(stats *SurveyStatisticsResponse) *gen.SurveyStatisticsResponse {
+	questions := make([]*gen.QuestionStatisticsDTO, 0, len(stats.Questions))
+
+	for _, q := range stats.Questions {
+		questions = append(questions, &gen.QuestionStatisticsDTO{
+			QuestionId: q.ID.String(),
+			Text:       q.Text,
+			Stats:      q.Stats,
+		})
+	}
+
+	return &gen.SurveyStatisticsResponse{
+		Description: stats.Description,
+		Questions:   questions,
+	}
+}
+
+func ConvertGrpcToStatisticsResponse(grpcResp *gen.SurveyStatisticsResponse) (*SurveyStatisticsResponse, error) {
+	questions := make([]QuestionStatisticsDTO, 0, len(grpcResp.Questions))
+
+	for _, grpcQ := range grpcResp.Questions {
+		id, err := uuid.Parse(grpcQ.QuestionId)
+		if err != nil {
+			return nil, err
+		}
+
+		questions = append(questions, QuestionStatisticsDTO{
+			ID:    id,
+			Text:  grpcQ.Text,
+			Stats: grpcQ.Stats,
+		})
+	}
+
+	return &SurveyStatisticsResponse{
+		Description: grpcResp.Description,
+		Questions:   questions,
+	}, nil
 }
