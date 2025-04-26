@@ -255,37 +255,41 @@ CREATE TABLE IF NOT EXISTS bazaar.promo_code
     updated_at        TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE TABLE bazaar.topics (
-                               id UUID PRIMARY KEY,
-                               name TEXT NOT NULL UNIQUE
+CREATE TABLE bazaar.topic
+(
+    id   UUID PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE
 );
 
-CREATE TABLE bazaar.surveys (
-                                id UUID PRIMARY KEY,
-                                topic_id UUID REFERENCES bazaar.topics(id) ON DELETE SET NULL,
-                                title TEXT NOT NULL,
-                                description TEXT,
-                                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE bazaar.survey
+(
+    id          UUID PRIMARY KEY,
+    topic_id    UUID REFERENCES bazaar.topic (id) ON DELETE SET NULL,
+    title       TEXT NOT NULL,
+    description TEXT,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE bazaar.questions (
-                                  id UUID PRIMARY KEY,
-                                  survey_id UUID REFERENCES bazaar.surveys(id) ON DELETE CASCADE,
-                                  text TEXT NOT NULL,
-                                  position INTEGER
+CREATE TABLE bazaar.question
+(
+    id        UUID PRIMARY KEY,
+    survey_id UUID REFERENCES bazaar.survey (id) ON DELETE CASCADE,
+    text      TEXT NOT NULL,
+    position  INTEGER
 );
 
-CREATE TABLE bazaar.responses (
-                                  id UUID PRIMARY KEY,
-                                  user_id UUID REFERENCES bazaar."user"(id) ON DELETE SET NULL,
-                                  survey_id UUID REFERENCES bazaar.surveys(id) ON DELETE CASCADE,
-                                  submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                                  UNIQUE(user_id, survey_id)
+CREATE TABLE bazaar.submission
+(
+    id           UUID PRIMARY KEY,
+    user_id      UUID REFERENCES bazaar."user" (id) ON DELETE SET NULL,
+    survey_id    UUID REFERENCES bazaar.survey (id) ON DELETE CASCADE,
+    submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE bazaar.answers (
-                                id UUID PRIMARY KEY,
-                                response_id UUID REFERENCES bazaar.responses(id) ON DELETE CASCADE,
-                                question_id UUID REFERENCES bazaar.questions(id) ON DELETE CASCADE,
-                                value INTEGER NOT NULL CHECK (value BETWEEN 1 AND 10)
+CREATE TABLE bazaar.answer
+(
+    id            UUID PRIMARY KEY,
+    submission_id UUID REFERENCES bazaar.submission (id) ON DELETE CASCADE,
+    question_id   UUID REFERENCES bazaar.question (id) ON DELETE CASCADE,
+    value         INTEGER NOT NULL CHECK (value BETWEEN 1 AND 10)
 );
