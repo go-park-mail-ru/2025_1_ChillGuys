@@ -3,33 +3,49 @@ package models
 import "github.com/google/uuid"
 
 type Topic struct {
-	ID uuid.UUID 
+	ID   uuid.UUID
 	Name string
 }
 
 type Survey struct {
-	ID uuid.UUID
-	TopicID uuid.UUID
-	Title string
+	ID          uuid.UUID
+	TopicID     uuid.UUID
+	Title       string
 	Description string
 }
 
 type Question struct {
-	ID uuid.UUID
+	ID       uuid.UUID
 	SurveyID uuid.UUID
-	Text string
+	Text     string
 	Position uint
 }
 
-type Submssion struct {
-	ID uuid.UUID
-	UserID uuid.UUID
+type Submission struct {
+	ID       uuid.UUID
+	UserID   uuid.UUID
 	SurveyID uuid.UUID
 }
 
 type Answer struct {
-	id uuid.UUID
+	id          uuid.UUID
 	SubmssionID uuid.UUID
-	QuestionID uuid.UUID
-	Value uint
+	QuestionID  uuid.UUID
+	Value       uint
+}
+
+type SurveyWithQuestions struct {
+	ID          uuid.UUID
+	Title       string
+	Description string
+	Questions   []Question
+}
+
+type SurveyQuestionData struct {
+	SurveyID          uuid.UUID
+	SurveyTitle       string
+	SurveyDescription string
+	QuestionID        uuid.UUID
+	QuestionPosition  uint
+	QuestionText      string
 }
