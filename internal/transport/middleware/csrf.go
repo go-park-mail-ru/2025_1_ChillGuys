@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/domains"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
 )
 
@@ -27,24 +26,24 @@ func CSRFMiddleware(tokenator *jwt.Tokenator, next http.Handler, cfg *config.CSR
 		}
 
 		//FIXME: вернуть
-		jwtCookie, err := r.Cookie(string(domains.TokenCookieName))
-		if err != nil {
-			http.Error(w, "JWT token required", http.StatusForbidden)
-			return
-		}
-		jwtToken := jwtCookie.Value
+		// jwtCookie, err := r.Cookie(string(domains.TokenCookieName))
+		// if err != nil {
+		// 	http.Error(w, "JWT token required", http.StatusForbidden)
+		// 	return
+		// }
+		// jwtToken := jwtCookie.Value
 		
-		token := r.Header.Get(CSRFTokenHeader)
-		if token == "" {
-			http.Error(w, "CSRF token missing", http.StatusForbidden)
-			return
-		}
+		// token := r.Header.Get(CSRFTokenHeader)
+		// if token == "" {
+		// 	http.Error(w, "CSRF token missing", http.StatusForbidden)
+		// 	return
+		// }
 		
-		valid, err := CheckCSRFToken(jwtToken, token, cfg.SecretKey)
-		if err != nil || !valid {
-			http.Error(w, "Invalid CSRF token", http.StatusForbidden)
-			return
-		}
+		// valid, err := CheckCSRFToken(jwtToken, token, cfg.SecretKey)
+		// if err != nil || !valid {
+		// 	http.Error(w, "Invalid CSRF token", http.StatusForbidden)
+		// 	return
+		// }
 
 		next.ServeHTTP(w, r)
 	})
