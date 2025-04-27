@@ -131,7 +131,7 @@ CREATE TABLE IF NOT EXISTS bazaar.product
     price             NUMERIC(12, 2) CHECK (price >= 0) NOT NULL,
     quantity          INT CHECK (quantity >= 0)         NOT NULL,
     updated_at        TIMESTAMPTZ                        DEFAULT now(),
-    rating            INT CHECK (rating BETWEEN 0 AND 5) DEFAULT 0,
+    rating            FLOAT CHECK (rating BETWEEN 0 AND 5) DEFAULT 0,
     reviews_count     INT CHECK (reviews_count >= 0)     DEFAULT 0 --trigger
 );
 

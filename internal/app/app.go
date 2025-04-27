@@ -182,16 +182,16 @@ func NewApp(conf *config.Config) (*App, error) {
 	})
 
 	// Маршруты для продуктов.
-	productsRouter := apiRouter.PathPrefix("/products").Subrouter()
+	productsRouter := apiRouter.PathPrefix("").Subrouter()
 	{
-		productsRouter.Handle("/batch",
+		productsRouter.Handle("/products/batch",
 			middleware.CSRFMiddleware(tokenator,
 				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(ProductService.GetProductsByIDs)),
 				conf.CSRFConfig,
 			)).Methods(http.MethodPost)
-		productsRouter.HandleFunc("/{offset}", ProductService.GetAllProducts).Methods(http.MethodGet)
-		productsRouter.HandleFunc("/{id}", ProductService.GetProductByID).Methods(http.MethodGet)
-		productsRouter.HandleFunc("/category/{id}/{offset}", ProductService.GetProductsByCategory).Methods(http.MethodGet)
+		productsRouter.HandleFunc("/products/{offset}", ProductService.GetAllProducts).Methods(http.MethodGet)
+		productsRouter.HandleFunc("/product/{id}", ProductService.GetProductByID).Methods(http.MethodGet)
+		productsRouter.HandleFunc("/products/category/{id}/{offset}", ProductService.GetProductsByCategory).Methods(http.MethodGet)
 	}
 
 	// Маршруты для категорий.
@@ -208,6 +208,7 @@ func NewApp(conf *config.Config) (*App, error) {
 	searchRouter := apiRouter.PathPrefix("/search").Subrouter()
 	{
 		searchRouter.HandleFunc("/{offset}", searchService.Search).Methods(http.MethodPost)
+		searchRouter.HandleFunc("/sort/{ofset}", searchService.SearchWithFilterAndSort).Methods(http.MethodPost)
 	}
 
 	basketRouter := apiRouter.PathPrefix("/basket").Subrouter()

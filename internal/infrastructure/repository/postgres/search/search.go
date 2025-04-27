@@ -11,15 +11,41 @@ import (
 const (
 	querySearchProductsByName = `
 	SELECT p.id, p.seller_id, p.name, p.preview_image_url, p.description, 
-	       p.status, p.price, p.quantity, p.updated_at, p.rating, p.reviews_count,
-	       d.discounted_price
+		p.status, p.price, p.quantity, p.updated_at, p.rating, p.reviews_count,
+		d.discounted_price
 	FROM bazaar.product p 
 	LEFT JOIN bazaar.discount d ON p.id = d.product_id
 	WHERE p.status = 'approved' AND LOWER(p.name) LIKE LOWER($1)
-	LIMIT 20 OFFSET $2`
+	LIMIT 20 OFFSET $2
+	`
+	
 	queryGetCategoryByName = `
 	SELECT id, name FROM bazaar.category
-	WHERE LOWER(name) = LOWER($1)`
+	WHERE LOWER(name) = LOWER($1)
+	`
+
+	querySearchProductsByNameWithFilterAndSort = `
+		SELECT p.id, p.seller_id, p.name, p.preview_image_url, p.description, 
+			p.status, p.price, p.quantity, p.updated_at, p.rating, p.reviews_count,
+			d.discounted_price
+		FROM 
+			bazaar.product p 
+		LEFT JOIN 
+			bazaar.discount d ON p.id = d.product_id
+		WHERE 
+			p.status = 'approved' 
+			AND LOWER(p.name) LIKE LOWER($1)
+			AND ($3 = 0 OR p.price > $3)
+			AND ($4 = 0 OR p.price < $4)
+			AND ($5 = 0::FLOAT OR p.rating > $5::FLOAT)
+		ORDER BY 
+			CASE WHEN $6 = 'price_asc' THEN p.price END ASC,
+			CASE WHEN $6 = 'price_desc' THEN p.price END DESC,
+			CASE WHEN $6 = 'rating_asc' THEN p.rating END ASC,
+			CASE WHEN $6 = 'rating_desc' THEN p.rating END DESC,
+			p.updated_at DESC
+		LIMIT 20 OFFSET $2
+		`
 )
 
 type SearchRepository struct {
@@ -98,4 +124,67 @@ func (s *SearchRepository) GetCategoryByName(ctx context.Context, name string) (
 	}
 
 	return &category, nil
+}
+
+func (s *SearchRepository) GetProductsByNameWithFilterAndSort(
+    ctx context.Context, 
+    name string, 
+    offset int,
+    minPrice, maxPrice float64,
+    minRating float32,
+    sortOption models.SortOption,
+) ([]*models.Product, error) {
+    const op = "SearchRepository.GetProductsByNameWithFilterAndSort"
+    logger := logctx.GetLogger(ctx).WithField("op", op)
+
+    productsList := []*models.Product{}
+    pattern := fmt.Sprintf("%%%s%%", name)
+
+    rows, err := s.db.QueryContext(
+        ctx,
+        querySearchProductsByNameWithFilterAndSort,
+        pattern,
+        offset,
+        minPrice,
+        maxPrice,
+        minRating,
+        sortOption,
+    )
+    
+    if err != nil {
+        logger.WithError(err).Error("query search products by name with filter and sort")
+        return nil, fmt.Errorf("%s: %w", op, err)
+    }
+    defer rows.Close()
+
+    for rows.Next() {
+        var priceDiscount sql.NullFloat64
+        product := &models.Product{}
+        if err = rows.Scan(
+            &product.ID,
+            &product.SellerID,
+            &product.Name,
+            &product.PreviewImageURL,
+            &product.Description,
+            &product.Status,
+            &product.Price,
+            &product.Quantity,
+            &product.UpdatedAt,
+            &product.Rating,
+            &product.ReviewsCount,
+            &priceDiscount,
+        ); err != nil {
+            logger.WithError(err).Error("scan product row")
+            return nil, fmt.Errorf("%s: %w", op, err)
+        }
+        product.PriceDiscount = priceDiscount.Float64
+        productsList = append(productsList, product)
+    }
+
+    if err = rows.Err(); err != nil {
+        logger.WithError(err).Error("rows iteration error")
+        return nil, fmt.Errorf("%s: %w", op, err)
+    }
+
+    return productsList, nil
 }

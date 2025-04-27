@@ -100,7 +100,7 @@ func (r *AuthRepository) GetUserByEmail(ctx context.Context, email string) (*mod
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			logger.Warn("user not found by email")
-			return nil, fmt.Errorf("%s: %w", op, errs.NewNotFoundError(op))
+			return nil, errs.ErrInvalidCredentials
 		}
 		logger.WithError(err).Error("get user by email")
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -127,7 +127,7 @@ func (r *AuthRepository) GetUserByID(ctx context.Context, id uuid.UUID) (*models
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			logger.Warn("user not found by ID")
-			return nil, fmt.Errorf("%s: %w", op, errs.NewNotFoundError(op))
+			return nil, errs.ErrInvalidCredentials
 		}
 		logger.WithError(err).Error("get user by ID")
 		return nil, fmt.Errorf("%s: %w", op, err)

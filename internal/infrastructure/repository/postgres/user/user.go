@@ -106,7 +106,7 @@ func (r *UserRepository) GetUserByEmail(ctx context.Context, email string) (*mod
 		&user.ImageURL,
 	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, errs.NewNotFoundError("user with given email not found")
+			return nil, errs.ErrInvalidCredentials
 		}
 		return nil, err
 	}
@@ -128,7 +128,7 @@ func (r *UserRepository) GetUserByID(ctx context.Context, id uuid.UUID) (*models
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, errs.NewNotFoundError("user with given id not found")
+			return nil, errs.ErrInvalidCredentials
 		}
 		return nil, err
 	}

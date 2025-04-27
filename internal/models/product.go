@@ -22,6 +22,16 @@ const (
 	ProductApproved                      // Одобрено
 )
 
+type SortOption string
+
+const (
+    SortByPriceAsc   SortOption = "price_asc"
+    SortByPriceDesc  SortOption = "price_desc"
+    SortByRatingAsc  SortOption = "rating_asc"
+    SortByRatingDesc SortOption = "rating_desc"
+    SortByDefault    SortOption = ""
+)
+
 // ProductStatus представляет статус товара
 type ProductStatus int
 
@@ -36,7 +46,7 @@ type Product struct {
 	PriceDiscount   float64  	  `json:"price_discount"`
 	Quantity        uint          `json:"quantity" db:"quantity"`
 	UpdatedAt       time.Time     `json:"updated_at" db:"updated_at"`
-	Rating          uint          `json:"rating,omitempty" db:"rating"`
+	Rating          float32       `json:"rating,omitempty" db:"rating"`
 	ReviewsCount    uint          `json:"reviews_count" db:"reviews_count"`
 }
 
