@@ -245,6 +245,34 @@ services:
       bazaar-network:
         aliases:
           - csat-service
+  
+  review-service:
+    build:
+      context: .
+      dockerfile: deployments/review/Dockerfile
+    container_name: review_service
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      JWT_SIGNATURE: ${JWT_SIGNATURE}
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT}
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME}
+      WAIT_FOR_MINIO: "true"
+      GRPC_PORT: 50054
+    ports:
+      - "50054:50054"
+    depends_on:
+      db:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - bazaar-network
 
 networks:
   bazaar-network:

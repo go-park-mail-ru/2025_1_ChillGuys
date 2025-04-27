@@ -7,6 +7,7 @@ import (
 	http2 "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/auth/http"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/generated/auth"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/generated/csat"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/generated/review"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/generated/user"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/search"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/suggestions"
@@ -30,6 +31,7 @@ import (
 	baskett "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/basket"
 	categoryt "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/category"
 	csatt "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/csat/http"
+	reviewt "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/review/http"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/order"
@@ -121,6 +123,17 @@ func NewApp(conf *config.Config) (*App, error) {
 	csatClient := csat.NewSurveyServiceClient(csatConn)
 
 	csatHandler := csatt.NewCsatHandler(csatClient)
+
+	reviewConn, err := grpc.Dial(
+		"review-service:50054",
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("review service connection error: %w", err)
+	}
+	reviewClient := review.NewReviewServiceClient(reviewConn)
+
+	reviewHandler := reviewt.NewReviewHandler(reviewClient)
 
 	// Инициализация репозиториев и use-case-ов.
 	tokenator := jwt.NewTokenator(conf.JWTConfig)
@@ -328,6 +341,17 @@ func NewApp(conf *config.Config) (*App, error) {
 				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(csatHandler.GetSurveyStatistics)),
 				conf.CSRFConfig,
 			)).Methods(http.MethodGet)
+	}
+
+	reviewRouter := apiRouter.PathPrefix("/review").Subrouter()
+	{
+		reviewRouter.HandleFunc("", reviewHandler.Get).Methods(http.MethodPost)
+		
+		reviewRouter.Handle("/add",
+		middleware.CSRFMiddleware(tokenator,
+			middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(reviewHandler.Add)),
+			conf.CSRFConfig,
+		)).Methods(http.MethodPost)
 	}
 
 	app := &App{

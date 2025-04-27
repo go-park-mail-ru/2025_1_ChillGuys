@@ -52,12 +52,12 @@ func (w *wrappedStream) Context() context.Context {
 func extractUserID(ctx context.Context) (context.Context, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
-		return nil, status.Error(codes.Unauthenticated, "metadata not provided")
+		return ctx, nil
 	}
 
 	userIDs := md.Get("user-id")
 	if len(userIDs) == 0 {
-		return nil, status.Error(codes.Unauthenticated, "user-id not provided")
+		return ctx, nil
 	}
 
 	userID, err := uuid.Parse(userIDs[0])

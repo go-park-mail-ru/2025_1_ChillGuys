@@ -77,3 +77,12 @@ csat_proto:
 		--go-grpc_opt=paths=source_relative \
 		--go_opt=paths=source_relative \
 		proto/csat.proto
+
+review_proto:
+	@mkdir -p internal/transport/generated/review && \
+	protoc --proto_path=proto \
+		--go_out=internal/transport/generated/review \
+		--go-grpc_out=internal/transport/generated/review \
+		--go-grpc_opt=paths=source_relative \
+		--go_opt=paths=source_relative \
+		proto/review.proto
