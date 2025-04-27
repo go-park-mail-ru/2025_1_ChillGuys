@@ -10,7 +10,7 @@ import (
 )
 
 type ISearchRepository interface {
-	GetProductsByName(context.Context, string) ([]*models.Product, error)
+	GetProductsByName(context.Context, string, int) ([]*models.Product, error)
 	GetCategoryByName(context.Context, string) (*models.Category, error)
 }
 
@@ -25,7 +25,7 @@ func NewSearchUsecase(repo ISearchRepository) *SearchUsecase {
 }
 
 // SearchProductsByName принимает запрос с несколькими названиями продуктов и возвращает найденные продукты.
-func (u *SearchUsecase) SearchProductsByName(ctx context.Context, req dto.ProductNameResponse) ([]*models.Product, error) {
+func (u *SearchUsecase) SearchProductsByName(ctx context.Context, req dto.ProductNameResponse, offset int) ([]*models.Product, error) {
 	const op = "SearchUsecase.SearchProductsByName"
 	logger := logctx.GetLogger(ctx).WithField("op", op).WithField("names_count", len(req.ProductNames))
 
@@ -50,7 +50,7 @@ func (u *SearchUsecase) SearchProductsByName(ctx context.Context, req dto.Produc
 				return
 			}
 
-			products, err := u.repo.GetProductsByName(ctx, name)
+			products, err := u.repo.GetProductsByName(ctx, name, offset)
 			if err != nil {
 				logger.WithError(err).WithField("product_name", name).Warn("failed to search products by name")
 				trySendError(err, errCh, cancel)

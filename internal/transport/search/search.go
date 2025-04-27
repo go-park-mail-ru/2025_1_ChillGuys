@@ -2,18 +2,22 @@ package search
 
 import (
 	"context"
+	"net/http"
+	"strconv"
+
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/logctx"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/suggestions"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/request"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/response"
-	"net/http"
+	"github.com/gorilla/mux"
 )
 
 //go:generate mockgen -source=search.go -destination=../../usecase/mocks/search_usecase_mock.go -package=mocks ISearchUsecase
 type ISearchUsecase interface {
-	SearchProductsByName(context.Context, dto.ProductNameResponse) ([]*models.Product, error)
+	SearchProductsByName(context.Context, dto.ProductNameResponse, int) ([]*models.Product, error)
 	SearchCategoryByName(context.Context, dto.CategoryNameResponse) ([]*models.Category, error)
 }
 
@@ -33,6 +37,19 @@ func (h *SearchService) Search(w http.ResponseWriter, r *http.Request) {
 	const op = "SearchService.Search"
 	logger := logctx.GetLogger(r.Context()).WithField("op", op)
 
+	vars := mux.Vars(r)
+	offsetStr := vars["offset"]
+	offset := 0
+	var err error
+    if offsetStr != "" {
+        offset, err = strconv.Atoi(offsetStr)
+        if err != nil {
+            logger.WithError(err).WithField("offset", offsetStr).Error("parse offset")
+            response.HandleDomainError(r.Context(), w, errs.ErrParseRequestData, op)
+            return
+        }
+    }
+
 	// Чтение строки запроса
 	var req dto.SearchReq
 	if err := request.ParseData(r, &req); err != nil {
@@ -50,7 +67,7 @@ func (h *SearchService) Search(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Получение продуктов по найденным предложениям
-	products, err := h.u.SearchProductsByName(r.Context(), productResponse)
+	products, err := h.u.SearchProductsByName(r.Context(), productResponse, offset)
 	if err != nil {
 		logger.WithError(err).Error("failed to search products by names")
 		response.HandleDomainError(r.Context(), w, err, "search products by names")

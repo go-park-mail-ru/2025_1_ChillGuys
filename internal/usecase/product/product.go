@@ -13,9 +13,9 @@ import (
 
 //go:generate mockgen -source=product.go -destination=../../infrastructure/repository/postgres/mocks/product_repository_mock.go -package=mocks IProductRepository
 type IProductRepository interface {
-	GetAllProducts(ctx context.Context) ([]*models.Product, error)
+	GetAllProducts(ctx context.Context, offset int) ([]*models.Product, error)
 	GetProductByID(ctx context.Context, id uuid.UUID) (*models.Product, error)
-	GetProductsByCategory(ctx context.Context, id uuid.UUID) ([]*models.Product, error)
+	GetProductsByCategory(ctx context.Context, id uuid.UUID, offset int) ([]*models.Product, error)
 }
 
 type ProductUsecase struct {
@@ -28,11 +28,11 @@ func NewProductUsecase(repo IProductRepository) *ProductUsecase {
 	}
 }
 
-func (u *ProductUsecase) GetAllProducts(ctx context.Context) ([]*models.Product, error) {
+func (u *ProductUsecase) GetAllProducts(ctx context.Context, offset int) ([]*models.Product, error) {
 	const op = "ProductUsecase.GetAllProducts"
 	logger := logctx.GetLogger(ctx).WithField("op", op)
 
-	products, err := u.repo.GetAllProducts(ctx)
+	products, err := u.repo.GetAllProducts(ctx, offset)
 	if err != nil {
 		logger.WithError(err).Error("get products from repository")
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -53,11 +53,11 @@ func (u *ProductUsecase) GetProductByID(ctx context.Context, id uuid.UUID) (*mod
 	return product, nil
 }
 
-func (u *ProductUsecase) GetProductsByCategory(ctx context.Context, id uuid.UUID) ([]*models.Product, error) {
+func (u *ProductUsecase) GetProductsByCategory(ctx context.Context, id uuid.UUID, offset int) ([]*models.Product, error) {
 	const op = "ProductUsecase.GetProductsByCategory"
 	logger := logctx.GetLogger(ctx).WithField("op", op).WithField("category_id", id)
 
-	products, err := u.repo.GetProductsByCategory(ctx, id)
+	products, err := u.repo.GetProductsByCategory(ctx, id, offset)
 	if err != nil {
 		logger.WithError(err).Error("get products by category from repository")
 		return nil, fmt.Errorf("%s: %w", op, err)

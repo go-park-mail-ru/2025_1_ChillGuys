@@ -3,9 +3,11 @@ package product
 import (
 	"context"
 	"fmt"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/request"
 	"io"
 	"net/http"
+	"strconv"
+
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/request"
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/minio"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
@@ -21,9 +23,9 @@ import (
 
 //go:generate mockgen -source=product.go -destination=../../usecase/mocks/product_usecase_mock.go -package=mocks IProductUsecase
 type IProductUsecase interface {
-	GetAllProducts(ctx context.Context) ([]*models.Product, error)
+	GetAllProducts(ctx context.Context, offset int) ([]*models.Product, error)
 	GetProductByID(ctx context.Context, id uuid.UUID) (*models.Product, error)
-	GetProductsByCategory(ctx context.Context, id uuid.UUID) ([]*models.Product, error)
+	GetProductsByCategory(ctx context.Context, id uuid.UUID, offset int) ([]*models.Product, error)
 	GetProductsByIDs(ctx context.Context, ids []uuid.UUID) ([]*models.Product, error)
 }
 
@@ -52,7 +54,20 @@ func (h *ProductService) GetAllProducts(w http.ResponseWriter, r *http.Request) 
 	const op = "ProductService.GetAllProducts"
 	logger := logctx.GetLogger(r.Context()).WithField("op", op)
 
-	products, err := h.u.GetAllProducts(r.Context())
+	vars := mux.Vars(r)
+	offsetStr := vars["offset"]
+	offset := 0
+	var err error
+    if offsetStr != "" {
+        offset, err = strconv.Atoi(offsetStr)
+        if err != nil {
+            logger.WithError(err).WithField("offset", offsetStr).Error("parse offset")
+            response.HandleDomainError(r.Context(), w, errs.ErrParseRequestData, op)
+            return
+        }
+    }
+
+	products, err := h.u.GetAllProducts(r.Context(), offset)
 	if err != nil {
 		logger.WithError(err).Error("get all products")
 		response.HandleDomainError(r.Context(), w, err, op)
@@ -124,7 +139,18 @@ func (h *ProductService) GetProductsByCategory(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	products, err := h.u.GetProductsByCategory(r.Context(), id)
+	offsetStr := vars["offset"]
+	offset := 0
+    if offsetStr != "" {
+        offset, err = strconv.Atoi(offsetStr)
+        if err != nil {
+            logger.WithError(err).WithField("offset", offsetStr).Error("parse offset")
+            response.HandleDomainError(r.Context(), w, errs.ErrParseRequestData, op)
+            return
+        }
+    }
+
+	products, err := h.u.GetProductsByCategory(r.Context(), id, offset)
 	if err != nil {
 		logger.WithError(err).Error("get products by category")
 		response.HandleDomainError(r.Context(), w, err, op)

@@ -21,6 +21,7 @@ const (
 		FROM bazaar.product p 
 		LEFT JOIN bazaar.discount d ON p.id = d.product_id
 		WHERE p.status = 'approved'
+		LIMIT 20 OFFSET $1
 	`
 	queryGetProductByID = `
 		SELECT p.id, p.seller_id, p.name, p.preview_image_url, p.description, 
@@ -36,6 +37,7 @@ const (
 			FROM bazaar.product p
 			JOIN bazaar.product_category pc ON p.id = pc.product_id
 			WHERE pc.category_id = $1 AND p.status = 'approved'
+			LIMIT 20 OFFSET $2
     `
 )
 
@@ -50,13 +52,13 @@ func NewProductRepository(db *sql.DB) *ProductRepository {
 }
 
 // получение основной информации всех товаров
-func (p *ProductRepository) GetAllProducts(ctx context.Context) ([]*models.Product, error) {
+func (p *ProductRepository) GetAllProducts(ctx context.Context, offset int) ([]*models.Product, error) {
 	const op = "ProductRepository.GetAllProducts"
     logger := logctx.GetLogger(ctx).WithField("op", op)
 
 	productsList := []*models.Product{}
 
-	rows, err := p.DB.QueryContext(ctx, queryGetAllProducts)
+	rows, err := p.DB.QueryContext(ctx, queryGetAllProducts, offset)
 	if err != nil {
 		logger.WithError(err).Error("query all products")
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -132,13 +134,13 @@ func (p *ProductRepository) GetProductByID(ctx context.Context, id uuid.UUID) (*
 	return product, nil
 }
 
-func (p *ProductRepository) GetProductsByCategory(ctx context.Context, id uuid.UUID) ([]*models.Product, error) {
+func (p *ProductRepository) GetProductsByCategory(ctx context.Context, id uuid.UUID, offset int) ([]*models.Product, error) {
 	const op = "ProductRepository.GetProductsByCategory"
     logger := logctx.GetLogger(ctx).WithField("op", op)
 
 	productsList := []*models.Product{}
 
-	rows, err := p.DB.QueryContext(ctx, queryGetProductsByCategory, id)
+	rows, err := p.DB.QueryContext(ctx, queryGetProductsByCategory, id, offset)
 	if err != nil {
 		logger.WithError(err).Error("query products by category")
         return nil, fmt.Errorf("%s: %w", op, err)

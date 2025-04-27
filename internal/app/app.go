@@ -189,9 +189,9 @@ func NewApp(conf *config.Config) (*App, error) {
 				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(ProductService.GetProductsByIDs)),
 				conf.CSRFConfig,
 			)).Methods(http.MethodPost)
-		productsRouter.HandleFunc("", ProductService.GetAllProducts).Methods(http.MethodGet)
+		productsRouter.HandleFunc("/{offset}", ProductService.GetAllProducts).Methods(http.MethodGet)
 		productsRouter.HandleFunc("/{id}", ProductService.GetProductByID).Methods(http.MethodGet)
-		productsRouter.HandleFunc("/category/{id}", ProductService.GetProductsByCategory).Methods(http.MethodGet)
+		productsRouter.HandleFunc("/category/{id}/{offset}", ProductService.GetProductsByCategory).Methods(http.MethodGet)
 	}
 
 	// Маршруты для категорий.
@@ -207,7 +207,7 @@ func NewApp(conf *config.Config) (*App, error) {
 
 	searchRouter := apiRouter.PathPrefix("/search").Subrouter()
 	{
-		searchRouter.HandleFunc("", searchService.Search).Methods(http.MethodPost)
+		searchRouter.HandleFunc("/{offset}", searchService.Search).Methods(http.MethodPost)
 	}
 
 	basketRouter := apiRouter.PathPrefix("/basket").Subrouter()

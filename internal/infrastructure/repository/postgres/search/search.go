@@ -16,7 +16,7 @@ const (
 	FROM bazaar.product p 
 	LEFT JOIN bazaar.discount d ON p.id = d.product_id
 	WHERE p.status = 'approved' AND LOWER(p.name) LIKE LOWER($1)
-	LIMIT 10`
+	LIMIT 20 OFSET $2`
 	queryGetCategoryByName = `
 	SELECT id, name FROM bazaar.category
 	WHERE LOWER(name) = LOWER($1)`
@@ -32,7 +32,7 @@ func NewSearchRepository(db *sql.DB) *SearchRepository {
 	}
 }
 
-func (s *SearchRepository) GetProductsByName(ctx context.Context, name string) ([]*models.Product, error) {
+func (s *SearchRepository) GetProductsByName(ctx context.Context, name string, offset int) ([]*models.Product, error) {
 	const op = "SearchRepository.GetProductsByName"
 	logger := logctx.GetLogger(ctx).WithField("op", op)
 
@@ -42,7 +42,7 @@ func (s *SearchRepository) GetProductsByName(ctx context.Context, name string) (
 	pattern := fmt.Sprintf("%%%s%%", name)
 
 	// Выполнение запроса
-	rows, err := s.db.QueryContext(ctx, querySearchProductsByName, pattern)
+	rows, err := s.db.QueryContext(ctx, querySearchProductsByName, pattern, offset)
 	if err != nil {
 		logger.WithError(err).Error("query search products by name")
 		return nil, fmt.Errorf("%s: %w", op, err)
