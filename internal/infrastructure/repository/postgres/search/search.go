@@ -16,7 +16,7 @@ const (
 	FROM bazaar.product p 
 	LEFT JOIN bazaar.discount d ON p.id = d.product_id
 	WHERE p.status = 'approved' AND LOWER(p.name) LIKE LOWER($1)
-	LIMIT 20 OFSET $2`
+	LIMIT 20 OFFSET $2`
 	queryGetCategoryByName = `
 	SELECT id, name FROM bazaar.category
 	WHERE LOWER(name) = LOWER($1)`
