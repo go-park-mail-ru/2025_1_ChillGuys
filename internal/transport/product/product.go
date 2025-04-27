@@ -27,6 +27,14 @@ type IProductUsecase interface {
 	GetProductByID(ctx context.Context, id uuid.UUID) (*models.Product, error)
 	GetProductsByCategory(ctx context.Context, id uuid.UUID, offset int) ([]*models.Product, error)
 	GetProductsByIDs(ctx context.Context, ids []uuid.UUID) ([]*models.Product, error)
+	GetProductsByCategoryWithFilterAndSort(
+		ctx context.Context, 
+		id uuid.UUID, 
+		offset int,
+		minPrice, maxPrice float64,
+		minRating float32,
+		sortOption models.SortOption,
+	) ([]*models.Product, error)
 }
 
 type ProductService struct {
@@ -252,4 +260,64 @@ func (p *ProductService) GetProductsByIDs(w http.ResponseWriter, r *http.Request
 	}
 
 	response.SendJSONResponse(r.Context(), w, http.StatusOK, dto.ConvertToProductsResponse(products))
+}
+
+
+func (h *ProductService) GetProductsByCategoryWithFilterAndSort(w http.ResponseWriter, r *http.Request) {
+    const op = "ProductService.GetProductsByCategoryWithFilterAndSort"
+    logger := logctx.GetLogger(r.Context()).WithField("op", op)
+
+    // Парсинг ID категории
+    vars := mux.Vars(r)
+    idStr := vars["id"]
+    id, err := uuid.Parse(idStr)
+    if err != nil {
+        logger.WithError(err).WithField("category_id", idStr).Error("parse category ID")
+        response.HandleDomainError(r.Context(), w, errs.ErrInvalidID, op)
+        return
+    }
+
+    // Парсинг offset
+    offsetStr := vars["offset"]
+	offset := 0
+    if offsetStr != "" {
+        offset, err = strconv.Atoi(offsetStr)
+        if err != nil {
+            logger.WithError(err).WithField("offset", offsetStr).Error("parse offset")
+            response.HandleDomainError(r.Context(), w, errs.ErrParseRequestData, op)
+            return
+        }
+    }
+
+    // Парсинг фильтров
+    minPrice, _ := strconv.ParseFloat(r.URL.Query().Get("min_price"), 64)
+    maxPrice, _ := strconv.ParseFloat(r.URL.Query().Get("max_price"), 64)
+    minRating, _ := strconv.ParseFloat(r.URL.Query().Get("min_rating"), 32)
+
+    // Парсинг параметра сортировки
+    sortOption := models.SortOption(r.URL.Query().Get("sort"))
+    switch sortOption {
+    case models.SortByPriceAsc, models.SortByPriceDesc, models.SortByRatingAsc, models.SortByRatingDesc, models.SortByDefault:
+        // допустимые значения
+    default:
+        sortOption = models.SortByDefault
+    }
+
+    products, err := h.u.GetProductsByCategoryWithFilterAndSort(
+        r.Context(), 
+        id, 
+        offset,
+        minPrice,
+        maxPrice,
+        float32(minRating),
+        sortOption,
+    )
+    if err != nil {
+        logger.WithError(err).Error("get products by category with filter and sort")
+        response.HandleDomainError(r.Context(), w, err, op)
+        return
+    }
+
+    productResponse := dto.ConvertToProductsResponse(products)
+    response.SendJSONResponse(r.Context(), w, http.StatusOK, productResponse)
 }

@@ -323,3 +323,26 @@ VALUES
     ('41000000-0000-0000-0000-000000000002', '40000000-0000-0000-0000-000000000001', 'Насколько понятен и удобен процесс отслеживания состояния заказа?', 2),
     ('41000000-0000-0000-0000-000000000003', '40000000-0000-0000-0000-000000000001', 'Насколько вы довольны сроками доставки?', 3),
     ('41000000-0000-0000-0000-000000000004', '40000000-0000-0000-0000-000000000001', 'Как бы вы оценили процесс оплаты?', 4);
+
+
+-- Обновляем все продукты на основе реальных отзывов
+UPDATE bazaar.product p
+SET 
+    reviews_count = subquery.review_count,
+    rating = subquery.avg_rating
+FROM (
+    SELECT 
+        product_id,
+        COUNT(*) as review_count,
+        COALESCE(AVG(rating), 0) as avg_rating
+    FROM bazaar.review
+    GROUP BY product_id
+) subquery
+WHERE p.id = subquery.product_id;
+
+-- Для продуктов без отзывов устанавливаем значения по умолчанию
+UPDATE bazaar.product
+SET 
+    reviews_count = 0,
+    rating = 0
+WHERE id NOT IN (SELECT product_id FROM bazaar.review);

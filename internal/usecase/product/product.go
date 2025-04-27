@@ -16,6 +16,14 @@ type IProductRepository interface {
 	GetAllProducts(ctx context.Context, offset int) ([]*models.Product, error)
 	GetProductByID(ctx context.Context, id uuid.UUID) (*models.Product, error)
 	GetProductsByCategory(ctx context.Context, id uuid.UUID, offset int) ([]*models.Product, error)
+	GetProductsByCategoryWithFilterAndSort(
+		ctx context.Context, 
+		id uuid.UUID, 
+		offset int,
+		minPrice, maxPrice float64,
+		minRating float32,
+		sortOption models.SortOption,
+	) ([]*models.Product, error)
 }
 
 type ProductUsecase struct {
@@ -135,4 +143,32 @@ func trySendError(err error, errCh chan<- error, cancel context.CancelFunc) {
 	default:
 		// Если ошибка уже есть - игнорируем (сохраняем первую)
 	}
+}
+
+func (u *ProductUsecase) GetProductsByCategoryWithFilterAndSort(
+    ctx context.Context, 
+    id uuid.UUID, 
+    offset int,
+    minPrice, maxPrice float64,
+    minRating float32,
+    sortOption models.SortOption,
+) ([]*models.Product, error) {
+    const op = "ProductUsecase.GetProductsByCategoryWithFilterAndSort"
+    logger := logctx.GetLogger(ctx).WithField("op", op).WithField("category_id", id)
+
+    products, err := u.repo.GetProductsByCategoryWithFilterAndSort(
+        ctx, 
+        id, 
+        offset,
+        minPrice,
+        maxPrice,
+        minRating,
+        sortOption,
+    )
+    if err != nil {
+        logger.WithError(err).Error("get products by category with filter and sort from repository")
+        return nil, fmt.Errorf("%s: %w", op, err)
+    }
+
+    return products, nil
 }

@@ -191,7 +191,7 @@ func NewApp(conf *config.Config) (*App, error) {
 			)).Methods(http.MethodPost)
 		productsRouter.HandleFunc("/{offset}", ProductService.GetAllProducts).Methods(http.MethodGet)
 		productsRouter.HandleFunc("/{id}", ProductService.GetProductByID).Methods(http.MethodGet)
-		productsRouter.HandleFunc("/category/{id}/{offset}", ProductService.GetProductsByCategory).Methods(http.MethodGet)
+		productsRouter.HandleFunc("/category/{id}/{offset}", ProductService.GetProductsByCategoryWithFilterAndSort).Methods(http.MethodGet)
 	}
 
 	// Маршруты для категорий.
