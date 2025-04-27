@@ -25,9 +25,8 @@ import (
 type IProductUsecase interface {
 	GetAllProducts(ctx context.Context, offset int) ([]*models.Product, error)
 	GetProductByID(ctx context.Context, id uuid.UUID) (*models.Product, error)
-	GetProductsByCategory(ctx context.Context, id uuid.UUID, offset int) ([]*models.Product, error)
 	GetProductsByIDs(ctx context.Context, ids []uuid.UUID) ([]*models.Product, error)
-	GetProductsByCategoryWithFilterAndSort(
+	GetProductsByCategory(
 		ctx context.Context, 
 		id uuid.UUID, 
 		offset int,
@@ -120,54 +119,6 @@ func (h *ProductService) GetProductByID(w http.ResponseWriter, r *http.Request) 
 	}
 
 	response.SendJSONResponse(r.Context(), w, http.StatusOK, product)
-}
-
-// GetProductsByCategory godoc
-//
-//	@Summary		Получить товары по категории
-//	@Description	Возвращает список товаров указанной категории, отсортированных по дате обновления (новые сначала)
-//	@Tags			products
-//	@Produce		json
-//	@Param			id	path		string	true	"UUID категории"
-//	@Success		200	{array}		models.Product
-//	@Failure		400	{object}	object	"Некорректный формат UUID"
-//	@Failure		404	{object}	object	"Категория не найдена"
-//	@Failure		500	{object}	object
-//	@Router			/products/category/{id} [get]
-func (h *ProductService) GetProductsByCategory(w http.ResponseWriter, r *http.Request) {
-	const op = "ProductService.GetProductsByCategory"
-	logger := logctx.GetLogger(r.Context()).WithField("op", op)
-
-	vars := mux.Vars(r)
-	idStr := vars["id"]
-	id, err := uuid.Parse(idStr)
-	if err != nil {
-		logger.WithError(err).WithField("category_id", idStr).Error("parse category ID")
-		response.HandleDomainError(r.Context(), w, errs.ErrInvalidID, op)
-		return
-	}
-
-	offsetStr := vars["offset"]
-	offset := 0
-    if offsetStr != "" {
-        offset, err = strconv.Atoi(offsetStr)
-        if err != nil {
-            logger.WithError(err).WithField("offset", offsetStr).Error("parse offset")
-            response.HandleDomainError(r.Context(), w, errs.ErrParseRequestData, op)
-            return
-        }
-    }
-
-	products, err := h.u.GetProductsByCategory(r.Context(), id, offset)
-	if err != nil {
-		logger.WithError(err).Error("get products by category")
-		response.HandleDomainError(r.Context(), w, err, op)
-		return
-	}
-
-	productResponse := dto.ConvertToProductsResponse(products)
-
-	response.SendJSONResponse(r.Context(), w, http.StatusOK, productResponse)
 }
 
 // CreateOne godoc
@@ -263,7 +214,7 @@ func (p *ProductService) GetProductsByIDs(w http.ResponseWriter, r *http.Request
 }
 
 
-func (h *ProductService) GetProductsByCategoryWithFilterAndSort(w http.ResponseWriter, r *http.Request) {
+func (h *ProductService) GetProductsByCategory(w http.ResponseWriter, r *http.Request) {
     const op = "ProductService.GetProductsByCategoryWithFilterAndSort"
     logger := logctx.GetLogger(r.Context()).WithField("op", op)
 
@@ -303,7 +254,7 @@ func (h *ProductService) GetProductsByCategoryWithFilterAndSort(w http.ResponseW
         sortOption = models.SortByDefault
     }
 
-    products, err := h.u.GetProductsByCategoryWithFilterAndSort(
+    products, err := h.u.GetProductsByCategory(
         r.Context(), 
         id, 
         offset,

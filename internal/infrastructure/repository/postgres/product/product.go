@@ -31,14 +31,6 @@ const (
 		LEFT JOIN bazaar.discount d ON p.id = d.product_id
 		WHERE p.id = $1
 	`
-	queryGetProductsByCategory = `
-        SELECT p.id, p.seller_id, p.name, p.preview_image_url, p.description, 
-                p.status, p.price, p.quantity, p.updated_at, p.rating, p.reviews_count 
-			FROM bazaar.product p
-			JOIN bazaar.product_category pc ON p.id = pc.product_id
-			WHERE pc.category_id = $1 AND p.status = 'approved'
-			LIMIT 20 OFFSET $2
-    `
 
 	queryGetProductsByCategoryWithFilterAndSort = `
         SELECT 
@@ -169,50 +161,7 @@ func (p *ProductRepository) GetProductByID(ctx context.Context, id uuid.UUID) (*
 	return product, nil
 }
 
-func (p *ProductRepository) GetProductsByCategory(ctx context.Context, id uuid.UUID, offset int) ([]*models.Product, error) {
-	const op = "ProductRepository.GetProductsByCategory"
-    logger := logctx.GetLogger(ctx).WithField("op", op)
-
-	productsList := []*models.Product{}
-
-	rows, err := p.DB.QueryContext(ctx, queryGetProductsByCategory, id, offset)
-	if err != nil {
-		logger.WithError(err).Error("query products by category")
-        return nil, fmt.Errorf("%s: %w", op, err)
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		product := &models.Product{}
-		err = rows.Scan(
-			&product.ID,
-			&product.SellerID,
-			&product.Name,
-			&product.PreviewImageURL,
-			&product.Description,
-			&product.Status,
-			&product.Price,
-			&product.Quantity,
-			&product.UpdatedAt,
-			&product.Rating,
-			&product.ReviewsCount,
-		)
-		if err != nil {
-			logger.WithError(err).Error("scan product row")
-            return nil, fmt.Errorf("%s: %w", op, err)
-		}
-		productsList = append(productsList, product)
-	}
-
-	if err = rows.Err(); err != nil {
-		logger.WithError(err).Error("rows iteration error")
-        return nil, fmt.Errorf("%s: %w", op, err)
-	}
-
-	return productsList, nil
-}
-
-func (p *ProductRepository) GetProductsByCategoryWithFilterAndSort(
+func (p *ProductRepository) GetProductsByCategory(
     ctx context.Context, 
     id uuid.UUID, 
     offset int,

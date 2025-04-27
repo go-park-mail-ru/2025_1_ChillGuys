@@ -15,8 +15,7 @@ import (
 type IProductRepository interface {
 	GetAllProducts(ctx context.Context, offset int) ([]*models.Product, error)
 	GetProductByID(ctx context.Context, id uuid.UUID) (*models.Product, error)
-	GetProductsByCategory(ctx context.Context, id uuid.UUID, offset int) ([]*models.Product, error)
-	GetProductsByCategoryWithFilterAndSort(
+	GetProductsByCategory(
 		ctx context.Context, 
 		id uuid.UUID, 
 		offset int,
@@ -59,19 +58,6 @@ func (u *ProductUsecase) GetProductByID(ctx context.Context, id uuid.UUID) (*mod
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	return product, nil
-}
-
-func (u *ProductUsecase) GetProductsByCategory(ctx context.Context, id uuid.UUID, offset int) ([]*models.Product, error) {
-	const op = "ProductUsecase.GetProductsByCategory"
-	logger := logctx.GetLogger(ctx).WithField("op", op).WithField("category_id", id)
-
-	products, err := u.repo.GetProductsByCategory(ctx, id, offset)
-	if err != nil {
-		logger.WithError(err).Error("get products by category from repository")
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
-
-	return products, nil
 }
 
 // GetProductsByIDs возвращает список продуктов по их UUID
@@ -145,7 +131,7 @@ func trySendError(err error, errCh chan<- error, cancel context.CancelFunc) {
 	}
 }
 
-func (u *ProductUsecase) GetProductsByCategoryWithFilterAndSort(
+func (u *ProductUsecase) GetProductsByCategory(
     ctx context.Context, 
     id uuid.UUID, 
     offset int,
@@ -156,7 +142,7 @@ func (u *ProductUsecase) GetProductsByCategoryWithFilterAndSort(
     const op = "ProductUsecase.GetProductsByCategoryWithFilterAndSort"
     logger := logctx.GetLogger(ctx).WithField("op", op).WithField("category_id", id)
 
-    products, err := u.repo.GetProductsByCategoryWithFilterAndSort(
+    products, err := u.repo.GetProductsByCategory(
         ctx, 
         id, 
         offset,
