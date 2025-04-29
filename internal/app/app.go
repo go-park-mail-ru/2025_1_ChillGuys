@@ -204,6 +204,7 @@ func NewApp(conf *config.Config) (*App, error) {
 	catalogRouter := apiRouter.PathPrefix("/categories").Subrouter()
 	{
 		catalogRouter.HandleFunc("", categoryService.GetAllCategories).Methods(http.MethodGet)
+		catalogRouter.HandleFunc("/{id}", categoryService.GetAllSubcategories).Methods(http.MethodGet)
 	}
 
 	suggestionsRouter := apiRouter.PathPrefix("/suggestions").Subrouter()

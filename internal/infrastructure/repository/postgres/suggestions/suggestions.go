@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	queryGetAllCategoriesName = `SELECT name FROM bazaar.category`
+	queryGetAllCategoriesName = `SELECT name FROM bazaar.subcategory`
 	queryGetAllProductsName   = `SELECT name FROM bazaar.product WHERE status = 'approved'`
 )
 

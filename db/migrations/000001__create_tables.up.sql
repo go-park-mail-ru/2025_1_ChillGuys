@@ -172,13 +172,21 @@ CREATE TABLE IF NOT EXISTS bazaar.category
     name TEXT UNIQUE NOT NULL
 );
 
--- Привязка товаров к категориям
-CREATE TABLE IF NOT EXISTS bazaar.product_category
+-- Подкатегории
+CREATE TABLE IF NOT EXISTS bazaar.subcategory
+(
+    id   UUID PRIMARY KEY,
+    name TEXT UNIQUE NOT NULL,
+    category_id UUID NOT NULL REFERENCES bazaar.category (id) ON DELETE CASCADE
+);
+
+-- Привязка товаров к подкатегориям
+CREATE TABLE IF NOT EXISTS bazaar.product_subcategory
 (
     id          UUID PRIMARY KEY,
     product_id  UUID REFERENCES bazaar.product (id) ON DELETE CASCADE,
-    category_id UUID REFERENCES bazaar.category (id) ON DELETE CASCADE,
-    UNIQUE (product_id, category_id)
+    subcategory_id UUID REFERENCES bazaar.subcategory (id) ON DELETE CASCADE,
+    UNIQUE (product_id, subcategory_id)
 );
 
 -- Заказы
