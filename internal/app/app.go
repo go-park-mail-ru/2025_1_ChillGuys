@@ -198,6 +198,7 @@ func NewApp(conf *config.Config) (*App, error) {
 		productsRouter.HandleFunc("/products/{offset}", ProductService.GetAllProducts).Methods(http.MethodGet)
 		productsRouter.HandleFunc("/product/{id}", ProductService.GetProductByID).Methods(http.MethodGet)
 		productsRouter.HandleFunc("/products/category/{id}/{offset}", ProductService.GetProductsByCategory).Methods(http.MethodGet)
+		productsRouter.HandleFunc("/add", ProductService.AddProduct).Methods(http.MethodPost)
 	}
 
 	// Маршруты для категорий.
@@ -205,6 +206,11 @@ func NewApp(conf *config.Config) (*App, error) {
 	{
 		catalogRouter.HandleFunc("", categoryService.GetAllCategories).Methods(http.MethodGet)
 		catalogRouter.HandleFunc("/{id}", categoryService.GetAllSubcategories).Methods(http.MethodGet)
+	}
+
+	subcategoryRouter := apiRouter.PathPrefix("/subcategory").Subrouter()
+	{
+		subcategoryRouter.HandleFunc("/{id}", categoryService.GetNameSubcategory).Methods(http.MethodGet)
 	}
 
 	suggestionsRouter := apiRouter.PathPrefix("/suggestions").Subrouter()

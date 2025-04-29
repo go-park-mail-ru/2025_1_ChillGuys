@@ -3,9 +3,11 @@ package category
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/logctx"
 	"github.com/google/uuid"
 )
@@ -19,6 +21,12 @@ const (
 		SELECT id, name 
 		FROM bazaar.subcategory
 		WHERE category_id = $1
+	`
+
+	queryGetNameSybcategory = `
+		SELECT name
+		FROM bazaar.subcategory
+		WHERE id = $1
 	`
 )
 
@@ -98,4 +106,22 @@ func (p *CategoryRepository) GetAllSubcategories(ctx context.Context, category_i
 	}
 
 	return subcategoriesList, nil
+}
+
+func (p *CategoryRepository) GetNameSubcategory(ctx context.Context, id uuid.UUID) (string, error) {
+	const op = "CategoryRepository.GetNameSubcategory"
+    logger := logctx.GetLogger(ctx).WithField("op", op)
+	
+	var name string
+	err := p.DB.QueryRowContext(ctx, queryGetNameSybcategory, id).Scan(&name)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+            logger.Warn("product not found by ID")
+            return "", fmt.Errorf("%s: %w", op, errs.NewNotFoundError(op))
+        }
+        logger.WithError(err).Error("failed to get product by ID")
+        return "", fmt.Errorf("%s: %w", op, err)
+	}
+
+	return name, nil
 }

@@ -25,6 +25,9 @@ var (
 	ErrNoAuthHeader      = errors.New("authorization header is missing")
 	ErrInvalidAuthFormat = errors.New("invalid authorization header format")
 	ErrInternal          = errors.New("internal server error")
+	ErrInvalidProductPrice= errors.New("invalid product price")
+	ErrEmptyProductName   = errors.New("invalid product name")
+	ErrInvalidProductQuantity = errors.New("invalid product quantity")
 )
 
 func NewBusinessLogicError(msg string) error {

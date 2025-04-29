@@ -49,3 +49,16 @@ func ConvertToProductsResponse(products []*models.Product) ProductsResponse {
 type GetProductsByIDRequest struct {
 	ProductIDs []uuid.UUID `json:"productIDs" validate:"required,min=1"`
 }
+
+type AddProductRequest struct {
+    Name            string  `json:"name" validate:"required"`
+    SellerID       string  `json:"seller_id" validate:"required,uuid4"`
+    PreviewImageURL string `json:"preview_image_url,omitempty"`
+    Description     string `json:"description,omitempty"`
+    Price          float64 `json:"price" validate:"required,gt=0"`
+    PriceDiscount  float64 `json:"price_discount" validate:"gte=0"`
+    Quantity       uint    `json:"quantity" validate:"gte=0"`
+    Rating         float32 `json:"rating,omitempty" validate:"gte=0,lte=5"`
+    ReviewsCount   uint    `json:"reviews_count,omitempty" validate:"gte=0"`
+    Category       string  `json:"category" validate:"required,uuid4"`
+}

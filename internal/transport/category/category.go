@@ -17,6 +17,7 @@ import (
 type ICategoryUsecase interface {
 	GetAllCategories(ctx context.Context) ([]*models.Category, error)
 	GetAllSubategories(ctx context.Context, category_id uuid.UUID) ([]*models.Category, error)
+	GetNameSubcategory(ctx context.Context, id uuid.UUID) (string, error)
 }
 
 type CategoryService struct {
@@ -55,26 +56,52 @@ func (h *CategoryService) GetAllCategories(w http.ResponseWriter, r *http.Reques
 }
 
 func (h *CategoryService) GetAllSubcategories(w http.ResponseWriter, r *http.Request) {
-	const op = "CategoryService.GetAllCategories"
+	const op = "CategoryService.GetAllSubcategories"
 	logger := logctx.GetLogger(r.Context()).WithField("op", op)
 
 	vars := mux.Vars(r)
 	idStr := vars["id"]
 	id, err := uuid.Parse(idStr)
 	if err != nil {
-		logger.WithError(err).WithField("product_id", idStr).Error("parse product ID")
+		logger.WithError(err).WithField("category_id", idStr).Error("parse category ID")
 		response.HandleDomainError(r.Context(), w, errs.ErrInvalidID, op)
 		return
 	}
 
 	categories, err := h.u.GetAllSubategories(r.Context(), id)
 	if err != nil {
-		logger.WithError(err).Error("get all categories")
-		response.HandleDomainError(r.Context(), w, err, "get categories")
+		logger.WithError(err).Error("get all subcategories")
+		response.HandleDomainError(r.Context(), w, err, "get subcategories")
 		return
 	}
 
 	categoryResponse := dto.ConvertToCategoriesResponse(categories)
 
 	response.SendJSONResponse(r.Context(), w, http.StatusOK, categoryResponse)
+}
+
+func (h *CategoryService) GetNameSubcategory(w http.ResponseWriter, r *http.Request) {
+	const op = "CategoryService.GetNameSubcategories"
+	logger := logctx.GetLogger(r.Context()).WithField("op", op)
+
+	vars := mux.Vars(r)
+	idStr := vars["id"]
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		logger.WithError(err).WithField("subcategory_id", idStr).Error("parse subcategory ID")
+		response.HandleDomainError(r.Context(), w, errs.ErrInvalidID, op)
+		return
+	}
+
+	name, err := h.u.GetNameSubcategory(r.Context(), id)
+	if err != nil {
+		logger.WithError(err).Error("get name subcategory")
+		response.HandleDomainError(r.Context(), w, err, "get name subcategory")
+		return
+	}
+
+	var resp dto.NameSubcategory;
+	resp.Name = name
+
+	response.SendJSONResponse(r.Context(), w, http.StatusOK, resp)
 }
