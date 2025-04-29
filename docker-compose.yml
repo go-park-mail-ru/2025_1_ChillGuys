@@ -274,6 +274,28 @@ services:
     networks:
       - bazaar-network
 
+  prometheus:
+    image: prom/prometheus:v2.44.0
+    container_name: prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - bazaar-network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GF_ADMIN_PASSWORD}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - bazaar-network
+
 networks:
   bazaar-network:
     driver: bridge
