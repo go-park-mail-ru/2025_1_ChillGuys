@@ -44,7 +44,7 @@ const (
             p.quantity, 
             p.updated_at, 
             p.rating, 
-            p.reviews_count,
+            p.reviews_count
         FROM 
             bazaar.product p
         JOIN 
