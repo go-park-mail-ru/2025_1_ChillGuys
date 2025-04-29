@@ -13,6 +13,7 @@ import (
 type ICategoryRepository interface {
 	GetAllCategories(ctx context.Context) ([]*models.Category, error)
 	GetAllSubcategories(ctx context.Context, category_id uuid.UUID) ([]*models.Category, error)
+	GetNameSubcategory(ctx context.Context, id uuid.UUID) (string, error)
 }
 
 type CategoryUsecase struct {
@@ -49,4 +50,17 @@ func (u *CategoryUsecase) GetAllSubategories(ctx context.Context, category_id uu
 	}
 
 	return categories, nil
+}
+
+func (u *CategoryUsecase) GetNameSubcategory(ctx context.Context, id uuid.UUID) (string, error) {
+	const op = "CategoryUsecase.GetNameSubcategory"
+	logger := logctx.GetLogger(ctx).WithField("op", op)
+
+	name, err := u.repo.GetNameSubcategory(ctx, id)
+	if err != nil {
+		logger.WithError(err).Error("get name subcategory from repository")
+		return "", fmt.Errorf("%s: %w", op, err)
+	}
+
+	return name, nil
 }

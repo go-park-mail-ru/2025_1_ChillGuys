@@ -44,7 +44,7 @@ const (
             p.quantity, 
             p.updated_at, 
             p.rating, 
-            p.reviews_count 
+            p.reviews_count,
         FROM 
             bazaar.product p
         JOIN 
@@ -56,6 +56,25 @@ const (
             AND ($4 = 0 OR p.price < $4)
             AND ($5 = 0::FLOAT OR p.rating > $5::FLOAT)
         LIMIT 20 OFFSET $2
+    `
+
+	queryAddProduct = `
+		INSERT INTO bazaar.product (
+			id, seller_id, name, preview_image_url, 
+			description, status, price, quantity, rating, reviews_count
+		) VALUES ($1, $2, $3, $4, $5, $10, $6, $7, $8, $9)
+		RETURNING id
+	`
+
+    queryAddDiscount = `
+        INSERT INTO bazaar.discount (
+            id, product_id, discounted_price, start_date, end_date
+        ) VALUES ($1, $2, $3, now(), now() + interval '30 days')
+    `
+
+    queryAddProductCategory = `
+        INSERT INTO bazaar.product_subcategory (id, product_id, subcategory_id)
+        VALUES ($1, $2, $3)
     `
 )
 
@@ -208,4 +227,68 @@ func (p *ProductRepository) GetProductsByCategory(
     }
 
     return productsList, nil
+}
+
+func (p *ProductRepository) AddProduct(ctx context.Context, product *models.Product, categoryID uuid.UUID) (*models.Product, error) {
+    const op = "ProductRepository.AddProduct"
+    logger := logctx.GetLogger(ctx).WithField("op", op)
+    
+    tx, err := p.DB.BeginTx(ctx, nil)
+    if err != nil {
+        logger.WithError(err).Error("begin transaction")
+        return nil, fmt.Errorf("%s: %w", op, err)
+    }
+    defer tx.Rollback()
+
+    // Генерируем UUID для продукта
+    product.ID = uuid.New()
+    
+    // Вставляем продукт
+	product.Status = models.ProductApproved
+    _, err = tx.ExecContext(ctx, queryAddProduct,
+        product.ID,
+        product.SellerID,
+        product.Name,
+        product.PreviewImageURL,
+        product.Description,
+        product.Price,
+        product.Quantity,
+        product.Rating,
+        product.ReviewsCount,
+		product.Status,
+    )
+	if err != nil {
+        logger.WithError(err).Error("insert product")
+        return nil, fmt.Errorf("%s: %w", op, err)
+    }
+
+    // Генерируем UUID для скидки и добавляем скидку
+    discountID := uuid.New()
+    _, err = tx.ExecContext(ctx, queryAddDiscount,
+        discountID,
+        product.ID,
+        product.PriceDiscount,
+    )
+    if err != nil {
+        logger.WithError(err).Error("insert discount")
+        return nil, fmt.Errorf("%s: %w", op, err)
+    }
+	productCategoryID := uuid.New()
+    // Добавляем категорию продукта
+    _, err = tx.ExecContext(ctx, queryAddProductCategory,
+		productCategoryID,
+        product.ID,
+        categoryID,
+    )
+    if err != nil {
+        logger.WithError(err).Error("insert product category")
+        return nil, fmt.Errorf("%s: %w", op, err)
+    }
+
+    if err = tx.Commit(); err != nil {
+        logger.WithError(err).Error("commit transaction")
+        return nil, fmt.Errorf("%s: %w", op, err)
+    }
+
+    return product, nil
 }

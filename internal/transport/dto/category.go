@@ -21,3 +21,7 @@ func ConvertToCategoriesResponse(categories []*models.Category) CategoryResponse
 		Categorys: categoryList,
 	}
 }
+
+type NameSubcategory struct {
+	Name string `json:"name"`
+}

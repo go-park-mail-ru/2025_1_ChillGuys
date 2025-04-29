@@ -11,6 +11,7 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/logctx"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/helpers"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
 )
 
 //go:generate mockgen -source=product.go -destination=../../infrastructure/repository/postgres/mocks/product_repository_mock.go -package=mocks IProductRepository
@@ -24,6 +25,7 @@ type IProductRepository interface {
 		minPrice, maxPrice float64,
 		minRating float32,
 	) ([]*models.Product, error)
+	AddProduct(ctx context.Context, product *models.Product, categoryID uuid.UUID) (*models.Product, error)
 }
 
 type ProductUsecase struct {
@@ -180,4 +182,47 @@ func (u *ProductUsecase) GetProductsByCategory(
 	}
 
     return products, nil
+}
+
+func (u *ProductUsecase) AddProduct(ctx context.Context, product *models.Product, categoryID uuid.UUID) (*models.Product, error) {
+    const op = "ProductUsecase.AddProduct"
+    logger := logctx.GetLogger(ctx).WithField("op", op)
+
+    // Валидация данных
+    if product.Name == "" {
+        logger.Error("empty product name")
+        return nil, fmt.Errorf("%s: %w", op, errs.ErrEmptyProductName)
+    }
+    if product.Price <= 0 {
+        logger.Error("invalid product price")
+        return nil, fmt.Errorf("%s: %w", op, errs.ErrInvalidProductPrice)
+    }
+    if product.Quantity < 0 {
+        logger.Error("invalid product quantity")
+        return nil, fmt.Errorf("%s: %w", op, errs.ErrInvalidProductQuantity)
+    }
+
+    // Если рейтинг не указан, ставим 0
+    if product.Rating == 0 {
+        product.Rating = 0
+    }
+
+    // Если количество отзывов не указано, ставим 0
+    if product.ReviewsCount == 0 {
+        product.ReviewsCount = 0
+    }
+
+	// Если URL превью не указан, ставим дефолтный
+    if product.PreviewImageURL == "" {
+        product.PreviewImageURL = "media/product-default"
+    }
+
+    // Добавляем продукт в репозиторий
+    newProduct, err := u.repo.AddProduct(ctx, product, categoryID)
+    if err != nil {
+        logger.WithError(err).Error("add product to repository")
+        return nil, fmt.Errorf("%s: %w", op, err)
+    }
+
+    return newProduct, nil
 }

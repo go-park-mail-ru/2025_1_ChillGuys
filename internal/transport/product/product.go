@@ -34,6 +34,7 @@ type IProductUsecase interface {
 		minRating float32,
 		sortOption models.SortOption,
 	) ([]*models.Product, error)
+	AddProduct(ctx context.Context, product *models.Product, categoryID uuid.UUID) (*models.Product, error)
 }
 
 type ProductService struct {
@@ -271,4 +272,53 @@ func (h *ProductService) GetProductsByCategory(w http.ResponseWriter, r *http.Re
 
     productResponse := dto.ConvertToProductsResponse(products)
     response.SendJSONResponse(r.Context(), w, http.StatusOK, productResponse)
+}
+
+func (p *ProductService) AddProduct(w http.ResponseWriter, r *http.Request) {
+    const op = "ProductService.AddProduct"
+    logger := logctx.GetLogger(r.Context()).WithField("op", op)
+
+    var req dto.AddProductRequest
+    if err := request.ParseData(r, &req); err != nil {
+        logger.WithError(err).Error("parse request data")
+        response.HandleDomainError(r.Context(), w, errs.ErrParseRequestData, op)
+        return
+    }
+
+    // Парсим UUID категории
+    categoryID, err := uuid.Parse(req.Category)
+    if err != nil {
+        logger.WithError(err).Error("parse category ID")
+        response.HandleDomainError(r.Context(), w, errs.ErrInvalidID, op)
+        return
+    }
+
+    // Парсим UUID продавца
+    sellerID, err := uuid.Parse(req.SellerID)
+    if err != nil {
+        logger.WithError(err).Error("parse seller ID")
+        response.HandleDomainError(r.Context(), w, errs.ErrInvalidID, op)
+        return
+    }
+
+	product := &models.Product{
+        SellerID:        sellerID,
+        Name:           req.Name,
+        PreviewImageURL: req.PreviewImageURL,
+        Description:    req.Description,
+        Price:          req.Price,
+        PriceDiscount:   req.PriceDiscount,
+        Quantity:       req.Quantity,
+        Rating:         req.Rating,
+        ReviewsCount:   req.ReviewsCount,
+    }
+
+    newProduct, err := p.u.AddProduct(r.Context(), product, categoryID)
+    if err != nil {
+        logger.WithError(err).Error("add product")
+        response.HandleDomainError(r.Context(), w, err, op)
+        return
+    }
+
+    response.SendJSONResponse(r.Context(), w, http.StatusCreated, newProduct)
 }
