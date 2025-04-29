@@ -20,7 +20,7 @@ const (
 	`
 	
 	queryGetCategoryByName = `
-	SELECT id, name FROM bazaar.category
+	SELECT id, name FROM bazaar.subcategory
 	WHERE LOWER(name) = LOWER($1)
 	`
 

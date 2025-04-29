@@ -48,9 +48,9 @@ const (
         FROM 
             bazaar.product p
         JOIN 
-            bazaar.product_category pc ON p.id = pc.product_id
+            bazaar.product_subcategory pc ON p.id = pc.product_id
         WHERE 
-            pc.category_id = $1 
+            pc.subcategory_id = $1 
             AND p.status = 'approved'
             AND ($3 = 0 OR p.price > $3)
             AND ($4 = 0 OR p.price < $4)
