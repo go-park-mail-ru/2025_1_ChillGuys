@@ -11,6 +11,7 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/generated/user"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/search"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/suggestions"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"log"
@@ -31,11 +32,11 @@ import (
 	baskett "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/basket"
 	categoryt "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/category"
 	csatt "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/csat/http"
-	reviewt "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/review/http"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/order"
 	producttr "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/product"
+	reviewt "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/review/http"
 	usert "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/user/http"
 	addressus "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/address"
 	basketuc "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/basket"
@@ -181,6 +182,11 @@ func NewApp(conf *config.Config) (*App, error) {
 		return middleware.LogRequest(logger, next)
 	})
 
+	metricsMw := middleware.NewMetricsMiddleware()
+	metricsMw.Register(middleware.ServiceMainName)
+	apiRouter.PathPrefix("/metrics").Handler(promhttp.Handler())
+	apiRouter.Use(metricsMw.LogMetrics)
+
 	// Маршруты для продуктов.
 	productsRouter := apiRouter.PathPrefix("").Subrouter()
 	{
@@ -319,7 +325,7 @@ func NewApp(conf *config.Config) (*App, error) {
 
 	csatRouter := apiRouter.PathPrefix("").Subrouter()
 	{
-		csatRouter.Handle("/csat/{name}", 
+		csatRouter.Handle("/csat/{name}",
 			middleware.CSRFMiddleware(tokenator,
 				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(csatHandler.GetSurvey)),
 				conf.CSRFConfig,
@@ -329,13 +335,13 @@ func NewApp(conf *config.Config) (*App, error) {
 			middleware.CSRFMiddleware(tokenator,
 				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(csatHandler.SubmitAnswer)),
 				conf.CSRFConfig,
-		)).Methods(http.MethodPost)
+			)).Methods(http.MethodPost)
 
-		csatRouter.Handle("/survey", 
+		csatRouter.Handle("/survey",
 			middleware.CSRFMiddleware(tokenator,
 				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(csatHandler.GetAllSurveys)),
 				conf.CSRFConfig,
-		)).Methods(http.MethodGet)
+			)).Methods(http.MethodGet)
 
 		csatRouter.Handle("/stat/{surveyId}",
 			middleware.CSRFMiddleware(tokenator,
@@ -347,12 +353,12 @@ func NewApp(conf *config.Config) (*App, error) {
 	reviewRouter := apiRouter.PathPrefix("/review").Subrouter()
 	{
 		reviewRouter.HandleFunc("", reviewHandler.Get).Methods(http.MethodPost)
-		
+
 		reviewRouter.Handle("/add",
-		middleware.CSRFMiddleware(tokenator,
-			middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(reviewHandler.Add)),
-			conf.CSRFConfig,
-		)).Methods(http.MethodPost)
+			middleware.CSRFMiddleware(tokenator,
+				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(reviewHandler.Add)),
+				conf.CSRFConfig,
+			)).Methods(http.MethodPost)
 	}
 
 	app := &App{

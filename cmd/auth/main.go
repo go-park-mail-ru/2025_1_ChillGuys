@@ -9,11 +9,17 @@ import (
 	auth "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/auth/grpc"
 	auth2 "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/generated/auth"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware"
+	grpcmw "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/grpc"
 	au "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/auth"
+	"github.com/gorilla/mux"
+	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	_ "github.com/lib/pq"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
 	"log"
 	"net"
+	"net/http"
 )
 
 func main() {
@@ -60,8 +66,19 @@ func main() {
 	// Создаем хендлер с передачей всех необходимых зависимостей
 	handler := auth.NewAuthGRPCHandler(authUsecase, redisAuthRepo, tokenator)
 
-	// Создаём сервер
-	grpcServer := grpc.NewServer()
+	// Инициализация middleware
+	metricsMw := middleware.NewMetricsMiddleware()
+	metricsMw.Register(middleware.ServiceAuthName)
+
+	// Создаём сервер с цепочкой интерцепторов
+	grpcServer := grpc.NewServer(
+		grpc.ChainUnaryInterceptor(
+			grpcmw.UserIDInterceptor(),             // 1. Интерцептор для работы с UserID
+			metricsMw.ServerMetricsInterceptor,     // 2. Интерцептор для метрик
+			grpc_prometheus.UnaryServerInterceptor, // 3. Стандартный интерцептор метрик
+		),
+	)
+
 	lis, err := net.Listen("tcp", ":50051")
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
@@ -70,8 +87,25 @@ func main() {
 	// Регистрируем сервис
 	auth2.RegisterAuthServiceServer(grpcServer, handler)
 
-	log.Println("gRPC server starting on :50051")
+	// Поднимаем HTTP-сервер для метрик на другом порту
+	go func() {
+		router := mux.NewRouter()
+		apiRouter := router.PathPrefix("/api").Subrouter()
+		apiRouter = apiRouter.PathPrefix("/v1").Subrouter()
+		apiRouter.PathPrefix("/metrics").Handler(promhttp.Handler())
 
+		httpSrv := &http.Server{
+			Addr:    ":8085",
+			Handler: apiRouter,
+		}
+
+		log.Println("metrics server starting on :8085")
+		if err := httpSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("metrics server error: %v", err)
+		}
+	}()
+
+	log.Println("gRPC server starting on :50051")
 	if err = grpcServer.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}
