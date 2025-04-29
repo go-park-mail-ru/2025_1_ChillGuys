@@ -3,10 +3,13 @@ package search
 import (
 	"context"
 	"fmt"
+	"sort"
+	"sync"
+
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/logctx"
-	"sync"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/helpers"
 )
 
 type ISearchRepository interface {
@@ -18,7 +21,6 @@ type ISearchRepository interface {
 		offset int,
 		minPrice, maxPrice float64,
 		minRating float32,
-		sortOption models.SortOption,
 	) ([]*models.Product, error)
 }
 
@@ -198,7 +200,6 @@ func (u *SearchUsecase) SearchProductsByNameWithFilterAndSort(
                 minPrice,
                 maxPrice,
                 minRating,
-                sortOption,
             )
             if err != nil {
                 logger.WithError(err).WithField("product_name", name).Warn("failed to search products by name")
@@ -224,6 +225,29 @@ func (u *SearchUsecase) SearchProductsByNameWithFilterAndSort(
     var merged []*models.Product
     for _, products := range allProducts {
         merged = append(merged, products...)
+    }
+
+	switch sortOption {
+    case models.SortByPriceAsc:
+        sort.Slice(merged, func(i, j int) bool {
+            priceI := helpers.GetFinalPrice(merged[i])
+            priceJ := helpers.GetFinalPrice(merged[j])
+            return priceI < priceJ
+        })
+    case models.SortByPriceDesc:
+        sort.Slice(merged, func(i, j int) bool {
+            priceI := helpers.GetFinalPrice(merged[i])
+            priceJ := helpers.GetFinalPrice(merged[j])
+            return priceI > priceJ
+        })
+    case models.SortByRatingAsc:
+        sort.Slice(merged, func(i, j int) bool {
+            return merged[i].Rating < merged[j].Rating
+        })
+    case models.SortByRatingDesc:
+        sort.Slice(merged, func(i, j int) bool {
+            return merged[i].Rating > merged[j].Rating
+        })
     }
 
     return merged, nil
