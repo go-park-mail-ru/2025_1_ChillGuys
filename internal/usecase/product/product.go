@@ -3,12 +3,14 @@ package product
 import (
 	"context"
 	"fmt"
+	"sort"
 	"sync"
 
 	"github.com/google/uuid"
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/logctx"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/helpers"
 )
 
 //go:generate mockgen -source=product.go -destination=../../infrastructure/repository/postgres/mocks/product_repository_mock.go -package=mocks IProductRepository
@@ -21,7 +23,6 @@ type IProductRepository interface {
 		offset int,
 		minPrice, maxPrice float64,
 		minRating float32,
-		sortOption models.SortOption,
 	) ([]*models.Product, error)
 }
 
@@ -149,12 +150,34 @@ func (u *ProductUsecase) GetProductsByCategory(
         minPrice,
         maxPrice,
         minRating,
-        sortOption,
     )
     if err != nil {
         logger.WithError(err).Error("get products by category with filter and sort from repository")
         return nil, fmt.Errorf("%s: %w", op, err)
     }
+
+	switch sortOption {
+    case models.SortByPriceAsc:
+        sort.Slice(products, func(i, j int) bool {
+            priceI := helpers.GetFinalPrice(products[i])
+            priceJ := helpers.GetFinalPrice(products[j])
+            return priceI < priceJ
+        })
+    case models.SortByPriceDesc:
+        sort.Slice(products, func(i, j int) bool {
+            priceI := helpers.GetFinalPrice(products[i])
+            priceJ := helpers.GetFinalPrice(products[j])
+            return priceI > priceJ
+        })
+    case models.SortByRatingAsc:
+        sort.Slice(products, func(i, j int) bool {
+            return products[i].Rating < products[j].Rating
+        })
+    case models.SortByRatingDesc:
+        sort.Slice(products, func(i, j int) bool {
+            return products[i].Rating > products[j].Rating
+        })
+	}
 
     return products, nil
 }

@@ -55,16 +55,7 @@ const (
             AND ($3 = 0 OR p.price > $3)
             AND ($4 = 0 OR p.price < $4)
             AND ($5 = 0::FLOAT OR p.rating > $5::FLOAT)
-        ORDER BY 
-            CASE WHEN $6 = 'price_asc' THEN p.price END ASC,
-            CASE WHEN $6 = 'price_desc' THEN p.price END DESC,
-            CASE WHEN $6 = 'rating_asc' THEN p.rating END ASC,
-            CASE WHEN $6 = 'rating_desc' THEN p.rating END DESC,
-            p.updated_at DESC
-        LIMIT 
-            20 
-        OFFSET 
-            $2
+        LIMIT 20 OFFSET $2
     `
 )
 
@@ -167,7 +158,6 @@ func (p *ProductRepository) GetProductsByCategory(
     offset int,
     minPrice, maxPrice float64,
     minRating float32,
-    sortOption models.SortOption,
 ) ([]*models.Product, error) {
     const op = "ProductRepository.GetProductsByCategoryWithFilterAndSort"
     logger := logctx.GetLogger(ctx).WithField("op", op)
@@ -182,7 +172,6 @@ func (p *ProductRepository) GetProductsByCategory(
         minPrice,
         maxPrice,
         minRating,
-        sortOption,
     )
     
     if err != nil {
