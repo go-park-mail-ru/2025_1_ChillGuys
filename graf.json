@@ -19,7 +19,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 14,
+  "id": 2,
   "links": [],
   "panels": [
     {
@@ -38,7 +38,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "bekbcp5p30nwge"
+        "uid": "aekd0wsggt5a8e"
       },
       "fieldConfig": {
         "defaults": {
@@ -91,7 +91,7 @@
             "uid": "bekbcp5p30nwge"
           },
           "editorMode": "code",
-          "expr": "sum(bazaar_app_bazaar_app_bazaar_app_count{Url=~'/api/v1/auth/.*'}) ",
+          "expr": "sum(auth_service_requests_total)",
           "legendFormat": "Total",
           "range": true,
           "refId": "A"
@@ -103,7 +103,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "bekbcp5p30nwge"
+        "uid": "aekd0wsggt5a8e"
       },
       "fieldConfig": {
         "defaults": {
@@ -160,7 +160,7 @@
             "uid": "bekbcp5p30nwge"
           },
           "editorMode": "code",
-          "expr": "sum(bazaar_app_bazaar_app_bazaar_app_count{Url=~'/api/v1/auth/.*',StatusCode=~'4..|5..'}) / sum(bazaar_app_bazaar_app_bazaar_app_count{Url=~'/api/v1/auth/.*'})",
+          "expr": "sum(auth_service_errors_total) / sum(auth_service_requests_total) ",
           "legendFormat": "Error Rate",
           "range": true,
           "refId": "A"
@@ -172,7 +172,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "bekbcp5p30nwge"
+        "uid": "aekd0wsggt5a8e"
       },
       "fieldConfig": {
         "defaults": {
@@ -226,20 +226,20 @@
             "uid": "bekbcp5p30nwge"
           },
           "editorMode": "code",
-          "expr": "sum(rate(bazaar_app_bazaar_app_bazaar_app_sum{Url=~'/api/v1/auth/.*'}[5m])) by (Url)\n/\nsum(rate(bazaar_app_bazaar_app_bazaar_app_count{Url=~'/api/v1/auth/.*'}[5m])) by (Url)",
+          "expr": "sum(rate(auth_service_duration_seconds_sum[5m])) by (Url)\n/ \nsum(rate(auth_service_duration_seconds_count[5m])) by (Url)  ",
           "interval": "",
-          "legendFormat": "{{Url}}",
+          "legendFormat": "__auto",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Auth - Response Time (95%)",
+      "title": "Auth - Response Time",
       "type": "stat"
     },
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "bekbcp5p30nwge"
+        "uid": "aekd0wsggt5a8e"
       },
       "fieldConfig": {
         "defaults": {
@@ -293,7 +293,7 @@
             "uid": "bekbcp5p30nwge"
           },
           "editorMode": "code",
-          "expr": "topk(\n  5,\n  sum by(Url) (\n    rate(bazaar_app_bazaar_app_bazaar_app_count{Url=~\"/api/v1/auth/.*\"}[1h])\n  )\n)",
+          "expr": "topk(\n  5,\n  sum by(Url) (\n    rate(auth_service_duration_seconds_count[1h])\n  )\n) ",
           "format": "table",
           "instant": true,
           "refId": "A"
@@ -318,7 +318,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "bekbcp5p30nwge"
+        "uid": "aekd0wsggt5a8e"
       },
       "fieldConfig": {
         "defaults": {
@@ -371,7 +371,7 @@
             "uid": "bekbcp5p30nwge"
           },
           "editorMode": "code",
-          "expr": "sum(bazaar_app_bazaar_app_bazaar_app_count{Url=~\"/api/v1/users/.*\"})",
+          "expr": "sum(user_service_requests_total) ",
           "legendFormat": "Total",
           "range": true,
           "refId": "A"
@@ -383,7 +383,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "bekbcp5p30nwge"
+        "uid": "aekd0wsggt5a8e"
       },
       "fieldConfig": {
         "defaults": {
@@ -440,8 +440,8 @@
             "uid": "bekbcp5p30nwge"
           },
           "editorMode": "code",
-          "expr": "sum(bazaar_app_bazaar_app_bazaar_app_count{Url=~'/api/v1/users/.*',StatusCode=~'4..|5..'}) / sum(bazaar_app_bazaar_app_bazaar_app_count{Url=~\"/api/v1/users/.*\"})",
-          "legendFormat": "Error Rate",
+          "expr": "sum(user_service_errors_total) / sum(user_service_requests_total) ",
+          "legendFormat": "__auto",
           "range": true,
           "refId": "A"
         }
@@ -452,7 +452,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "bekbcp5p30nwge"
+        "uid": "aekd0wsggt5a8e"
       },
       "fieldConfig": {
         "defaults": {
@@ -506,19 +506,19 @@
             "uid": "bekbcp5p30nwge"
           },
           "editorMode": "code",
-          "expr": "sum(rate(bazaar_app_bazaar_app_bazaar_app_sum{Url=~'/api/v1/users/.*'}[5m])) by (Url)\n/\nsum(rate(bazaar_app_bazaar_app_bazaar_app_count{Url=~'/api/v1/users/.*'}[5m])) by (Url)",
-          "legendFormat": "{{Url}}",
+          "expr": "sum(rate(user_service_duration_seconds_sum[5m])) by (Url) \n/ \nsum(rate(user_service_duration_seconds_count[5m])) by (Url)  ",
+          "legendFormat": "__auto",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "User - Response Time (95%)",
+      "title": "User - Response Time",
       "type": "stat"
     },
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "bekbcp5p30nwge"
+        "uid": "aekd0wsggt5a8e"
       },
       "fieldConfig": {
         "defaults": {
@@ -572,7 +572,7 @@
             "uid": "bekbcp5p30nwge"
           },
           "editorMode": "code",
-          "expr": "topk(5, sum by (Url) (rate(bazaar_app_bazaar_app_bazaar_app_count{Url=~'/api/v1/users/.*'}[1h])))",
+          "expr": "topk(5, sum by (Url) (rate(user_service_duration_seconds_count[1h]))) ",
           "format": "table",
           "instant": true,
           "refId": "A"
@@ -597,7 +597,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "bekbcp5p30nwge"
+        "uid": "aekd0wsggt5a8e"
       },
       "fieldConfig": {
         "defaults": {
@@ -650,7 +650,7 @@
             "uid": "bekbcp5p30nwge"
           },
           "editorMode": "code",
-          "expr": "sum(bazaar_app_bazaar_app_bazaar_app_count{Url=~'/api/v1/review.*'})",
+          "expr": "sum(review_service_requests_total) ",
           "legendFormat": "Total",
           "range": true,
           "refId": "A"
@@ -662,7 +662,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "bekbcp5p30nwge"
+        "uid": "aekd0wsggt5a8e"
       },
       "fieldConfig": {
         "defaults": {
@@ -719,7 +719,7 @@
             "uid": "bekbcp5p30nwge"
           },
           "editorMode": "code",
-          "expr": "sum(bazaar_app_bazaar_app_bazaar_app_count{Url=~'/api/v1/review.*',StatusCode=~'4..|5..'}) / sum(bazaar_app_bazaar_app_bazaar_app_count{Url=~'/api/v1/review.*'})",
+          "expr": "sum(review_service_errors_total) / sum(review_service_requests_total) ",
           "legendFormat": "Error Rate",
           "range": true,
           "refId": "A"
@@ -731,7 +731,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "bekbcp5p30nwge"
+        "uid": "aekd0wsggt5a8e"
       },
       "fieldConfig": {
         "defaults": {
@@ -785,20 +785,20 @@
             "uid": "bekbcp5p30nwge"
           },
           "editorMode": "code",
-          "expr": " sum(rate(bazaar_app_bazaar_app_bazaar_app_sum{Url=~'/api/v1/review.*'}[5m])) by (Url)\n/\nsum(rate(bazaar_app_bazaar_app_bazaar_app_count{Url=~'/api/v1/review.*'}[5m])) by (Url)",
+          "expr": "sum(rate(review_service_duration_seconds_sum[5m])) by (Url) \n/ \nsum(rate(review_service_duration_seconds_count[5m])) by (Url) ",
           "interval": "",
-          "legendFormat": "{{Url}}",
+          "legendFormat": "__auto",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Review - Response Time (95%)",
+      "title": "Review - Response Time",
       "type": "stat"
     },
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "bekbcp5p30nwge"
+        "uid": "aekd0wsggt5a8e"
       },
       "fieldConfig": {
         "defaults": {
@@ -852,7 +852,7 @@
             "uid": "bekbcp5p30nwge"
           },
           "editorMode": "code",
-          "expr": "topk(5, sum by (Url) (rate(bazaar_app_bazaar_app_bazaar_app_count{Url=~'/api/v1/review/.*'}[1h]))) ",
+          "expr": "topk(\n  5,\n  sum by(Url) (\n    rate(review_service_duration_seconds_count[1h])\n  )\n)",
           "format": "table",
           "instant": true,
           "refId": "A"
@@ -877,7 +877,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "bekbcp5p30nwge"
+        "uid": "aekd0wsggt5a8e"
       },
       "fieldConfig": {
         "defaults": {
@@ -929,8 +929,10 @@
             "type": "prometheus",
             "uid": "bekbcp5p30nwge"
           },
-          "expr": "sum(bazaar_app_bazaar_app_bazaar_app_count{Url=~'/api/v1/.*'})",
+          "editorMode": "code",
+          "expr": "sum(bazaar_app_requests_total)",
           "legendFormat": "Total",
+          "range": true,
           "refId": "A"
         }
       ],
@@ -940,7 +942,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "bekbcp5p30nwge"
+        "uid": "aekd0wsggt5a8e"
       },
       "fieldConfig": {
         "defaults": {
@@ -997,7 +999,7 @@
             "uid": "bekbcp5p30nwge"
           },
           "editorMode": "code",
-          "expr": "sum(bazaar_app_bazaar_app_bazaar_app_count{Url=~'/api/v1/.*',StatusCode=~'4..|5..'}) / sum(bazaar_app_bazaar_app_bazaar_app_count{Url=~'/api/v1/.*'})",
+          "expr": "sum(bazaar_app_errors_total) / sum(bazaar_app_requests_total) ",
           "legendFormat": "Error Rate",
           "range": true,
           "refId": "A"
@@ -1009,7 +1011,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "bekbcp5p30nwge"
+        "uid": "aekd0wsggt5a8e"
       },
       "fieldConfig": {
         "defaults": {
@@ -1063,20 +1065,20 @@
             "uid": "bekbcp5p30nwge"
           },
           "editorMode": "code",
-          "expr": " sum(rate(bazaar_app_bazaar_app_bazaar_app_sum{Url=~'/api/v1/.*'}[5m])) by (Url)\n/\nsum(rate(bazaar_app_bazaar_app_bazaar_app_count{Url=~'/api/v1/.*'}[5m])) by (Url)",
+          "expr": "sum(rate(bazaar_app_duration_seconds_sum{Url=~'/api/v1/.*'}[5m])) by (Url)\n/ \nsum(rate(bazaar_app_duration_seconds_count{Url=~'/api/v1/.*'}[5m])) by (Url)",
           "interval": "",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Bazaar - Response Time (95%)",
+      "title": "Bazaar - Response Time",
       "type": "stat"
     },
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "bekbcp5p30nwge"
+        "uid": "aekd0wsggt5a8e"
       },
       "fieldConfig": {
         "defaults": {
@@ -1130,7 +1132,7 @@
             "uid": "bekbcp5p30nwge"
           },
           "editorMode": "code",
-          "expr": "topk(5, sum by (Url) (rate(bazaar_app_bazaar_app_bazaar_app_count{Url=~'/api/v1/.*'}[1h])))",
+          "expr": "topk(5, sum by (Url) (rate(bazaar_app_duration_seconds_count{Url=~'/api/v1/.*'}[1h]))) ",
           "format": "table",
           "instant": true,
           "refId": "A"
@@ -1190,12 +1192,12 @@
     ]
   },
   "time": {
-    "from": "now-24h",
+    "from": "now-1h",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "",
-  "title": "Bazaar Services Monitoring New",
+  "title": "Bazaar Services Monitoring",
   "uid": "bekbo6eu6j5dsb",
-  "version": 6
+  "version": 2
 }
