@@ -40,13 +40,13 @@ type Product struct {
 	SellerID        uuid.UUID     `json:"seller_id" db:"seller_id"`
 	Name            string        `json:"name" db:"name"`
 	PreviewImageURL string        `json:"preview_image_url,omitempty" db:"preview_image_url"`
-	Description     string        `json:"description,omitempty" db:"description"`
+	Description     string        `json:"description" db:"description"`
 	Status          ProductStatus `json:"status" db:"status"`
 	Price           float64       `json:"price" db:"price"`
 	PriceDiscount   float64  	  `json:"price_discount"`
 	Quantity        uint          `json:"quantity" db:"quantity"`
 	UpdatedAt       time.Time     `json:"updated_at" db:"updated_at"`
-	Rating          float32       `json:"rating,omitempty" db:"rating"`
+	Rating          float32       `json:"rating" db:"rating"`
 	ReviewsCount    uint          `json:"reviews_count" db:"reviews_count"`
 }
 
