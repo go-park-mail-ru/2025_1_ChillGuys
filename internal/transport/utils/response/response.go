@@ -99,6 +99,18 @@ func HandleDomainError(ctx context.Context, w http.ResponseWriter, err error, de
 	case errors.Is(err, errs.ErrNotEnoughStock):
 		SendJSONError(ctx, w, http.StatusBadRequest, fmt.Sprintf("%s: %v", description, err))
 		log.Debug("not enough stock: ", description, err.Error())
+	
+	case errors.Is(err, errs.ErrInvalidProductPrice):
+		SendJSONError(ctx, w, http.StatusBadRequest, fmt.Sprintf("%s: %v", description, err))
+		log.Debug("invalid format: ", description, err.Error())
+
+	case errors.Is(err, errs.ErrInvalidProductQuantity):
+		SendJSONError(ctx, w, http.StatusBadRequest, fmt.Sprintf("%s: %v", description, err))
+		log.Debug("invalid format: ", description, err.Error())
+
+	case errors.Is(err, errs.ErrEmptyProductName):
+		SendJSONError(ctx, w, http.StatusBadRequest, fmt.Sprintf("%s: %v", description, err))
+		log.Debug("invalid format: ", description, err.Error())
 
 	default:
 		SendJSONError(ctx, w, http.StatusInternalServerError, err.Error())

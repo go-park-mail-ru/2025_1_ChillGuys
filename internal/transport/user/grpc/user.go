@@ -167,3 +167,20 @@ func (h *UserGRPCHandler) UpdateUserPassword(ctx context.Context, req *gen.Updat
 
 	return &emptypb.Empty{}, nil
 }
+
+func (h *UserGRPCHandler) BecomeSeller(ctx context.Context, req *gen.BecomeSellerRequest) (*emptypb.Empty, error) {
+    const op = "UserGRPCHandler.BecomeSeller"
+    logger := logctx.GetLogger(ctx).WithField("op", op)
+
+    request := dto.UpdateRoleRequest{
+        Title:       req.Title,
+        Description: req.Description,
+    }
+
+    if err := h.userProvider.BecomeSeller(ctx, request); err != nil {
+        logger.WithError(err).Error("become seller failed")
+        return nil, errs.MapErrorToGRPC(err)
+    }
+
+    return &emptypb.Empty{}, nil
+}

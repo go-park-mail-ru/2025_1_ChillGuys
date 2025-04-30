@@ -25,6 +25,7 @@ const (
 	UserService_UpdateUserProfile_FullMethodName  = "/user.UserService/UpdateUserProfile"
 	UserService_UpdateUserEmail_FullMethodName    = "/user.UserService/UpdateUserEmail"
 	UserService_UpdateUserPassword_FullMethodName = "/user.UserService/UpdateUserPassword"
+	UserService_BecomeSeller_FullMethodName       = "/user.UserService/BecomeSeller"
 )
 
 // UserServiceClient is the client API for UserService service.
@@ -38,6 +39,7 @@ type UserServiceClient interface {
 	UpdateUserProfile(ctx context.Context, in *UpdateUserProfileRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	UpdateUserEmail(ctx context.Context, in *UpdateUserEmailRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	UpdateUserPassword(ctx context.Context, in *UpdateUserPasswordRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	BecomeSeller(ctx context.Context, in *BecomeSellerRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type userServiceClient struct {
@@ -101,6 +103,16 @@ func (c *userServiceClient) UpdateUserPassword(ctx context.Context, in *UpdateUs
 	return out, nil
 }
 
+func (c *userServiceClient) BecomeSeller(ctx context.Context, in *BecomeSellerRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, UserService_BecomeSeller_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // UserServiceServer is the server API for UserService service.
 // All implementations must embed UnimplementedUserServiceServer
 // for forward compatibility.
@@ -112,6 +124,7 @@ type UserServiceServer interface {
 	UpdateUserProfile(context.Context, *UpdateUserProfileRequest) (*emptypb.Empty, error)
 	UpdateUserEmail(context.Context, *UpdateUserEmailRequest) (*emptypb.Empty, error)
 	UpdateUserPassword(context.Context, *UpdateUserPasswordRequest) (*emptypb.Empty, error)
+	BecomeSeller(context.Context, *BecomeSellerRequest) (*emptypb.Empty, error)
 	mustEmbedUnimplementedUserServiceServer()
 }
 
@@ -136,6 +149,9 @@ func (UnimplementedUserServiceServer) UpdateUserEmail(context.Context, *UpdateUs
 }
 func (UnimplementedUserServiceServer) UpdateUserPassword(context.Context, *UpdateUserPasswordRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateUserPassword not implemented")
+}
+func (UnimplementedUserServiceServer) BecomeSeller(context.Context, *BecomeSellerRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BecomeSeller not implemented")
 }
 func (UnimplementedUserServiceServer) mustEmbedUnimplementedUserServiceServer() {}
 func (UnimplementedUserServiceServer) testEmbeddedByValue()                     {}
@@ -237,6 +253,24 @@ func _UserService_UpdateUserPassword_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UserService_BecomeSeller_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BecomeSellerRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).BecomeSeller(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_BecomeSeller_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).BecomeSeller(ctx, req.(*BecomeSellerRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // UserService_ServiceDesc is the grpc.ServiceDesc for UserService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -259,6 +293,10 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpdateUserPassword",
 			Handler:    _UserService_UpdateUserPassword_Handler,
+		},
+		{
+			MethodName: "BecomeSeller",
+			Handler:    _UserService_BecomeSeller_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

@@ -237,3 +237,26 @@ func (h *UserHandler) UpdateUserPassword(w http.ResponseWriter, r *http.Request)
 
 	response.SendJSONResponse(r.Context(), w, http.StatusOK, nil)
 }
+
+func (h *UserHandler) BecomeSeller(w http.ResponseWriter, r *http.Request) {
+    const op = "UserHandler.BecomeSeller"
+    logger := logctx.GetLogger(r.Context()).WithField("op", op)
+
+    var req dto.UpdateRoleRequest
+    if err := request.ParseData(r, &req); err != nil {
+        logger.WithError(err).Error("failed to parse request data")
+        response.SendJSONError(r.Context(), w, http.StatusBadRequest, err.Error())
+        return
+    }
+
+    _, err := h.userClient.BecomeSeller(r.Context(), &gen.BecomeSellerRequest{
+        Title:       req.Title,
+        Description: req.Description,
+    })
+    if err != nil {
+        response.HandleGRPCError(r.Context(), w, err, op)
+        return
+    }
+
+    response.SendJSONResponse(r.Context(), w, http.StatusOK, nil)
+}

@@ -6,7 +6,14 @@ CREATE TYPE bazaar.product_status AS ENUM (
     'pending', -- Ожидает
     'rejected', -- Отказано
     'approved' -- Одобрено
-    );
+);
+
+CREATE TYPE user_role AS ENUM (
+    'admin',    -- админ
+    'buyer',    -- покупатель
+    'seller',   -- продавец
+    'pending'   -- в ожидании
+);
 
 -- Создание ENUM для статуса заказа
 CREATE TYPE bazaar.order_status AS ENUM (
@@ -53,7 +60,16 @@ CREATE TABLE IF NOT EXISTS bazaar."user"
     name          TEXT        NOT NULL,
     surname       TEXT,
     image_url     TEXT,
+    role          user_role NOT NULL,
     address_id    UUID        REFERENCES bazaar.address (id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS bazaar.seller
+(
+    id          UUID PRIMARY KEY,
+    title       TEXT NOT NULL,
+    description TEXT NOT NULL,
+    user_id     UUID NOT NULL REFERENCES bazaar."user" (id) ON DELETE CASCADE
 );
 
 -- Связующая таблица: многие ко многим между auth и address
@@ -92,22 +108,6 @@ CREATE TABLE bazaar.user_balance
     balance    NUMERIC(12, 2) NOT NULL DEFAULT 0 CHECK (balance >= 0),
     updated_at TIMESTAMPTZ    NOT NULL DEFAULT NOW(),
     UNIQUE (user_id)
-);
-
--- Создание таблицы ролей
-CREATE TABLE IF NOT EXISTS bazaar.role
-(
-    id   UUID PRIMARY KEY,
-    name TEXT UNIQUE NOT NULL
-);
-
--- Создание таблицы user_role
-CREATE TABLE IF NOT EXISTS bazaar.user_role
-(
-    id      UUID PRIMARY KEY,
-    user_id UUID REFERENCES bazaar."user" (id) ON DELETE CASCADE,
-    role_id UUID REFERENCES bazaar.role (id) ON DELETE CASCADE,
-    UNIQUE (user_id, role_id)
 );
 
 -- Версии пользователя

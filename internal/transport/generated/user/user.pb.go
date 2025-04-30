@@ -32,6 +32,7 @@ type User struct {
 	Surname       *wrapperspb.StringValue `protobuf:"bytes,4,opt,name=surname,proto3" json:"surname,omitempty"`
 	ImageURL      *wrapperspb.StringValue `protobuf:"bytes,5,opt,name=imageURL,proto3" json:"imageURL,omitempty"`
 	PhoneNumber   *wrapperspb.StringValue `protobuf:"bytes,6,opt,name=phoneNumber,proto3" json:"phoneNumber,omitempty"`
+	Role          string                  `protobuf:"bytes,7,opt,name=role,proto3" json:"role,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -106,6 +107,13 @@ func (x *User) GetPhoneNumber() *wrapperspb.StringValue {
 		return x.PhoneNumber
 	}
 	return nil
+}
+
+func (x *User) GetRole() string {
+	if x != nil {
+		return x.Role
+	}
+	return ""
 }
 
 type UpdateUserProfileRequest struct {
@@ -360,19 +368,72 @@ func (x *UploadAvatarResponse) GetImageURL() string {
 	return ""
 }
 
+type BecomeSellerRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Title         string                 `protobuf:"bytes,1,opt,name=title,proto3" json:"title,omitempty"`
+	Description   string                 `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BecomeSellerRequest) Reset() {
+	*x = BecomeSellerRequest{}
+	mi := &file_user_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BecomeSellerRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BecomeSellerRequest) ProtoMessage() {}
+
+func (x *BecomeSellerRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_user_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BecomeSellerRequest.ProtoReflect.Descriptor instead.
+func (*BecomeSellerRequest) Descriptor() ([]byte, []int) {
+	return file_user_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *BecomeSellerRequest) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *BecomeSellerRequest) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
 var File_user_proto protoreflect.FileDescriptor
 
 const file_user_proto_rawDesc = "" +
 	"\n" +
 	"\n" +
-	"user.proto\x12\x04user\x1a\x1egoogle/protobuf/wrappers.proto\x1a\x1bgoogle/protobuf/empty.proto\"\xf2\x01\n" +
+	"user.proto\x12\x04user\x1a\x1egoogle/protobuf/wrappers.proto\x1a\x1bgoogle/protobuf/empty.proto\"\x86\x02\n" +
 	"\x04User\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12\x12\n" +
 	"\x04name\x18\x03 \x01(\tR\x04name\x126\n" +
 	"\asurname\x18\x04 \x01(\v2\x1c.google.protobuf.StringValueR\asurname\x128\n" +
 	"\bimageURL\x18\x05 \x01(\v2\x1c.google.protobuf.StringValueR\bimageURL\x12>\n" +
-	"\vphoneNumber\x18\x06 \x01(\v2\x1c.google.protobuf.StringValueR\vphoneNumber\"\xc4\x01\n" +
+	"\vphoneNumber\x18\x06 \x01(\v2\x1c.google.protobuf.StringValueR\vphoneNumber\x12\x12\n" +
+	"\x04role\x18\a \x01(\tR\x04role\"\xc4\x01\n" +
 	"\x18UpdateUserProfileRequest\x120\n" +
 	"\x04name\x18\x01 \x01(\v2\x1c.google.protobuf.StringValueR\x04name\x126\n" +
 	"\asurname\x18\x02 \x01(\v2\x1c.google.protobuf.StringValueR\asurname\x12>\n" +
@@ -387,14 +448,18 @@ const file_user_proto_rawDesc = "" +
 	"\voldPassword\x18\x01 \x01(\tR\voldPassword\x12 \n" +
 	"\vnewPassword\x18\x02 \x01(\tR\vnewPassword\"2\n" +
 	"\x14UploadAvatarResponse\x12\x1a\n" +
-	"\bimageURL\x18\x01 \x01(\tR\bimageURL2\xdf\x02\n" +
+	"\bimageURL\x18\x01 \x01(\tR\bimageURL\"M\n" +
+	"\x13BecomeSellerRequest\x12\x14\n" +
+	"\x05title\x18\x01 \x01(\tR\x05title\x12 \n" +
+	"\vdescription\x18\x02 \x01(\tR\vdescription2\xa2\x03\n" +
 	"\vUserService\x12+\n" +
 	"\x05GetMe\x12\x16.google.protobuf.Empty\x1a\n" +
 	".user.User\x12>\n" +
 	"\fUploadAvatar\x12\x10.user.BytesValue\x1a\x1a.user.UploadAvatarResponse(\x01\x12K\n" +
 	"\x11UpdateUserProfile\x12\x1e.user.UpdateUserProfileRequest\x1a\x16.google.protobuf.Empty\x12G\n" +
 	"\x0fUpdateUserEmail\x12\x1c.user.UpdateUserEmailRequest\x1a\x16.google.protobuf.Empty\x12M\n" +
-	"\x12UpdateUserPassword\x12\x1f.user.UpdateUserPasswordRequest\x1a\x16.google.protobuf.EmptyB4Z22025_1_ChillGuys/internal/transport/generated/userb\x06proto3"
+	"\x12UpdateUserPassword\x12\x1f.user.UpdateUserPasswordRequest\x1a\x16.google.protobuf.Empty\x12A\n" +
+	"\fBecomeSeller\x12\x19.user.BecomeSellerRequest\x1a\x16.google.protobuf.EmptyB4Z22025_1_ChillGuys/internal/transport/generated/userb\x06proto3"
 
 var (
 	file_user_proto_rawDescOnce sync.Once
@@ -408,7 +473,7 @@ func file_user_proto_rawDescGZIP() []byte {
 	return file_user_proto_rawDescData
 }
 
-var file_user_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_user_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_user_proto_goTypes = []any{
 	(*User)(nil),                      // 0: user.User
 	(*UpdateUserProfileRequest)(nil),  // 1: user.UpdateUserProfileRequest
@@ -416,28 +481,31 @@ var file_user_proto_goTypes = []any{
 	(*BytesValue)(nil),                // 3: user.BytesValue
 	(*UpdateUserPasswordRequest)(nil), // 4: user.UpdateUserPasswordRequest
 	(*UploadAvatarResponse)(nil),      // 5: user.UploadAvatarResponse
-	(*wrapperspb.StringValue)(nil),    // 6: google.protobuf.StringValue
-	(*emptypb.Empty)(nil),             // 7: google.protobuf.Empty
+	(*BecomeSellerRequest)(nil),       // 6: user.BecomeSellerRequest
+	(*wrapperspb.StringValue)(nil),    // 7: google.protobuf.StringValue
+	(*emptypb.Empty)(nil),             // 8: google.protobuf.Empty
 }
 var file_user_proto_depIdxs = []int32{
-	6,  // 0: user.User.surname:type_name -> google.protobuf.StringValue
-	6,  // 1: user.User.imageURL:type_name -> google.protobuf.StringValue
-	6,  // 2: user.User.phoneNumber:type_name -> google.protobuf.StringValue
-	6,  // 3: user.UpdateUserProfileRequest.name:type_name -> google.protobuf.StringValue
-	6,  // 4: user.UpdateUserProfileRequest.surname:type_name -> google.protobuf.StringValue
-	6,  // 5: user.UpdateUserProfileRequest.phoneNumber:type_name -> google.protobuf.StringValue
-	7,  // 6: user.UserService.GetMe:input_type -> google.protobuf.Empty
+	7,  // 0: user.User.surname:type_name -> google.protobuf.StringValue
+	7,  // 1: user.User.imageURL:type_name -> google.protobuf.StringValue
+	7,  // 2: user.User.phoneNumber:type_name -> google.protobuf.StringValue
+	7,  // 3: user.UpdateUserProfileRequest.name:type_name -> google.protobuf.StringValue
+	7,  // 4: user.UpdateUserProfileRequest.surname:type_name -> google.protobuf.StringValue
+	7,  // 5: user.UpdateUserProfileRequest.phoneNumber:type_name -> google.protobuf.StringValue
+	8,  // 6: user.UserService.GetMe:input_type -> google.protobuf.Empty
 	3,  // 7: user.UserService.UploadAvatar:input_type -> user.BytesValue
 	1,  // 8: user.UserService.UpdateUserProfile:input_type -> user.UpdateUserProfileRequest
 	2,  // 9: user.UserService.UpdateUserEmail:input_type -> user.UpdateUserEmailRequest
 	4,  // 10: user.UserService.UpdateUserPassword:input_type -> user.UpdateUserPasswordRequest
-	0,  // 11: user.UserService.GetMe:output_type -> user.User
-	5,  // 12: user.UserService.UploadAvatar:output_type -> user.UploadAvatarResponse
-	7,  // 13: user.UserService.UpdateUserProfile:output_type -> google.protobuf.Empty
-	7,  // 14: user.UserService.UpdateUserEmail:output_type -> google.protobuf.Empty
-	7,  // 15: user.UserService.UpdateUserPassword:output_type -> google.protobuf.Empty
-	11, // [11:16] is the sub-list for method output_type
-	6,  // [6:11] is the sub-list for method input_type
+	6,  // 11: user.UserService.BecomeSeller:input_type -> user.BecomeSellerRequest
+	0,  // 12: user.UserService.GetMe:output_type -> user.User
+	5,  // 13: user.UserService.UploadAvatar:output_type -> user.UploadAvatarResponse
+	8,  // 14: user.UserService.UpdateUserProfile:output_type -> google.protobuf.Empty
+	8,  // 15: user.UserService.UpdateUserEmail:output_type -> google.protobuf.Empty
+	8,  // 16: user.UserService.UpdateUserPassword:output_type -> google.protobuf.Empty
+	8,  // 17: user.UserService.BecomeSeller:output_type -> google.protobuf.Empty
+	12, // [12:18] is the sub-list for method output_type
+	6,  // [6:12] is the sub-list for method input_type
 	6,  // [6:6] is the sub-list for extension type_name
 	6,  // [6:6] is the sub-list for extension extendee
 	0,  // [0:6] is the sub-list for field type_name
@@ -454,7 +522,7 @@ func file_user_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_user_proto_rawDesc), len(file_user_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

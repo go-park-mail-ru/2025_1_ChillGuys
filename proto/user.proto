@@ -14,6 +14,7 @@ message User {
   google.protobuf.StringValue surname = 4;
   google.protobuf.StringValue imageURL = 5;
   google.protobuf.StringValue phoneNumber = 6;
+  string role = 7;
 }
 
 message UpdateUserProfileRequest {
@@ -40,6 +41,11 @@ message UploadAvatarResponse {
   string imageURL = 1;
 }
 
+message BecomeSellerRequest {
+  string title = 1;
+  string description = 2;
+}
+
 /* ############### UserService ############### */
 service UserService {
   rpc GetMe(google.protobuf.Empty) returns (User);
@@ -47,4 +53,5 @@ service UserService {
   rpc UpdateUserProfile(UpdateUserProfileRequest) returns (google.protobuf.Empty);
   rpc UpdateUserEmail(UpdateUserEmailRequest) returns (google.protobuf.Empty);
   rpc UpdateUserPassword(UpdateUserPasswordRequest) returns (google.protobuf.Empty);
+  rpc BecomeSeller(BecomeSellerRequest) returns (google.protobuf.Empty);
 }

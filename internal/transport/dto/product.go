@@ -62,3 +62,15 @@ type AddProductRequest struct {
     ReviewsCount   uint    `json:"reviews_count,omitempty" validate:"gte=0"`
     Category       string  `json:"category" validate:"required,uuid4"`
 }
+
+type ProductsSellerResponse struct {
+	Total int 						`json:"total"`
+	Products []*models.Product      `json:"products"`
+}
+
+func ConvertToSellerProductsResponse(products []*models.Product) ProductsSellerResponse {
+	return ProductsSellerResponse{
+		Total:    len(products),
+		Products: products,
+	}
+}
