@@ -5,6 +5,7 @@ type (
 	TokenKey  struct{}
 	UserIDKey struct{}
 	LoggerKey struct{}
+	RoleKey   struct{}
 )
 
 const (

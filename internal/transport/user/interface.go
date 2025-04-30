@@ -14,4 +14,5 @@ type IUserUsecase interface {
 	UpdateUserProfile(context.Context, dto.UpdateUserProfileRequestDTO) error
 	UpdateUserEmail(ctx context.Context, user dto.UpdateUserEmailDTO) error
 	UpdateUserPassword(context.Context, dto.UpdateUserPasswordDTO) error
+	BecomeSeller(ctx context.Context, req dto.UpdateRoleRequest) error
 }

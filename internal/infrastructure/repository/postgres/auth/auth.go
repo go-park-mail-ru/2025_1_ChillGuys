@@ -14,18 +14,18 @@ import (
 
 const (
 	queryCreateUser = `
-		INSERT INTO bazaar.user (id, email, name, surname, password_hash, image_url) 
-		VALUES($1, $2, $3, $4, $5, $6);
+		INSERT INTO bazaar.user (id, email, name, surname, password_hash, image_url, role) 
+		VALUES($1, $2, $3, $4, $5, $6, $7);
 	`
 
 	queryGetUserByEmail = `
-		SELECT id, email, name, surname, password_hash, image_url
+		SELECT id, email, name, surname, password_hash, image_url, role
 		FROM bazaar.user 
 		WHERE email = $1;
 	`
 
 	queryGetUserByID = `
-		SELECT id, email, name, surname, password_hash, image_url, phone_number
+		SELECT id, email, name, surname, password_hash, image_url, phone_number, role
 		FROM bazaar.user 
 		WHERE id = $1;
 	`
@@ -58,8 +58,9 @@ func (r *AuthRepository) CreateUser(ctx context.Context, user models.UserDB) err
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
+	user.Role = models.RoleBuyer
 	_, err = tx.ExecContext(ctx, queryCreateUser,
-		user.ID, user.Email, user.Name, user.Surname, user.PasswordHash, user.ImageURL,
+		user.ID, user.Email, user.Name, user.Surname, user.PasswordHash, user.ImageURL, user.Role,
 	)
 	if err != nil {
 		logger.WithError(err).Error("create user")
@@ -96,6 +97,7 @@ func (r *AuthRepository) GetUserByEmail(ctx context.Context, email string) (*mod
 		&user.Surname,
 		&user.PasswordHash,
 		&user.ImageURL,
+		&user.Role,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -123,6 +125,7 @@ func (r *AuthRepository) GetUserByID(ctx context.Context, id uuid.UUID) (*models
 		&user.PasswordHash,
 		&user.ImageURL,
 		&user.PhoneNumber,
+		&user.Role,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

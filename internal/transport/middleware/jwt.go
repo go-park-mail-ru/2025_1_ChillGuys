@@ -83,8 +83,9 @@ func JWTMiddleware(authClient gen.AuthServiceClient, tokenator *jwt.Tokenator, n
 			return
 		}
 
-		// Передаем userID в контекст
+		// Передаем userID и role в контекст
 		ctx = context.WithValue(ctx, domains.UserIDKey{}, claims.UserID)
+		ctx = context.WithValue(ctx, domains.RoleKey{}, claims.Role)
 
 		// Добавляем user-id в метаданные для gRPC
 		ctx = metadata.AppendToOutgoingContext(ctx, "user-id", claims.UserID)

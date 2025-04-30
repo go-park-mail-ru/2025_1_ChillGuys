@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
@@ -18,7 +19,8 @@ const (
 		u.name,
 		u.surname,
 		u.password_hash,
-		u.image_url
+		u.image_url,
+		u.role
 	FROM bazaar.user u
 	WHERE u.email = $1;
 	`
@@ -30,7 +32,8 @@ const (
 		u.surname, 
 		u.password_hash, 
 		u.image_url, 
-		u.phone_number
+		u.phone_number,
+		u.role
 	FROM bazaar.user u
 	WHERE u.id = $1;
 	`
@@ -38,6 +41,15 @@ const (
 	queryUpdateUser         = `UPDATE bazaar.user SET name = $1, surname = $2, phone_number = $3 WHERE id = $4;`
 	queryUpdateUserPassword = `UPDATE bazaar.user SET password_hash = $1 WHERE id = $2;`
 	queryUpdateUserEmail    = `UPDATE bazaar.user SET email = $1 WHERE id = $2;`
+
+	queryCreateSeller = `
+        INSERT INTO bazaar.seller (id, title, description, user_id)
+        VALUES ($1, $2, $3, $4)`
+
+    queryUpdateUserRole = `
+        UPDATE bazaar.user
+        SET role = $1
+        WHERE id = $2`
 )
 
 type UserRepository struct {
@@ -104,6 +116,7 @@ func (r *UserRepository) GetUserByEmail(ctx context.Context, email string) (*mod
 		&user.Surname,
 		&user.PasswordHash,
 		&user.ImageURL,
+		&user.Role,
 	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errs.ErrInvalidCredentials
@@ -125,6 +138,7 @@ func (r *UserRepository) GetUserByID(ctx context.Context, id uuid.UUID) (*models
 		&user.PasswordHash,
 		&user.ImageURL,
 		&user.PhoneNumber,
+		&user.Role,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -134,4 +148,44 @@ func (r *UserRepository) GetUserByID(ctx context.Context, id uuid.UUID) (*models
 	}
 
 	return &user, nil
+}
+
+func (r *UserRepository) CreateSellerAndUpdateRole(ctx context.Context, userID uuid.UUID, title, description string)  error {
+    const op = "UserRepository.CreateSellerAndUpdateRole"
+    
+    // Начинаем транзакцию
+    tx, err := r.db.BeginTx(ctx, nil)
+    if err != nil {
+        return fmt.Errorf("%s: failed to begin transaction: %w", op, err)
+    }
+    
+    // Отложенный rollback в случае ошибки
+    defer func() {
+        if err != nil {
+            tx.Rollback()
+        }
+    }()
+    
+    _, err = tx.ExecContext(ctx, queryCreateSeller, 
+        uuid.New(), 
+        title, 
+        description, 
+        userID,
+    )
+    if err != nil {
+        return fmt.Errorf("%s: failed to create seller: %w", op, err)
+    }
+    
+    // 2. Обновляем роль пользователя
+    _, err = tx.ExecContext(ctx, queryUpdateUserRole, models.RolePending.String(), userID)
+    if err != nil {
+        return fmt.Errorf("%s: failed to update user role: %w", op, err)
+    }
+    
+    // Фиксируем транзакцию
+    if err = tx.Commit(); err != nil {
+        return fmt.Errorf("%s: failed to commit transaction: %w", op, err)
+    }
+    
+    return nil
 }

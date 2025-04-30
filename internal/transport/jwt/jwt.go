@@ -15,6 +15,7 @@ type JWTClaims struct {
 	UserID    string
 	Version   int
 	ExpiresAt int64
+	Role      string
 	jwt.StandardClaims
 }
 
@@ -33,13 +34,14 @@ func NewTokenator(conf *config.JWTConfig) *Tokenator {
 }
 
 // CreateJWT генерирует JWT токен для заданного userID и version
-func (t *Tokenator) CreateJWT(userID string) (string, error) {
+func (t *Tokenator) CreateJWT(userID string, role string) (string, error) {
 	now := time.Now()
 	expiration := now.Add(t.tokenLifeSpan)
 
 	claims := JWTClaims{
 		UserID:    userID,
 		ExpiresAt: expiration.Unix(),
+		Role:      role,
 		StandardClaims: jwt.StandardClaims{
 			IssuedAt:  now.Unix(),
 			ExpiresAt: expiration.Unix(),

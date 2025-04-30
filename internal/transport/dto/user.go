@@ -14,6 +14,12 @@ type UserDTO struct {
 	Surname     null.String `json:"surname" swaggertype:"primitive,string"`
 	ImageURL    null.String `json:"imageURL" swaggertype:"primitive,string"`
 	PhoneNumber null.String `json:"phoneNumber,omitempty" swaggertype:"primitive,string"`
+	Role        string      `json:"role"`
+}
+
+type UpdateRoleRequest struct {
+	Title string  	   `json:"title"`
+	Description string `json:"description"`
 }
 
 type UpdateUserProfileRequestDTO struct {
@@ -55,6 +61,7 @@ func (u *UserDTO) ConvertToGrpcUser() *gen.User {
 		Surname:     surname,
 		ImageURL:    imageURL,
 		PhoneNumber: phoneNumber,
+		Role:        u.Role,
 	}
 }
 
@@ -86,6 +93,7 @@ func ConvertGrpcToUserDTO(u *gen.User) (*UserDTO, error) {
 		Surname:     surname,
 		ImageURL:    imageURL,
 		PhoneNumber: phoneNumber,
+		Role:        u.Role,
 	}, nil
 }
 

@@ -17,7 +17,7 @@ import (
 )
 
 type ITokenator interface {
-	CreateJWT(userID string) (string, error)
+	CreateJWT(userID string, role string) (string, error)
 	ParseJWT(tokenString string) (*jwt.JWTClaims, error)
 }
 
@@ -70,6 +70,7 @@ func (u *AuthUsecase) Register(ctx context.Context, user dto.UserRegisterRequest
 		Name:         user.Name,
 		Surname:      user.Surname,
 		PasswordHash: passwordHash,
+		Role:         models.RoleBuyer,
 	}
 
 	if err = u.repo.CreateUser(ctx, userDB); err != nil {
@@ -77,7 +78,7 @@ func (u *AuthUsecase) Register(ctx context.Context, user dto.UserRegisterRequest
 		return "", fmt.Errorf("%s: %w", op, err)
 	}
 
-	token, err := u.token.CreateJWT(userDB.ID.String())
+	token, err := u.token.CreateJWT(userDB.ID.String(), userDB.Role.String())
 	if err != nil {
 		logger.WithError(err).Error("create JWT token")
 		return "", fmt.Errorf("%s: %w", op, err)
@@ -105,7 +106,7 @@ func (u *AuthUsecase) Login(ctx context.Context, user dto.UserLoginRequestDTO) (
 		return "", fmt.Errorf("%s: %w", op, errs.ErrInvalidCredentials)
 	}
 
-	token, err := u.token.CreateJWT(userDB.ID.String())
+	token, err := u.token.CreateJWT(userDB.ID.String(), userDB.Role.String())
 	if err != nil {
 		logger.WithError(err).Error("create JWT token")
 		return "", fmt.Errorf("%s: %w", op, err)

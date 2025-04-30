@@ -26,6 +26,7 @@ type IUserRepository interface {
 	UpdateUserProfile(context.Context, uuid.UUID, models.UpdateUserDB) error
 	UpdateUserEmail(context.Context, uuid.UUID, string) error
 	UpdateUserPassword(context.Context, uuid.UUID, []byte) error
+	CreateSellerAndUpdateRole(ctx context.Context, userID uuid.UUID, title, description string)  error
 }
 
 type UserUsecase struct {
@@ -82,6 +83,7 @@ func (u *UserUsecase) GetMe(ctx context.Context) (*dto.UserDTO, error) {
 		Surname:     user.Surname,
 		ImageURL:    user.ImageURL,
 		PhoneNumber: user.PhoneNumber,
+		Role:        user.Role.String(),
 	}, nil
 }
 
@@ -243,4 +245,29 @@ func (u *UserUsecase) UpdateUserPassword(ctx context.Context, user dto.UpdateUse
 	}
 
 	return nil
+}
+
+func (u *UserUsecase) BecomeSeller(ctx context.Context, req dto.UpdateRoleRequest) error {
+    const op = "UserUsecase.BecomeSeller"
+    logger := logctx.GetLogger(ctx).WithField("op", op)
+
+    userIDStr, isExist := ctx.Value(domains.UserIDKey{}).(string)
+    if !isExist {
+        logger.Warn("user ID not found in context")
+        return fmt.Errorf("%s: %w", op, errs.ErrNotFound)
+    }
+
+    userID, err := uuid.Parse(userIDStr)
+    if err != nil {
+        logger.WithError(err).Error("invalid user ID format")
+        return fmt.Errorf("%s: %w", op, errs.ErrInvalidID)
+    }
+
+    err = u.repo.CreateSellerAndUpdateRole(ctx, userID, req.Title, req.Description)
+    if err != nil {
+        logger.WithError(err).Error("failed to become seller")
+        return fmt.Errorf("%s: %w", op, err)
+    }
+
+    return nil
 }
