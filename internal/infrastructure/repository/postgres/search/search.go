@@ -10,20 +10,15 @@ import (
 
 const (
 	querySearchProductsByName = `
-	SELECT p.id, p.seller_id, p.name, p.preview_image_url, p.description, 
-		p.status, p.price, p.quantity, p.updated_at, p.rating, p.reviews_count,
-		d.discounted_price
-	FROM bazaar.product p 
-	LEFT JOIN bazaar.discount d ON p.id = d.product_id
-	WHERE p.status = 'approved' AND LOWER(p.name) LIKE LOWER($1)
-	LIMIT 20 OFFSET $2
-	`
-	
+    SELECT p.id, p.seller_id, p.name, p.preview_image_url, p.description, 
+        p.status, p.price, p.quantity, p.updated_at, p.rating, p.reviews_count,
+        d.discounted_price
+    FROM bazaar.product p 
+    LEFT JOIN bazaar.discount d ON p.id = d.product_id
+    WHERE p.status = 'approved' AND LOWER(p.name) LIKE LOWER($1)`
 	queryGetCategoryByName = `
 	SELECT id, name FROM bazaar.subcategory
-	WHERE LOWER(name) = LOWER($1)
-	`
-
+	WHERE LOWER(name) = LOWER($1)`
 	querySearchProductsByNameWithFilterAndSort = `
 		SELECT p.id, p.seller_id, p.name, p.preview_image_url, p.description, 
 			p.status, p.price, p.quantity, p.updated_at, p.rating, p.reviews_count,
@@ -38,8 +33,7 @@ const (
 			AND ($3 = 0 OR p.price > $3)
 			AND ($4 = 0 OR p.price < $4)
 			AND ($5 = 0::FLOAT OR p.rating > $5::FLOAT)
-		LIMIT 20 OFFSET $2
-		`
+		LIMIT 10 OFFSET $2`
 )
 
 type SearchRepository struct {
@@ -52,7 +46,7 @@ func NewSearchRepository(db *sql.DB) *SearchRepository {
 	}
 }
 
-func (s *SearchRepository) GetProductsByName(ctx context.Context, name string, offset int) ([]*models.Product, error) {
+func (s *SearchRepository) GetProductsByName(ctx context.Context, name string) ([]*models.Product, error) {
 	const op = "SearchRepository.GetProductsByName"
 	logger := logctx.GetLogger(ctx).WithField("op", op)
 
@@ -62,7 +56,7 @@ func (s *SearchRepository) GetProductsByName(ctx context.Context, name string, o
 	pattern := fmt.Sprintf("%%%s%%", name)
 
 	// Выполнение запроса
-	rows, err := s.db.QueryContext(ctx, querySearchProductsByName, pattern, offset)
+	rows, err := s.db.QueryContext(ctx, querySearchProductsByName, pattern)
 	if err != nil {
 		logger.WithError(err).Error("query search products by name")
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -121,62 +115,62 @@ func (s *SearchRepository) GetCategoryByName(ctx context.Context, name string) (
 }
 
 func (s *SearchRepository) GetProductsByNameWithFilterAndSort(
-    ctx context.Context, 
-    name string, 
-    offset int,
-    minPrice, maxPrice float64,
-    minRating float32,
+	ctx context.Context,
+	name string,
+	offset int,
+	minPrice, maxPrice float64,
+	minRating float32,
 ) ([]*models.Product, error) {
-    const op = "SearchRepository.GetProductsByNameWithFilterAndSort"
-    logger := logctx.GetLogger(ctx).WithField("op", op)
+	const op = "SearchRepository.GetProductsByNameWithFilterAndSort"
+	logger := logctx.GetLogger(ctx).WithField("op", op)
 
-    productsList := []*models.Product{}
-    pattern := fmt.Sprintf("%%%s%%", name)
+	productsList := []*models.Product{}
+	pattern := fmt.Sprintf("%%%s%%", name)
 
-    rows, err := s.db.QueryContext(
-        ctx,
-        querySearchProductsByNameWithFilterAndSort,
-        pattern,
-        offset,
-        minPrice,
-        maxPrice,
-        minRating,
-    )
-    
-    if err != nil {
-        logger.WithError(err).Error("query search products by name with filter and sort")
-        return nil, fmt.Errorf("%s: %w", op, err)
-    }
-    defer rows.Close()
+	rows, err := s.db.QueryContext(
+		ctx,
+		querySearchProductsByNameWithFilterAndSort,
+		pattern,
+		offset,
+		minPrice,
+		maxPrice,
+		minRating,
+	)
 
-    for rows.Next() {
-        var priceDiscount sql.NullFloat64
-        product := &models.Product{}
-        if err = rows.Scan(
-            &product.ID,
-            &product.SellerID,
-            &product.Name,
-            &product.PreviewImageURL,
-            &product.Description,
-            &product.Status,
-            &product.Price,
-            &product.Quantity,
-            &product.UpdatedAt,
-            &product.Rating,
-            &product.ReviewsCount,
-            &priceDiscount,
-        ); err != nil {
-            logger.WithError(err).Error("scan product row")
-            return nil, fmt.Errorf("%s: %w", op, err)
-        }
-        product.PriceDiscount = priceDiscount.Float64
-        productsList = append(productsList, product)
-    }
+	if err != nil {
+		logger.WithError(err).Error("query search products by name with filter and sort")
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	defer rows.Close()
 
-    if err = rows.Err(); err != nil {
-        logger.WithError(err).Error("rows iteration error")
-        return nil, fmt.Errorf("%s: %w", op, err)
-    }
+	for rows.Next() {
+		var priceDiscount sql.NullFloat64
+		product := &models.Product{}
+		if err = rows.Scan(
+			&product.ID,
+			&product.SellerID,
+			&product.Name,
+			&product.PreviewImageURL,
+			&product.Description,
+			&product.Status,
+			&product.Price,
+			&product.Quantity,
+			&product.UpdatedAt,
+			&product.Rating,
+			&product.ReviewsCount,
+			&priceDiscount,
+		); err != nil {
+			logger.WithError(err).Error("scan product row")
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+		product.PriceDiscount = priceDiscount.Float64
+		productsList = append(productsList, product)
+	}
 
-    return productsList, nil
+	if err = rows.Err(); err != nil {
+		logger.WithError(err).Error("rows iteration error")
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return productsList, nil
 }
