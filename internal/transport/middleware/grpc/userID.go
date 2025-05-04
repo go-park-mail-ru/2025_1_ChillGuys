@@ -65,5 +65,9 @@ func extractUserID(ctx context.Context) (context.Context, error) {
 		return nil, status.Error(codes.InvalidArgument, "invalid user-id format")
 	}
 
+	if roles := md.Get("role"); len(roles) > 0 {
+        ctx = context.WithValue(ctx, domains.RoleKey{}, roles[0])
+    }
+
 	return context.WithValue(ctx, domains.UserIDKey{}, userID.String()), nil
 }

@@ -43,20 +43,27 @@ func NewUserUsecase(repo IUserRepository, token auth.ITokenator, minioService mi
 	}
 }
 
-func (u *UserUsecase) GetMe(ctx context.Context) (*dto.UserDTO, error) {
+func (u *UserUsecase) GetMe(ctx context.Context) (*dto.UserDTO, string, error) {
 	const op = "UserUsecase.GetMe"
 	logger := logctx.GetLogger(ctx).WithField("op", op)
 
 	userIDStr, isExist := ctx.Value(domains.UserIDKey{}).(string)
 	if !isExist {
 		logger.Warn("user ID not found in context")
-		return nil, fmt.Errorf("%s: %w", op, errs.ErrNotFound)
+		return nil, "", fmt.Errorf("%s: %w", op, errs.ErrNotFound)
 	}
 
 	userID, err := uuid.Parse(userIDStr)
 	if err != nil {
 		logger.WithError(err).Error("invalid user ID format")
-		return nil, fmt.Errorf("%s: %w", op, errs.ErrInvalidID)
+		return nil, "", fmt.Errorf("%s: %w", op, errs.ErrInvalidID)
+	}
+
+	role, isExist := ctx.Value(domains.RoleKey{}).(string)
+	fmt.Println(role, isExist)
+	if !isExist {
+		logger.Warn("role not found in context")
+		return nil, "", fmt.Errorf("%s: %w", op, errs.ErrNotFound)
 	}
 
 	logger = logger.WithField("user_id", userID)
@@ -64,19 +71,19 @@ func (u *UserUsecase) GetMe(ctx context.Context) (*dto.UserDTO, error) {
 	if err != nil {
 		if errors.Is(err, errs.ErrNotFound) {
 			logger.Warn("user not found")
-			return nil, fmt.Errorf("%s: %w", op, errs.ErrNotFound)
+			return nil, "", fmt.Errorf("%s: %w", op, errs.ErrNotFound)
 		}
 		logger.WithError(err).Error("get user from repository")
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return nil, "", fmt.Errorf("%s: %w", op, err)
 	}
 
 	user := userRepo.ConvertToUser()
 	if user == nil {
 		logger.Error("failed to convert user from db model")
-		return nil, fmt.Errorf("%s: %w", op, errs.ErrBusinessLogic)
+		return nil, "", fmt.Errorf("%s: %w", op, errs.ErrBusinessLogic)
 	}
 
-	return &dto.UserDTO{
+	userDTO := &dto.UserDTO{
 		ID:          user.ID,
 		Email:       user.Email,
 		Name:        user.Name,
@@ -84,7 +91,18 @@ func (u *UserUsecase) GetMe(ctx context.Context) (*dto.UserDTO, error) {
 		ImageURL:    user.ImageURL,
 		PhoneNumber: user.PhoneNumber,
 		Role:        user.Role.String(),
-	}, nil
+	}
+
+	if role != user.Role.String() {
+		token, err := u.token.CreateJWT(userIDStr, user.Role.String())
+		if err != nil {
+			logger.WithError(err).Error("create JWT token")
+			return nil, "", fmt.Errorf("%s: %w", op, err)
+		}
+		return userDTO, token, nil
+	}
+
+	return userDTO, "", nil
 }
 
 func (u *UserUsecase) UploadAvatar(ctx context.Context, fileData minio.FileData) (string, error) {
