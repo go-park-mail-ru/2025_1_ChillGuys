@@ -60,6 +60,7 @@ func (u *UserUsecase) GetMe(ctx context.Context) (*dto.UserDTO, string, error) {
 	}
 
 	role, isExist := ctx.Value(domains.RoleKey{}).(string)
+	fmt.Println(role, isExist)
 	if !isExist {
 		logger.Warn("role not found in context")
 		return nil, "", fmt.Errorf("%s: %w", op, errs.ErrNotFound)
