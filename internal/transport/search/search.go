@@ -154,26 +154,10 @@ func (h *SearchService) SearchWithFilterAndSort(w http.ResponseWriter, r *http.R
 	}
 
 	// Получение предложений по продуктам
-	productResponse, err := h.s.GetProductSuggestions(r.Context(), req.CategoryID, req.SubString)
+	productResponse, err := h.s.GetProductSuggestionsOffset(r.Context(), req.CategoryID, req.SubString, offset)
 	if err != nil {
 		logger.WithError(err).Error("failed to get product suggestions")
 		response.HandleDomainError(r.Context(), w, err, "get product suggestions")
-		return
-	}
-
-	// Получение продуктов с фильтрацией и сортировкой
-	products, err := h.u.SearchProductsByNameWithFilterAndSort(
-		r.Context(),
-		productResponse,
-		offset,
-		minPrice,
-		maxPrice,
-		float32(minRating),
-		sortOption,
-	)
-	if err != nil {
-		logger.WithError(err).Error("failed to search products by names")
-		response.HandleDomainError(r.Context(), w, err, "search products by names")
 		return
 	}
 
@@ -192,6 +176,22 @@ func (h *SearchService) SearchWithFilterAndSort(w http.ResponseWriter, r *http.R
 			response.HandleDomainError(r.Context(), w, err, "search categories by names")
 			return
 		}
+	}
+
+	// Получение продуктов с фильтрацией и сортировкой
+	products, err := h.u.SearchProductsByNameWithFilterAndSort(
+		r.Context(),
+		productResponse,
+		offset,
+		minPrice,
+		maxPrice,
+		float32(minRating),
+		sortOption,
+	)
+	if err != nil {
+		logger.WithError(err).Error("failed to search products by names")
+		response.HandleDomainError(r.Context(), w, err, "search products by names")
+		return
 	}
 
 	// Формирование ответа
