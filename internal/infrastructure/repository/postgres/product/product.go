@@ -21,6 +21,7 @@ const (
 		FROM bazaar.product p 
 		LEFT JOIN bazaar.discount d ON p.id = d.product_id
 		WHERE p.status = 'approved'
+        ORDER BY p.id
 		LIMIT 20 OFFSET $1
 	`
 	queryGetProductByID = `

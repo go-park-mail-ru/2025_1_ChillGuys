@@ -213,14 +213,9 @@ func NewApp(conf *config.Config) (*App, error) {
 		productsRouter.HandleFunc("/product/{id}", ProductService.GetProductByID).Methods(http.MethodGet)
 		productsRouter.HandleFunc("/products/category/{id}/{offset}", ProductService.GetProductsByCategory).Methods(http.MethodGet)
 
-		productsRouter.Handle("/add", middleware.CSRFMiddleware(tokenator,
-			middleware.JWTMiddleware(authClient, tokenator, 
-				middleware.RoleMiddleware("admin")(
-					http.HandlerFunc(ProductService.AddProduct),
-					),
-				),
-				conf.CSRFConfig,
-		)).Methods(http.MethodPost)
+		productsRouter.Handle("/add", 
+			http.HandlerFunc(ProductService.AddProduct),
+		).Methods(http.MethodPost)
 	}
 
 	// Маршруты для категорий.
