@@ -2,6 +2,7 @@ package search
 
 import (
 	"context"
+	"github.com/guregu/null"
 	"net/http"
 	"strconv"
 
@@ -17,15 +18,21 @@ import (
 
 //go:generate mockgen -source=search.go -destination=../../usecase/mocks/search_usecase_mock.go -package=mocks ISearchUsecase
 type ISearchUsecase interface {
-	SearchProductsByName(context.Context, dto.ProductNameResponse) ([]*models.Product, error)
 	SearchCategoryByName(context.Context, dto.CategoryNameResponse) ([]*models.Category, error)
 	SearchProductsByNameWithFilterAndSort(
 		ctx context.Context,
-		req dto.ProductNameResponse,
+		categoryID null.String,
+		subString string,
 		offset int,
 		minPrice, maxPrice float64,
 		minRating float32,
 		sortOption models.SortOption,
+	) ([]*models.Product, error)
+	SearchProductsBySubString(
+		ctx context.Context,
+		subString string,
+		categoryID null.String,
+		offset int,
 	) ([]*models.Product, error)
 }
 
@@ -66,16 +73,8 @@ func (h *SearchService) Search(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Получение предложений по продуктам
-	productResponse, err := h.s.GetProductSuggestionsOffset(r.Context(), req.CategoryID, req.SubString, offset)
-	if err != nil {
-		logger.WithError(err).Error("failed to get product suggestions")
-		response.HandleDomainError(r.Context(), w, err, "get product suggestions")
-		return
-	}
-
 	// Получение продуктов по найденным предложениям
-	products, err := h.u.SearchProductsByName(r.Context(), productResponse)
+	products, err := h.u.SearchProductsBySubString(r.Context(), req.SubString, req.CategoryID, offset)
 	if err != nil {
 		logger.WithError(err).Error("failed to search products by names")
 		response.HandleDomainError(r.Context(), w, err, "search products by names")
@@ -153,14 +152,6 @@ func (h *SearchService) SearchWithFilterAndSort(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	// Получение предложений по продуктам
-	productResponse, err := h.s.GetProductSuggestionsOffset(r.Context(), req.CategoryID, req.SubString, offset)
-	if err != nil {
-		logger.WithError(err).Error("failed to get product suggestions")
-		response.HandleDomainError(r.Context(), w, err, "get product suggestions")
-		return
-	}
-
 	var categories []*models.Category
 	if !req.CategoryID.Valid {
 		categoryResponse, err := h.s.GetCategorySuggestions(r.Context(), req.SubString)
@@ -181,7 +172,8 @@ func (h *SearchService) SearchWithFilterAndSort(w http.ResponseWriter, r *http.R
 	// Получение продуктов с фильтрацией и сортировкой
 	products, err := h.u.SearchProductsByNameWithFilterAndSort(
 		r.Context(),
-		productResponse,
+		req.CategoryID,
+		req.SubString,
 		offset,
 		minPrice,
 		maxPrice,
