@@ -9,7 +9,7 @@ import (
 
 //go:generate mockgen -source=user.go -destination=../../usecase/mocks/user_usecase_mock.go -package=mocks IUserUsecase
 type IUserUsecase interface {
-	GetMe(context.Context) (*dto.UserDTO, error)
+	GetMe(context.Context) (*dto.UserDTO, string, error)
 	UploadAvatar(context.Context, minio.FileData) (string, error)
 	UpdateUserProfile(context.Context, dto.UpdateUserProfileRequestDTO) error
 	UpdateUserEmail(ctx context.Context, user dto.UpdateUserEmailDTO) error
