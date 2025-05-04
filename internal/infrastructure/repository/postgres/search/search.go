@@ -6,34 +6,37 @@ import (
 	"fmt"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/logctx"
+	"github.com/guregu/null"
 )
 
 const (
 	querySearchProductsByName = `
-    SELECT p.id, p.seller_id, p.name, p.preview_image_url, p.description, 
-        p.status, p.price, p.quantity, p.updated_at, p.rating, p.reviews_count,
-        d.discounted_price
-    FROM bazaar.product p 
-    LEFT JOIN bazaar.discount d ON p.id = d.product_id
-    WHERE p.status = 'approved' AND LOWER(p.name) LIKE LOWER($1)`
+	SELECT p.id, p.seller_id, p.name, p.preview_image_url, p.description,
+		p.status, p.price, p.quantity, p.updated_at, p.rating, p.reviews_count,
+		d.discounted_price
+		FROM bazaar.product p
+		LEFT JOIN bazaar.discount d ON p.id = d.product_id
+		WHERE p.status = 'approved' AND LOWER(p.name) LIKE LOWER($1)
+		ORDER BY p.updated_at DESC
+		LIMIT 20 OFFSET $2`
 	queryGetCategoryByName = `
 	SELECT id, name FROM bazaar.subcategory
 	WHERE LOWER(name) = LOWER($1)`
 	querySearchProductsByNameWithFilterAndSort = `
-		SELECT p.id, p.seller_id, p.name, p.preview_image_url, p.description, 
-			p.status, p.price, p.quantity, p.updated_at, p.rating, p.reviews_count,
-			d.discounted_price
-		FROM 
-			bazaar.product p 
-		LEFT JOIN 
-			bazaar.discount d ON p.id = d.product_id
-		WHERE 
-			p.status = 'approved' 
-			AND LOWER(p.name) LIKE LOWER($1)
-			AND ($2 = 0 OR p.price > $2)
-			AND ($3 = 0 OR p.price < $3)
-			AND ($4 = 0::FLOAT OR p.rating > $4::FLOAT)
-		ORDER BY %s`
+SELECT p.id, p.seller_id, p.name, p.preview_image_url, p.description, 
+       p.status, p.price, p.quantity, p.updated_at, p.rating, p.reviews_count,
+       d.discounted_price
+FROM bazaar.product p
+JOIN bazaar.product_subcategory ps ON p.id = ps.product_id
+LEFT JOIN bazaar.discount d ON p.id = d.product_id
+WHERE p.status = 'approved'
+  AND LOWER(p.name) LIKE LOWER($1)
+  AND ($2 = '' OR ps.subcategory_id = $2::uuid)
+  AND ($3 = 0 OR p.price >= $3)
+  AND ($4 = 0 OR p.price <= $4)
+  AND ($5 = 0::FLOAT OR p.rating >= $5::FLOAT)
+ORDER BY %s
+LIMIT 20 OFFSET $6`
 )
 
 type SearchRepository struct {
@@ -46,55 +49,56 @@ func NewSearchRepository(db *sql.DB) *SearchRepository {
 	}
 }
 
-func (s *SearchRepository) GetProductsByName(ctx context.Context, name string) ([]*models.Product, error) {
+func (s *SearchRepository) GetProductsByName(ctx context.Context, name string, categoryID null.String, offset int) ([]*models.Product, error) {
 	const op = "SearchRepository.GetProductsByName"
 	logger := logctx.GetLogger(ctx).WithField("op", op)
 
-	productsList := []*models.Product{}
-
-	// Подготовка строки для поиска с % в начале и конце
 	pattern := fmt.Sprintf("%%%s%%", name)
+	var rows *sql.Rows
+	var err error
 
-	// Выполнение запроса
-	rows, err := s.db.QueryContext(ctx, querySearchProductsByName, pattern)
+	if categoryID.Valid {
+		query := `
+		SELECT p.id, p.seller_id, p.name, p.preview_image_url, p.description, 
+			p.status, p.price, p.quantity, p.updated_at, p.rating, p.reviews_count,
+			d.discounted_price
+		FROM bazaar.product p
+		JOIN bazaar.product_subcategory ps ON p.id = ps.product_id
+		LEFT JOIN bazaar.discount d ON p.id = d.product_id
+		WHERE p.status = 'approved' AND LOWER(p.name) LIKE LOWER($1) AND ps.subcategory_id = $2
+		ORDER BY p.updated_at DESC
+		LIMIT 20 OFFSET $3`
+		rows, err = s.db.QueryContext(ctx, query, pattern, categoryID.String, offset)
+	} else {
+		rows, err = s.db.QueryContext(ctx, querySearchProductsByName, pattern, offset)
+	}
+
 	if err != nil {
 		logger.WithError(err).Error("query search products by name")
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	defer rows.Close()
 
-	// Чтение строк
+	var products []*models.Product
 	for rows.Next() {
 		var priceDiscount sql.NullFloat64
 		product := &models.Product{}
-		if err = rows.Scan(
-			&product.ID,
-			&product.SellerID,
-			&product.Name,
-			&product.PreviewImageURL,
-			&product.Description,
-			&product.Status,
-			&product.Price,
-			&product.Quantity,
-			&product.UpdatedAt,
-			&product.Rating,
-			&product.ReviewsCount,
-			&priceDiscount,
-		); err != nil {
+		err = rows.Scan(&product.ID, &product.SellerID, &product.Name, &product.PreviewImageURL,
+			&product.Description, &product.Status, &product.Price, &product.Quantity,
+			&product.UpdatedAt, &product.Rating, &product.ReviewsCount, &priceDiscount)
+		if err != nil {
 			logger.WithError(err).Error("scan product row")
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
 		product.PriceDiscount = priceDiscount.Float64
-		productsList = append(productsList, product)
+		products = append(products, product)
 	}
-
-	// Проверка ошибок при переборе строк
 	if err = rows.Err(); err != nil {
 		logger.WithError(err).Error("rows iteration error")
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return productsList, nil
+	return products, nil
 }
 
 func (s *SearchRepository) GetCategoryByName(ctx context.Context, name string) (*models.Category, error) {
@@ -117,6 +121,7 @@ func (s *SearchRepository) GetCategoryByName(ctx context.Context, name string) (
 func (s *SearchRepository) GetProductsByNameWithFilterAndSort(
 	ctx context.Context,
 	name string,
+	categoryID null.String,
 	offset int,
 	minPrice, maxPrice float64,
 	minRating float32,
@@ -139,30 +144,36 @@ func (s *SearchRepository) GetProductsByNameWithFilterAndSort(
 		orderBy = "p.updated_at DESC"
 	}
 
+	// Формируем запрос
 	query := fmt.Sprintf(querySearchProductsByNameWithFilterAndSort, orderBy)
 
-	productsList := []*models.Product{}
-	pattern := fmt.Sprintf("%%%s%%", name)
+	// Готовим параметры запроса
+	args := []interface{}{
+		fmt.Sprintf("%%%s%%", name), // $1
+	}
 
-	rows, err := s.db.QueryContext(
-		ctx,
-		query,
-		pattern,
-		minPrice,
-		maxPrice,
-		minRating,
-	)
+	// Добавляем параметры фильтрации по категории, цене и рейтингу
+	if categoryID.Valid {
+		args = append(args, categoryID.String) // $2
+	} else {
+		args = append(args, "") // Пустая строка, если категория не задана
+	}
+	args = append(args, minPrice, maxPrice, minRating, offset)
 
+	// Выполняем запрос
+	rows, err := s.db.QueryContext(ctx, query, args...)
 	if err != nil {
-		logger.WithError(err).Error("query search products by name with filter and sort")
+		logger.WithError(err).Error("query search products with filter and sort")
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	defer rows.Close()
 
+	// Чтение данных
+	productsList := []*models.Product{}
 	for rows.Next() {
 		var priceDiscount sql.NullFloat64
 		product := &models.Product{}
-		if err = rows.Scan(
+		if err := rows.Scan(
 			&product.ID,
 			&product.SellerID,
 			&product.Name,
@@ -183,7 +194,8 @@ func (s *SearchRepository) GetProductsByNameWithFilterAndSort(
 		productsList = append(productsList, product)
 	}
 
-	if err = rows.Err(); err != nil {
+	// Проверка ошибок
+	if err := rows.Err(); err != nil {
 		logger.WithError(err).Error("rows iteration error")
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
