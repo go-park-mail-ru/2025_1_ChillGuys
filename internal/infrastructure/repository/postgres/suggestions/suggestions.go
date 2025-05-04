@@ -22,7 +22,7 @@ const (
         FROM bazaar.product 
         WHERE status = 'approved'
         ORDER BY name
-        LIMIT 10 OFFSET $1`
+        LIMIT 20 OFFSET $1`
 	queryGetProductsNameByCategoryPaginated = `
         SELECT DISTINCT p.name
         FROM bazaar.product p
@@ -30,7 +30,7 @@ const (
         JOIN bazaar.subcategory s ON s.id = ps.subcategory_id
         WHERE s.id = $1 AND p.status = 'approved'
         ORDER BY p.name
-        LIMIT 10 OFFSET $2`
+        LIMIT 20 OFFSET $2`
 	queryCountAllProducts = `
         SELECT COUNT(*) 
         FROM bazaar.product 
@@ -149,7 +149,7 @@ func (p *SuggestionsRepository) GetProductsNameByCategory(ctx context.Context, c
 func (p *SuggestionsRepository) GetAllProductsNameOffset(ctx context.Context, pageNum int) ([]*models.ProductSuggestion, error) {
 	const op = "SuggestionsRepository.GetAllProductsNameOffset"
 	logger := logctx.GetLogger(ctx).WithField("op", op)
-	const limit = 10
+	const limit = 20
 
 	if pageNum < 0 {
 		pageNum = 0
@@ -201,7 +201,7 @@ func (p *SuggestionsRepository) GetAllProductsNameOffset(ctx context.Context, pa
 func (p *SuggestionsRepository) GetProductsNameByCategoryOffset(ctx context.Context, categoryID string, pageNum int) ([]*models.ProductSuggestion, error) {
 	const op = "SuggestionsRepository.GetProductsNameByCategoryOffset"
 	logger := logctx.GetLogger(ctx).WithField("op", op)
-	const limit = 10
+	const limit = 20
 
 	if pageNum < 0 {
 		pageNum = 0

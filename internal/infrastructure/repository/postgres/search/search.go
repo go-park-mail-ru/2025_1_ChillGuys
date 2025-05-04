@@ -30,11 +30,10 @@ const (
 		WHERE 
 			p.status = 'approved' 
 			AND LOWER(p.name) LIKE LOWER($1)
-			AND ($3 = 0 OR p.price > $3)
-			AND ($4 = 0 OR p.price < $4)
-			AND ($5 = 0::FLOAT OR p.rating > $5::FLOAT)
-		ORDER BY %s
-		LIMIT 10 OFFSET $2`
+			AND ($2 = 0 OR p.price > $2)
+			AND ($3 = 0 OR p.price < $3)
+			AND ($4 = 0::FLOAT OR p.rating > $4::FLOAT)
+		ORDER BY %s`
 )
 
 type SearchRepository struct {
@@ -127,18 +126,18 @@ func (s *SearchRepository) GetProductsByNameWithFilterAndSort(
 	logger := logctx.GetLogger(ctx).WithField("op", op)
 
 	var orderBy string
-    switch sortOption {
-    case models.SortByPriceAsc:
-        orderBy = "p.price ASC"
-    case models.SortByPriceDesc:
-        orderBy = "p.price DESC"
-    case models.SortByRatingAsc:
-        orderBy = "p.rating ASC"
-    case models.SortByRatingDesc:
-        orderBy = "p.rating DESC"
-    default:
-        orderBy = "p.updated_at DESC"
-    }
+	switch sortOption {
+	case models.SortByPriceAsc:
+		orderBy = "p.price ASC"
+	case models.SortByPriceDesc:
+		orderBy = "p.price DESC"
+	case models.SortByRatingAsc:
+		orderBy = "p.rating ASC"
+	case models.SortByRatingDesc:
+		orderBy = "p.rating DESC"
+	default:
+		orderBy = "p.updated_at DESC"
+	}
 
 	query := fmt.Sprintf(querySearchProductsByNameWithFilterAndSort, orderBy)
 
@@ -149,7 +148,6 @@ func (s *SearchRepository) GetProductsByNameWithFilterAndSort(
 		ctx,
 		query,
 		pattern,
-		offset,
 		minPrice,
 		maxPrice,
 		minRating,
