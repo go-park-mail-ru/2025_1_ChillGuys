@@ -14,10 +14,11 @@ type BriefProduct struct {
 	Quantity      uint      `json:"quantity"`
 	ReviewsCount  uint      `json:"reviews_count"`
 	Rating        float32   `json:"rating"`
+	SellerInfo 	  *SellerInfo `json:"seller_info,omitempty"`
 }
 
 func ConvertToBriefProduct(product *models.Product) BriefProduct {
-	return BriefProduct{
+	briefProduct := BriefProduct{
 		ID:            product.ID,
 		Name:          product.Name,
 		ImageURL:      product.PreviewImageURL,
@@ -27,6 +28,15 @@ func ConvertToBriefProduct(product *models.Product) BriefProduct {
 		ReviewsCount:  product.ReviewsCount,
 		Rating:        product.Rating,
 	}
+
+	if product.Seller != nil {
+        briefProduct.SellerInfo = &SellerInfo{
+            Title:       product.Seller.Title,
+            Description: product.Seller.Description,
+        }
+    }
+
+	return briefProduct
 }
 
 type ProductsResponse struct {
