@@ -1,9 +1,13 @@
 package dto
 
-import "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
+import (
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
+	"github.com/guregu/null"
+)
 
 type SearchReq struct {
-	SubString string `json:"sub_string"`
+	CategoryID null.String `json:"category_id"`
+	SubString  string      `json:"sub_string"`
 }
 
 type SearchProductsByNamesReq struct {
