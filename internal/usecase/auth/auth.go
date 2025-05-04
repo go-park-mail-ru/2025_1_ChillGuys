@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/redis"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/logctx"
@@ -29,13 +28,18 @@ type IAuthRepository interface {
 	CheckUserExists(context.Context, string) (bool, error)
 }
 
+type IAuthRedisRepository interface {
+    AddToBlacklist(ctx context.Context, userID, token string) error
+    IsInBlacklist(ctx context.Context, userID, token string) (bool, error)
+}
+
 type AuthUsecase struct {
 	token     ITokenator
 	repo      IAuthRepository
-	redisRepo *redis.AuthRepository
+	redisRepo IAuthRedisRepository 
 }
 
-func NewAuthUsecase(repo IAuthRepository, redisRepo *redis.AuthRepository, token ITokenator) *AuthUsecase {
+func NewAuthUsecase(repo IAuthRepository, redisRepo IAuthRedisRepository , token ITokenator) *AuthUsecase {
 	return &AuthUsecase{
 		repo:      repo,
 		redisRepo: redisRepo,

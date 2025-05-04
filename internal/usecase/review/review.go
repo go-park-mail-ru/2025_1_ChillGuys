@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 )
 
+//go:generate mockgen -source=review.go -destination=../../infrastructure/repository/postgres/mocks/review_repository_mock.go -package=mocks IReviewRepository
 type IReviewRepository interface{
 	AddReview(ctx context.Context, review models.ReviewDB) error
 	GetReview(ctx context.Context, productID uuid.UUID, offset int) ([]*models.Review, error)

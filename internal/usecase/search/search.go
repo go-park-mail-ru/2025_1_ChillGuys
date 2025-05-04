@@ -12,6 +12,7 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/helpers"
 )
 
+//go:generate mockgen -source=search.go -destination=../../infrastructure/repository/postgres/mocks/search_repository_mock.go -package=mocks ISearchRepository
 type ISearchRepository interface {
 	GetProductsByName(context.Context, string) ([]*models.Product, error)
 	GetCategoryByName(context.Context, string) (*models.Category, error)

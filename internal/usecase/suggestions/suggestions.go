@@ -12,6 +12,7 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/logctx"
 )
 
+//go:generate mockgen -source=suggestions.go -destination=../../infrastructure/repository/postgres/mocks/suggestions_repository_mock.go -package=mocks ISuggestionsRepository
 type ISuggestionsRepository interface {
 	GetAllCategoriesName(ctx context.Context) ([]*models.CategorySuggestion, error)
 	GetAllProductsName(ctx context.Context) ([]*models.ProductSuggestion, error)
