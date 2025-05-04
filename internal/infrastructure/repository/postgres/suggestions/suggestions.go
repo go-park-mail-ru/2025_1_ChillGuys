@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/logctx"
+	"github.com/lib/pq"
 )
 
 const (
@@ -19,10 +20,10 @@ const (
 		WHERE s.id = $1 AND p.status = 'approved'`
 	queryGetAllProductsNamePaginated = `
         SELECT name 
-        FROM bazaar.product 
-        WHERE status = 'approved'
-        ORDER BY name
-        LIMIT 20 OFFSET $1`
+		FROM bazaar.product 
+		WHERE status = 'approved'
+		ORDER BY name, id  
+		LIMIT 20 OFFSET $1`
 	queryGetProductsNameByCategoryPaginated = `
         SELECT DISTINCT p.name
         FROM bazaar.product p
@@ -156,11 +157,15 @@ func (p *SuggestionsRepository) GetAllProductsNameOffset(ctx context.Context, pa
 		logger.Warn("Negative page number provided, resetting to 0")
 	}
 
-	// Получаем общее количество продуктов
+	// Получаем общее количество продуктов (уникальных имен)
 	var total int
-	err := p.db.QueryRowContext(ctx, queryCountAllProducts).Scan(&total)
+	err := p.db.QueryRowContext(ctx, `
+        SELECT COUNT(DISTINCT name) 
+        FROM bazaar.product 
+        WHERE status = 'approved'
+    `).Scan(&total)
 	if err != nil {
-		logger.WithError(err).Error("failed to count products")
+		logger.WithError(err).Error("failed to count distinct product names")
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
@@ -170,13 +175,52 @@ func (p *SuggestionsRepository) GetAllProductsNameOffset(ctx context.Context, pa
 		return []*models.ProductSuggestion{}, nil
 	}
 
-	// Вычисляем абсолютное смещение
+	// Вычисляем смещение
 	offset := pageNum * limit
 
-	productsList := make([]*models.ProductSuggestion, 0, limit)
-	rows, err := p.db.QueryContext(ctx, queryGetAllProductsNamePaginated, offset)
+	// 1. Сначала получаем список уникальных имен с пагинацией
+	uniqueNames := make([]string, 0, limit)
+	rows, err := p.db.QueryContext(ctx, `
+        SELECT DISTINCT name 
+        FROM bazaar.product 
+        WHERE status = 'approved'
+        ORDER BY name
+        LIMIT $1 OFFSET $2
+    `, limit, offset)
 	if err != nil {
-		logger.WithError(err).Error("failed to query products with pagination")
+		logger.WithError(err).Error("failed to query distinct product names")
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var name string
+		if err = rows.Scan(&name); err != nil {
+			logger.WithError(err).Error("failed to scan product name")
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+		uniqueNames = append(uniqueNames, name)
+	}
+
+	if err = rows.Err(); err != nil {
+		logger.WithError(err).Error("rows iteration error")
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	if len(uniqueNames) == 0 {
+		return []*models.ProductSuggestion{}, nil
+	}
+
+	// 2. Теперь получаем ВСЕ продукты с этими именами (включая дубликаты)
+	productsList := make([]*models.ProductSuggestion, 0)
+	rows, err = p.db.QueryContext(ctx, `
+        SELECT name 
+        FROM bazaar.product 
+        WHERE status = 'approved' AND name = ANY($1)
+        ORDER BY name, id
+    `, pq.Array(uniqueNames)) // pq.Array - для передачи массива в PostgreSQL
+	if err != nil {
+		logger.WithError(err).Error("failed to query products by names")
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	defer rows.Close()

@@ -85,8 +85,15 @@ func (u *SearchUsecase) SearchProductsByName(ctx context.Context, req dto.Produc
 
 	// Объединяем все слайсы продуктов в один
 	var merged []*models.Product
+	seenNames := make(map[string]bool) // Для отслеживания уникальных имен
+
 	for _, products := range allProducts {
-		merged = append(merged, products...)
+		for _, product := range products {
+			if !seenNames[product.Name] {
+				seenNames[product.Name] = true
+				merged = append(merged, product)
+			}
+		}
 	}
 
 	return merged, nil

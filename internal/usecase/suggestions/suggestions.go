@@ -133,70 +133,27 @@ func (u *SuggestionsUsecase) GetProductSuggestionsOffset(ctx context.Context, ca
 	logger := logctx.GetLogger(ctx).WithField("op", op)
 
 	var names []string
-	var namesCash []string
-	var total int64
 	var err error
-	limit := 20
 
-	// Пробуем достать из Redis с пагинацией
+	var products []*models.ProductSuggestion
+
 	if categoryID.Valid {
-		names, total, err = u.redisRepo.GetProductSuggestionsByCategoryPaginated(ctx, categoryID.String, offset, limit)
+		products, err = u.repo.GetProductsNameByCategoryOffset(ctx, categoryID.String, offset)
 		if err != nil {
-			logger.WithError(err).Error("failed to get category-specific suggestions from Redis")
+			logger.WithError(err).Error("get products by category from repository")
+			return dto.ProductNameResponse{}, fmt.Errorf("%s: %w", op, err)
 		}
 	} else {
-		names, total, err = u.redisRepo.GetSuggestionsByKeyPaginated(ctx, redis.ProductNamesKey, offset, limit)
+		products, err = u.repo.GetAllProductsNameOffset(ctx, offset)
 		if err != nil {
-			logger.WithError(err).Error("failed to get general product suggestions from Redis")
+			logger.WithError(err).Error("get all products from repository")
+			return dto.ProductNameResponse{}, fmt.Errorf("%s: %w", op, err)
 		}
 	}
 
-	// Если в Redis ничего нет — грузим из БД
-	if total == 0 && len(names) == 0 {
-		var products []*models.ProductSuggestion
-		var productsCash []*models.ProductSuggestion
-
-		if categoryID.Valid {
-			products, err = u.repo.GetProductsNameByCategoryOffset(ctx, categoryID.String, offset)
-			if err != nil {
-				logger.WithError(err).Error("get products by category from repository")
-				return dto.ProductNameResponse{}, fmt.Errorf("%s: %w", op, err)
-			}
-
-			productsCash, err = u.repo.GetProductsNameByCategory(ctx, categoryID.String)
-			if err != nil {
-				logger.WithError(err).Error("get products by category from repository")
-				return dto.ProductNameResponse{}, fmt.Errorf("%s: %w", op, err)
-			}
-			namesCash = make([]string, 0, len(productsCash))
-			for _, p := range products {
-				namesCash = append(namesCash, p.Name)
-			}
-			_ = u.redisRepo.AddProductSuggestionsByCategory(ctx, categoryID.String, namesCash)
-
-		} else {
-			products, err = u.repo.GetAllProductsNameOffset(ctx, offset)
-			if err != nil {
-				logger.WithError(err).Error("get all products from repository")
-				return dto.ProductNameResponse{}, fmt.Errorf("%s: %w", op, err)
-			}
-
-			productsCash, err = u.repo.GetAllProductsName(ctx)
-			if err != nil {
-				logger.WithError(err).Error("get all products from repository")
-				return dto.ProductNameResponse{}, fmt.Errorf("%s: %w", op, err)
-			}
-			namesCash = make([]string, 0, len(productsCash))
-			for _, p := range productsCash {
-				namesCash = append(namesCash, p.Name)
-			}
-			_ = u.redisRepo.AddSuggestionsByKey(ctx, redis.ProductNamesKey, namesCash)
-		}
-
-		names = make([]string, 0, len(products))
-		for _, p := range products {
-			names = append(names, p.Name)
-		}
+	names = make([]string, 0, len(products))
+	for _, p := range products {
+		names = append(names, p.Name)
 	}
 
 	// Фильтрация по подстроке
