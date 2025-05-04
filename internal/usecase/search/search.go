@@ -231,11 +231,23 @@ func (u *SearchUsecase) SearchProductsByNameWithFilterAndSort(
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	var merged []*models.Product
+	// Объединяем продукты, убирая дубликаты по имени
+	uniqueProducts := make(map[string]*models.Product)
 	for _, products := range allProducts {
-		merged = append(merged, products...)
+		for _, product := range products {
+			if _, exists := uniqueProducts[product.Name]; !exists {
+				uniqueProducts[product.Name] = product
+			}
+		}
 	}
 
+	// Преобразуем map в слайс
+	merged := make([]*models.Product, 0, len(uniqueProducts))
+	for _, product := range uniqueProducts {
+		merged = append(merged, product)
+	}
+
+	// Сортируем результат
 	switch sortOption {
 	case models.SortByPriceAsc:
 		sort.Slice(merged, func(i, j int) bool {
