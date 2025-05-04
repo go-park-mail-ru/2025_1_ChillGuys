@@ -33,6 +33,7 @@ const (
 			AND ($3 = 0 OR p.price > $3)
 			AND ($4 = 0 OR p.price < $4)
 			AND ($5 = 0::FLOAT OR p.rating > $5::FLOAT)
+		ORDER BY %s
 		LIMIT 10 OFFSET $2`
 )
 
@@ -120,16 +121,33 @@ func (s *SearchRepository) GetProductsByNameWithFilterAndSort(
 	offset int,
 	minPrice, maxPrice float64,
 	minRating float32,
+	sortOption models.SortOption,
 ) ([]*models.Product, error) {
 	const op = "SearchRepository.GetProductsByNameWithFilterAndSort"
 	logger := logctx.GetLogger(ctx).WithField("op", op)
+
+	var orderBy string
+    switch sortOption {
+    case models.SortByPriceAsc:
+        orderBy = "p.price ASC"
+    case models.SortByPriceDesc:
+        orderBy = "p.price DESC"
+    case models.SortByRatingAsc:
+        orderBy = "p.rating ASC"
+    case models.SortByRatingDesc:
+        orderBy = "p.rating DESC"
+    default:
+        orderBy = "p.updated_at DESC"
+    }
+
+	query := fmt.Sprintf(querySearchProductsByNameWithFilterAndSort, orderBy)
 
 	productsList := []*models.Product{}
 	pattern := fmt.Sprintf("%%%s%%", name)
 
 	rows, err := s.db.QueryContext(
 		ctx,
-		querySearchProductsByNameWithFilterAndSort,
+		query,
 		pattern,
 		offset,
 		minPrice,

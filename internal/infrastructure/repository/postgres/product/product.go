@@ -55,6 +55,7 @@ const (
             AND ($3 = 0 OR p.price > $3)
             AND ($4 = 0 OR p.price < $4)
             AND ($5 = 0::FLOAT OR p.rating > $5::FLOAT)
+        ORDER BY %s
         LIMIT 20 OFFSET $2
     `
 
@@ -177,15 +178,32 @@ func (p *ProductRepository) GetProductsByCategory(
     offset int,
     minPrice, maxPrice float64,
     minRating float32,
+    sortOption models.SortOption,
 ) ([]*models.Product, error) {
     const op = "ProductRepository.GetProductsByCategoryWithFilterAndSort"
     logger := logctx.GetLogger(ctx).WithField("op", op)
+
+    var orderByClause string
+    switch sortOption {
+    case models.SortByPriceAsc:
+        orderByClause = "p.price ASC"
+    case models.SortByPriceDesc:
+        orderByClause = "p.price DESC"
+    case models.SortByRatingAsc:
+        orderByClause = "p.rating ASC"
+    case models.SortByRatingDesc:
+        orderByClause = "p.rating DESC"
+    default:
+        orderByClause = "p.updated_at DESC" // дефолтная сортировка
+    }
+
+    query := fmt.Sprintf(queryGetProductsByCategoryWithFilterAndSort, orderByClause)
 
     productsList := []*models.Product{}
 
     rows, err := p.DB.QueryContext(
         ctx,
-        queryGetProductsByCategoryWithFilterAndSort,
+        query,
         id,
         offset,
         minPrice,

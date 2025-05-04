@@ -9,9 +9,9 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/logctx"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/helpers"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
 )
 
 //go:generate mockgen -source=product.go -destination=../../infrastructure/repository/postgres/mocks/product_repository_mock.go -package=mocks IProductRepository
@@ -24,6 +24,7 @@ type IProductRepository interface {
 		offset int,
 		minPrice, maxPrice float64,
 		minRating float32,
+		sortOption models.SortOption,
 	) ([]*models.Product, error)
 	AddProduct(ctx context.Context, product *models.Product, categoryID uuid.UUID) (*models.Product, error)
 }
@@ -152,6 +153,7 @@ func (u *ProductUsecase) GetProductsByCategory(
         minPrice,
         maxPrice,
         minRating,
+		sortOption,
     )
     if err != nil {
         logger.WithError(err).Error("get products by category with filter and sort from repository")
