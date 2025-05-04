@@ -136,7 +136,7 @@ func (u *SuggestionsUsecase) GetProductSuggestionsOffset(ctx context.Context, ca
 	var namesCash []string
 	var total int64
 	var err error
-	limit := 10
+	limit := 20
 
 	// Пробуем достать из Redis с пагинацией
 	if categoryID.Valid {
