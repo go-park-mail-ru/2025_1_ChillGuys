@@ -21,6 +21,7 @@ type ISearchRepository interface {
 		offset int,
 		minPrice, maxPrice float64,
 		minRating float32,
+		sortOption models.SortOption,
 	) ([]*models.Product, error)
 }
 
@@ -200,6 +201,7 @@ func (u *SearchUsecase) SearchProductsByNameWithFilterAndSort(
 				minPrice,
 				maxPrice,
 				minRating,
+				sortOption,
 			)
 			if err != nil {
 				logger.WithError(err).WithField("product_name", name).Warn("failed to search products by name")
