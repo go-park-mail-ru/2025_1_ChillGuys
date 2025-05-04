@@ -24,11 +24,16 @@ const (
 			p.updated_at, 
 			p.rating, 
 			p.reviews_count,
-			d.discounted_price
+			d.discounted_price,
+			s.id,
+			s.title,
+			s.description
 		FROM 
 			bazaar.product p
 		LEFT JOIN 
 			bazaar.discount d ON p.id = d.product_id
+		LEFT JOIN
+			bazaar.seller s ON s.user_id = p.seller_id
 		WHERE 
 			p.status = 'pending'
 		LIMIT 20 OFFSET $1`
@@ -52,8 +57,7 @@ const (
 		u.role,
 		s.id,
 		s.title,
-		s.description,
-		s.user_id
+		s.description
 	FROM 
 		bazaar."user" u
 	LEFT JOIN 
@@ -94,6 +98,8 @@ func (r *AdminRepository) GetPendingProducts(ctx context.Context, offset int) ([
 
 	for rows.Next() {
 		var product models.Product
+		var seller models.Seller
+		var sellerID uuid.NullUUID
 		var priceDiscount sql.NullFloat64
 		err := rows.Scan(
 			&product.ID,
@@ -108,10 +114,17 @@ func (r *AdminRepository) GetPendingProducts(ctx context.Context, offset int) ([
 			&product.Rating,
 			&product.ReviewsCount,
 			&priceDiscount,
+			&sellerID,
+			&seller.Title,
+			&seller.Description,
 		)
 		if err != nil {
 			logger.WithError(err).Error("failed to scan product row")
 			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+		if sellerID.Valid {
+			seller.ID = sellerID.UUID
+			product.Seller = &seller
 		}
 		product.PriceDiscount = priceDiscount.Float64
 		products = append(products, &product)
@@ -140,7 +153,7 @@ func (r *AdminRepository) UpdateProductStatus(ctx context.Context, productID uui
 }
 
 // GetPendingUsers возвращает список пользователей с ролью "pending" с пагинацией
-func (r *AdminRepository) GetPendingUsers(ctx context.Context, offset int) ([]*models.User, error)  {
+func (r *AdminRepository) GetPendingUsers(ctx context.Context, offset int) ([]*models.User, error) {
 	const op = "AdminRepository.GetPendingUsers"
 	logger := logctx.GetLogger(ctx).WithField("op", op)
 
@@ -155,31 +168,30 @@ func (r *AdminRepository) GetPendingUsers(ctx context.Context, offset int) ([]*m
 
 	for rows.Next() {
 		var user models.User
-        var seller models.Seller
-        var sellerID uuid.NullUUID
+		var seller models.Seller
+		var sellerID uuid.NullUUID
 
 		err := rows.Scan(
-            &user.ID,
-            &user.Email,
-            &user.Name,
-            &user.Surname,
-            &user.ImageURL,
-            &user.PhoneNumber,
-            &user.Role,
-            &sellerID,
-            &seller.Title,
-            &seller.Description,
-            &seller.UserID,
-        )
+			&user.ID,
+			&user.Email,
+			&user.Name,
+			&user.Surname,
+			&user.ImageURL,
+			&user.PhoneNumber,
+			&user.Role,
+			&sellerID,
+			&seller.Title,
+			&seller.Description,
+		)
 		if err != nil {
 			logger.WithError(err).Error("failed to scan user row")
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
 		if sellerID.Valid {
-            seller.ID = sellerID.UUID
-            user.Seller = &seller
-        }
-		
+			seller.ID = sellerID.UUID
+			user.Seller = &seller
+		}
+
 		users = append(users, &user)
 	}
 

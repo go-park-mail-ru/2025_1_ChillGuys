@@ -48,6 +48,7 @@ type Product struct {
 	UpdatedAt       time.Time     `json:"updated_at" db:"updated_at"`
 	Rating          float32       `json:"rating" db:"rating"`
 	ReviewsCount    uint          `json:"reviews_count" db:"reviews_count"`
+	Seller          *Seller       `json:"seller,omitempty"`
 }
 
 type ProductDiscount struct {

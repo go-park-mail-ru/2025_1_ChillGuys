@@ -26,9 +26,10 @@ const (
 	queryGetProductByID = `
 		SELECT p.id, p.seller_id, p.name, p.preview_image_url, p.description, 
 				p.status, p.price, p.quantity, p.updated_at, p.rating, p.reviews_count,
-				d.discounted_price
+				d.discounted_price, s.id, s.title, s.description
 		FROM bazaar.product p
 		LEFT JOIN bazaar.discount d ON p.id = d.product_id
+        LEFT JOIN bazaar.seller s ON s.user_id = p.seller_id
 		WHERE p.id = $1
 	`
 
@@ -142,6 +143,8 @@ func (p *ProductRepository) GetProductByID(ctx context.Context, id uuid.UUID) (*
     logger := logctx.GetLogger(ctx).WithField("op", op)
 	
 	product := &models.Product{}
+    var seller models.Seller
+    var sellerID uuid.NullUUID
 	var priceDiscount sql.NullFloat64
 	err := p.DB.QueryRowContext(ctx, queryGetProductByID, id).
 		Scan(
@@ -157,6 +160,9 @@ func (p *ProductRepository) GetProductByID(ctx context.Context, id uuid.UUID) (*
 			&product.Rating,
 			&product.ReviewsCount,
 			&priceDiscount,
+            &sellerID,
+            &seller.Title,
+            &seller.Description,
 		)
 
 	if err != nil {
@@ -167,6 +173,10 @@ func (p *ProductRepository) GetProductByID(ctx context.Context, id uuid.UUID) (*
         logger.WithError(err).Error("failed to get product by ID")
         return nil, fmt.Errorf("%s: %w", op, err)
 	}
+    if sellerID.Valid {
+        seller.ID = sellerID.UUID
+        product.Seller = &seller
+    }
 	product.PriceDiscount = priceDiscount.Float64
 
 	return product, nil
