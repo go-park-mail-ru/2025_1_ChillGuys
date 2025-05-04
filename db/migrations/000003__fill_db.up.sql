@@ -19,7 +19,7 @@ VALUES ('e29b41d4-a716-4466-5544-000000000001', 'user1@example.com', '+123456789
        ('e29b41d4-a716-4466-5544-000000000010', 'seller8@example.com', '+1234567899', 'hash10', 'Андрей', 'admin');
 
 INSERT INTO bazaar.seller (id, title, description, user_id) 
-VALUES ('e29b41d4-a716-4466-5544-000000000003','ням','ням ням','e29b41d4-a716-4466-5544-000000000001');
+VALUES ('e29b41d4-a716-4466-5544-000000000003','Продавец','Я тут главный','e29b41d4-a716-4466-5544-000000000001');
 
 INSERT INTO bazaar."user" (id, email, password_hash, name, role)
 VALUES ('e29b41d4-a716-4466-5544-000000000003', 'admin@admin.ru', '$2a$04$yX8uDBleszjVgx6dsVPt0uPv7K4dPc4bNz.1n5MD3RiTBeXKOh6oO', 'Админ', 'admin');

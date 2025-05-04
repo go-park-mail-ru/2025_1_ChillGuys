@@ -8,9 +8,12 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/domains"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	gen "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/generated/user"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/logctx"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/cookie"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/request"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/response"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
@@ -43,11 +46,33 @@ func (h *UserHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 	const op = "UserHandler.GetMe"
 	logger := logctx.GetLogger(r.Context()).WithField("op", op)
 
-	res, err := h.userClient.GetMe(r.Context(), &emptypb.Empty{})
-	if err != nil {
-		response.HandleGRPCError(r.Context(), w, err, op)
-		return
-	}
+	var header metadata.MD
+    res, err := h.userClient.GetMe(
+        r.Context(), 
+        &emptypb.Empty{},
+        grpc.Header(&header),
+    )
+    if err != nil {
+        response.HandleGRPCError(r.Context(), w, err, op)
+        return
+    }
+
+	if newTokens := header.Get("x-new-token"); len(newTokens) > 0 {
+        cookieProvider := cookie.NewCookieProvider(h.config)
+        cookieProvider.Set(w, newTokens[0], domains.TokenCookieName)
+
+		csrfToken, err := middleware.GenerateCSRFToken(
+            newTokens[0],
+            h.config.CSRFConfig.SecretKey,
+            h.config.CSRFConfig.TokenExpiry,
+        )
+        if err != nil {
+            logger.WithError(err).Error("generate CSRF token")
+            response.SendJSONError(r.Context(), w, http.StatusInternalServerError, "failed to generate CSRF token")
+            return
+        }
+        w.Header().Set("X-CSRF-Token", csrfToken)
+    }
 
 	user, err := dto.ConvertGrpcToUserDTO(res)
 	if err != nil {

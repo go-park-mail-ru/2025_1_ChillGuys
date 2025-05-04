@@ -13,7 +13,9 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/user"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/validator"
 	"github.com/guregu/null"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
@@ -36,11 +38,17 @@ func (h *UserGRPCHandler) GetMe(ctx context.Context, _ *emptypb.Empty) (*gen.Use
 	const op = "UserGRPCHandler.GetMe"
 	logger := logctx.GetLogger(ctx).WithField("op", op)
 
-	user, err := h.userProvider.GetMe(ctx)
+	user, token, err := h.userProvider.GetMe(ctx)
 	if err != nil {
 		logger.WithError(err).Error("get current user")
 		return nil, errs.MapErrorToGRPC(err)
 	}
+
+	if token != "" {
+        if err := grpc.SetHeader(ctx, metadata.Pairs("x-new-token", token)); err != nil {
+            logger.WithError(err).Error("failed to set new token header")
+        }
+    }
 
 	return user.ConvertToGrpcUser(), nil
 }
