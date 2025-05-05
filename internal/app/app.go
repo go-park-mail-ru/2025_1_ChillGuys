@@ -22,18 +22,17 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/minio"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres"
 	addressrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/address"
-	basketrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/basket"
 	adminrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/admin"
-	sellerrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/seller"
+	basketrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/basket"
 	categoryrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/category"
 	orderrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/order"
 	productrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/product"
 	searchrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/search"
+	sellerrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/seller"
 	suggestionrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/suggestions"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/address"
-	baskett "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/basket"
 	admint "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/admin"
-	sellert "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/seller"
+	baskett "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/basket"
 	categoryt "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/category"
 	csatt "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/csat/http"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
@@ -41,15 +40,16 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/order"
 	producttr "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/product"
 	reviewt "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/review/http"
+	sellert "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/seller"
 	usert "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/user/http"
 	addressus "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/address"
+	adminuc "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/admin"
 	basketuc "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/basket"
 	categoryuc "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/category"
-	adminuc "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/admin"
-	selleruc "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/seller"
 	orderus "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/order"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/product"
 	searchus "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/search"
+	selleruc "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/seller"
 	suggestionsus "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/suggestions"
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
@@ -171,7 +171,7 @@ func NewApp(conf *config.Config) (*App, error) {
 	suggestionsService := suggestions.NewSuggestionsService(suggestionsUsecase)
 
 	adminRepo := adminrepo.NewAdminRepository(db)
-	adminUsecase := adminuc.NewAdminUsecase(adminRepo)
+	adminUsecase := adminuc.NewAdminUsecase(adminRepo, redisSearchRepo, productRepo)
 	adminService := admint.NewAdminService(adminUsecase)
 
 	sellerRepo := sellerrepo.NewSellerRepository(db)
@@ -213,9 +213,14 @@ func NewApp(conf *config.Config) (*App, error) {
 		productsRouter.HandleFunc("/product/{id}", ProductService.GetProductByID).Methods(http.MethodGet)
 		productsRouter.HandleFunc("/products/category/{id}/{offset}", ProductService.GetProductsByCategory).Methods(http.MethodGet)
 
-		productsRouter.Handle("/add", 
-			http.HandlerFunc(ProductService.AddProduct),
-		).Methods(http.MethodPost)
+		productsRouter.Handle("/add", middleware.CSRFMiddleware(tokenator,
+			middleware.JWTMiddleware(authClient, tokenator,
+				middleware.RoleMiddleware("admin")(
+					http.HandlerFunc(ProductService.AddProduct),
+				),
+			),
+			conf.CSRFConfig,
+		)).Methods(http.MethodPost)
 	}
 
 	// Маршруты для категорий.
@@ -319,13 +324,13 @@ func NewApp(conf *config.Config) (*App, error) {
 
 		userRouter.Handle("/update-role",
 			middleware.CSRFMiddleware(tokenator,
-				middleware.JWTMiddleware(authClient, tokenator, 
+				middleware.JWTMiddleware(authClient, tokenator,
 					middleware.RoleMiddleware("buyer")(
 						http.HandlerFunc(userHandler.BecomeSeller),
 					),
 				),
-			conf.CSRFConfig,
-		)).Methods(http.MethodPost)
+				conf.CSRFConfig,
+			)).Methods(http.MethodPost)
 	}
 
 	orderRouter := apiRouter.PathPrefix("/orders").Subrouter()
@@ -415,56 +420,55 @@ func NewApp(conf *config.Config) (*App, error) {
 
 		adminRouter.Handle("/product/update",
 			middleware.CSRFMiddleware(tokenator,
-				middleware.JWTMiddleware(authClient, tokenator, 
+				middleware.JWTMiddleware(authClient, tokenator,
 					middleware.RoleMiddleware("admin")(
 						http.HandlerFunc(adminService.UpdateProductStatus),
 					),
 				),
-			conf.CSRFConfig,
-		)).Methods(http.MethodPost)
+				conf.CSRFConfig,
+			)).Methods(http.MethodPost)
 
 		adminRouter.Handle("/user/update",
 			middleware.CSRFMiddleware(tokenator,
-				middleware.JWTMiddleware(authClient, tokenator, 
+				middleware.JWTMiddleware(authClient, tokenator,
 					middleware.RoleMiddleware("admin")(
 						http.HandlerFunc(adminService.UpdateUserRole),
 					),
 				),
-			conf.CSRFConfig,
-		)).Methods(http.MethodPost)
+				conf.CSRFConfig,
+			)).Methods(http.MethodPost)
 	}
 
 	sellerRouter := apiRouter.PathPrefix("/seller").Subrouter()
 	{
-		sellerRouter.Handle("/add-product", 
+		sellerRouter.Handle("/add-product",
 			middleware.CSRFMiddleware(tokenator,
-				middleware.JWTMiddleware(authClient, tokenator, 
+				middleware.JWTMiddleware(authClient, tokenator,
 					middleware.RoleMiddleware("seller")(
 						http.HandlerFunc(sellerService.AddProduct),
 					),
 				),
-			conf.CSRFConfig,
-		)).Methods(http.MethodPost)
+				conf.CSRFConfig,
+			)).Methods(http.MethodPost)
 
-		sellerRouter.Handle("/add-image/{id}", 
+		sellerRouter.Handle("/add-image/{id}",
 			middleware.CSRFMiddleware(tokenator,
-				middleware.JWTMiddleware(authClient, tokenator, 
+				middleware.JWTMiddleware(authClient, tokenator,
 					middleware.RoleMiddleware("seller")(
 						http.HandlerFunc(sellerService.UploadProductImage),
 					),
 				),
-			conf.CSRFConfig,
-		)).Methods(http.MethodPost)
+				conf.CSRFConfig,
+			)).Methods(http.MethodPost)
 
-		sellerRouter.Handle("/products/{offset}", 
-			middleware.JWTMiddleware(authClient, tokenator, 
+		sellerRouter.Handle("/products/{offset}",
+			middleware.JWTMiddleware(authClient, tokenator,
 				middleware.RoleMiddleware("seller")(
 					http.HandlerFunc(sellerService.GetSellerProducts),
 				),
 			),
 		).Methods(http.MethodGet)
-	} 
-
+	}
 
 	app := &App{
 		conf:   conf,
