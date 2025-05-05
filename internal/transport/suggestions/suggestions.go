@@ -11,7 +11,7 @@ import (
 	"net/http"
 )
 
-//go:generate mockgen -source=category.go -destination=../../usecase/mocks/suggestions_usecase_mock.go -package=mocks ISuggestionsUsecase
+//go:generate mockgen -source=suggestions.go -destination=../../usecase/mocks/suggestions_usecase_mock.go -package=mocks ISuggestionsUsecase
 type ISuggestionsUsecase interface {
 	GetCategorySuggestions(context.Context, string) (dto.CategoryNameResponse, error)
 	GetProductSuggestions(context.Context, null.String, string) (dto.ProductNameResponse, error)

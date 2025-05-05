@@ -38,18 +38,18 @@ func (m *MockITokenator) EXPECT() *MockITokenatorMockRecorder {
 }
 
 // CreateJWT mocks base method.
-func (m *MockITokenator) CreateJWT(userID string, version int) (string, error) {
+func (m *MockITokenator) CreateJWT(userID, role string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateJWT", userID, version)
+	ret := m.ctrl.Call(m, "CreateJWT", userID, role)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateJWT indicates an expected call of CreateJWT.
-func (mr *MockITokenatorMockRecorder) CreateJWT(userID, version interface{}) *gomock.Call {
+func (mr *MockITokenatorMockRecorder) CreateJWT(userID, role interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateJWT", reflect.TypeOf((*MockITokenator)(nil).CreateJWT), userID, version)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateJWT", reflect.TypeOf((*MockITokenator)(nil).CreateJWT), userID, role)
 }
 
 // ParseJWT mocks base method.
@@ -105,20 +105,6 @@ func (mr *MockIAuthRepositoryMockRecorder) CheckUserExists(arg0, arg1 interface{
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckUserExists", reflect.TypeOf((*MockIAuthRepository)(nil).CheckUserExists), arg0, arg1)
 }
 
-// CheckUserVersion mocks base method.
-func (m *MockIAuthRepository) CheckUserVersion(arg0 context.Context, arg1 string, arg2 int) bool {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CheckUserVersion", arg0, arg1, arg2)
-	ret0, _ := ret[0].(bool)
-	return ret0
-}
-
-// CheckUserVersion indicates an expected call of CheckUserVersion.
-func (mr *MockIAuthRepositoryMockRecorder) CheckUserVersion(arg0, arg1, arg2 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckUserVersion", reflect.TypeOf((*MockIAuthRepository)(nil).CheckUserVersion), arg0, arg1, arg2)
-}
-
 // CreateUser mocks base method.
 func (m *MockIAuthRepository) CreateUser(arg0 context.Context, arg1 models.UserDB) error {
 	m.ctrl.T.Helper()
@@ -163,31 +149,54 @@ func (mr *MockIAuthRepositoryMockRecorder) GetUserByID(arg0, arg1 interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserByID", reflect.TypeOf((*MockIAuthRepository)(nil).GetUserByID), arg0, arg1)
 }
 
-// GetUserCurrentVersion mocks base method.
-func (m *MockIAuthRepository) GetUserCurrentVersion(arg0 context.Context, arg1 string) (int, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetUserCurrentVersion", arg0, arg1)
-	ret0, _ := ret[0].(int)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+// MockIAuthRedisRepository is a mock of IAuthRedisRepository interface.
+type MockIAuthRedisRepository struct {
+	ctrl     *gomock.Controller
+	recorder *MockIAuthRedisRepositoryMockRecorder
 }
 
-// GetUserCurrentVersion indicates an expected call of GetUserCurrentVersion.
-func (mr *MockIAuthRepositoryMockRecorder) GetUserCurrentVersion(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserCurrentVersion", reflect.TypeOf((*MockIAuthRepository)(nil).GetUserCurrentVersion), arg0, arg1)
+// MockIAuthRedisRepositoryMockRecorder is the mock recorder for MockIAuthRedisRepository.
+type MockIAuthRedisRepositoryMockRecorder struct {
+	mock *MockIAuthRedisRepository
 }
 
-// IncrementUserVersion mocks base method.
-func (m *MockIAuthRepository) IncrementUserVersion(arg0 context.Context, arg1 string) error {
+// NewMockIAuthRedisRepository creates a new mock instance.
+func NewMockIAuthRedisRepository(ctrl *gomock.Controller) *MockIAuthRedisRepository {
+	mock := &MockIAuthRedisRepository{ctrl: ctrl}
+	mock.recorder = &MockIAuthRedisRepositoryMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockIAuthRedisRepository) EXPECT() *MockIAuthRedisRepositoryMockRecorder {
+	return m.recorder
+}
+
+// AddToBlacklist mocks base method.
+func (m *MockIAuthRedisRepository) AddToBlacklist(ctx context.Context, userID, token string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "IncrementUserVersion", arg0, arg1)
+	ret := m.ctrl.Call(m, "AddToBlacklist", ctx, userID, token)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// IncrementUserVersion indicates an expected call of IncrementUserVersion.
-func (mr *MockIAuthRepositoryMockRecorder) IncrementUserVersion(arg0, arg1 interface{}) *gomock.Call {
+// AddToBlacklist indicates an expected call of AddToBlacklist.
+func (mr *MockIAuthRedisRepositoryMockRecorder) AddToBlacklist(ctx, userID, token interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IncrementUserVersion", reflect.TypeOf((*MockIAuthRepository)(nil).IncrementUserVersion), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddToBlacklist", reflect.TypeOf((*MockIAuthRedisRepository)(nil).AddToBlacklist), ctx, userID, token)
+}
+
+// IsInBlacklist mocks base method.
+func (m *MockIAuthRedisRepository) IsInBlacklist(ctx context.Context, userID, token string) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsInBlacklist", ctx, userID, token)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// IsInBlacklist indicates an expected call of IsInBlacklist.
+func (mr *MockIAuthRedisRepositoryMockRecorder) IsInBlacklist(ctx, userID, token interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsInBlacklist", reflect.TypeOf((*MockIAuthRedisRepository)(nil).IsInBlacklist), ctx, userID, token)
 }

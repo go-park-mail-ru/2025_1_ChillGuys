@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 )
 
+//go:generate mockgen -source=admin.go -destination=../../infrastructure/repository/postgres/mocks/admin_repository_mock.go -package=mocks IAdminRepository
 type IAdminRepository interface {
 	GetPendingProducts(ctx context.Context, offset int) ([]*models.Product, error)
 	UpdateProductStatus(ctx context.Context, productID uuid.UUID, status models.ProductStatus) error

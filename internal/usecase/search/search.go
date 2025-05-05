@@ -12,6 +12,7 @@ import (
 	"sync"
 )
 
+//go:generate mockgen -source=search.go -destination=../../infrastructure/repository/postgres/mocks/search_repository_mock.go -package=mocks ISearchRepository
 type ISearchRepository interface {
 	GetCategoryByName(ctx context.Context, name string) (*models.Category, error)
 	GetProductsByName(ctx context.Context, name string, categoryID null.String, offset int) ([]*models.Product, error)

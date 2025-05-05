@@ -7,7 +7,7 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 )
 
-//go:generate mockgen -source=user.go -destination=../../usecase/mocks/user_usecase_mock.go -package=mocks IUserUsecase
+//go:generate mockgen -source=interface.go -destination=../../usecase/mocks/user_usecase_mock.go -package=mocks IUserUsecase
 type IUserUsecase interface {
 	GetMe(context.Context) (*dto.UserDTO, string, error)
 	UploadAvatar(context.Context, minio.FileData) (string, error)

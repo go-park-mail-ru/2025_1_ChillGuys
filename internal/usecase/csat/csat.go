@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 )
 
+//go:generate mockgen -source=csat.go -destination=../../infrastructure/repository/postgres/mocks/csat_repository_mock.go -package=mocks ICsatRepository
 type ICsatRepository interface {
 	GetSurvey(ctx context.Context, topicName string) (*models.SurveyWithQuestions, error)
 	AddSurveySubmission(ctx context.Context, surveyID uuid.UUID, answers []models.Answer, userID uuid.UUID) error

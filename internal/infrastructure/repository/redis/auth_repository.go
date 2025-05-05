@@ -12,6 +12,7 @@ const (
 	userTokensPrefix = "user_id:"
 )
 
+//go:generate mockgen -source=auth_repository.go -destination=../../infrastructure/repository/postgres/mocks/auth_redis_repository_mock.go -package=mocks IAuthRedisRepository
 type AuthRepository struct {
 	client *Client
 	cfg    *config.JWTConfig

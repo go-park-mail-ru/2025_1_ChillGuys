@@ -3,18 +3,19 @@ package tests
 import (
 	"context"
 	"errors"
+	"testing"
+
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/mocks"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/domains"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/auth"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
+	"github.com/guregu/null"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/crypto/bcrypt"
-	"strings"
-	"testing"
 )
 
 func TestRegister(t *testing.T) {
@@ -23,15 +24,15 @@ func TestRegister(t *testing.T) {
 
 	mockRepo := mocks.NewMockIAuthRepository(ctrl)
 	mockToken := mocks.NewMockITokenator(ctrl)
+	mockRedis := mocks.NewMockIAuthRedisRepository(ctrl)
 
-	authUC := auth.NewAuthUsecase(mockRepo, mockToken)
+	authUC := auth.NewAuthUsecase(mockRepo, mockRedis, mockToken)
 
 	tests := []struct {
 		name          string
 		input         dto.UserRegisterRequestDTO
 		mockRepoSetup func()
 		expectedToken string
-		expectedID    uuid.UUID
 		expectedErr   error
 	}{
 		{
@@ -40,13 +41,20 @@ func TestRegister(t *testing.T) {
 				Email:    "test@example.com",
 				Password: "password",
 				Name:     "Test",
+				Surname:  null.StringFrom("User"),
 			},
 			mockRepoSetup: func() {
 				mockRepo.EXPECT().CheckUserExists(gomock.Any(), "test@example.com").Return(false, nil)
-				mockRepo.EXPECT().CreateUser(gomock.Any(), gomock.Any()).Return(nil)
+				mockRepo.EXPECT().CreateUser(gomock.Any(), gomock.Any()).DoAndReturn(
+					func(ctx context.Context, user models.UserDB) error {
+						// Verify password is hashed
+						err := bcrypt.CompareHashAndPassword(user.PasswordHash, []byte("password"))
+						assert.NoError(t, err)
+						return nil
+					})
+				mockToken.EXPECT().CreateJWT(gomock.Any(), models.RoleBuyer.String()).Return("token", nil)
 			},
 			expectedToken: "token",
-			expectedID:    uuid.New(),
 			expectedErr:   nil,
 		},
 		{
@@ -60,8 +68,7 @@ func TestRegister(t *testing.T) {
 				mockRepo.EXPECT().CheckUserExists(gomock.Any(), "existing@example.com").Return(true, nil)
 			},
 			expectedToken: "",
-			expectedID:    uuid.Nil,
-			expectedErr:   errors.New("AuthUsecase.Register: already exists"),
+			expectedErr:   errs.ErrAlreadyExists,
 		},
 		{
 			name: "Repository error on check",
@@ -74,7 +81,6 @@ func TestRegister(t *testing.T) {
 				mockRepo.EXPECT().CheckUserExists(gomock.Any(), "error@example.com").Return(false, errors.New("repo error"))
 			},
 			expectedToken: "",
-			expectedID:    uuid.Nil,
 			expectedErr:   errors.New("AuthUsecase.Register: repo error"),
 		},
 	}
@@ -83,21 +89,11 @@ func TestRegister(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.mockRepoSetup()
 
-			if tt.expectedErr == nil {
-				mockToken.EXPECT().CreateJWT(gomock.Any(), 1).Return(tt.expectedToken, nil)
-			}
-
-			token, id, err := authUC.Register(context.Background(), tt.input)
+			token, err := authUC.Register(context.Background(), tt.input)
 
 			assert.Equal(t, tt.expectedToken, token)
-			if tt.expectedID != uuid.Nil {
-				assert.NotEqual(t, uuid.Nil, id)
-			} else {
-				assert.Equal(t, tt.expectedID, id)
-			}
-
 			if tt.expectedErr != nil {
-				assert.EqualError(t, err, tt.expectedErr.Error())
+				assert.ErrorContains(t, err, tt.expectedErr.Error())
 			} else {
 				assert.NoError(t, err)
 			}
@@ -111,20 +107,17 @@ func TestLogin(t *testing.T) {
 
 	mockRepo := mocks.NewMockIAuthRepository(ctrl)
 	mockToken := mocks.NewMockITokenator(ctrl)
+	mockRedis := mocks.NewMockIAuthRedisRepository(ctrl)
 
-	authUC := auth.NewAuthUsecase(mockRepo, mockToken)
+	authUC := auth.NewAuthUsecase(mockRepo, mockRedis, mockToken)
 
 	testUserID := uuid.New()
+	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("password"), bcrypt.MinCost)
 	testUser := &models.UserDB{
-		ID:    testUserID,
-		Email: "test@example.com",
-		PasswordHash: func() []byte {
-			hash, _ := bcrypt.GenerateFromPassword([]byte("password"), bcrypt.MinCost)
-			return hash
-		}(),
-		UserVersion: models.UserVersionDB{
-			Version: 1,
-		},
+		ID:           testUserID,
+		Email:        "test@example.com",
+		PasswordHash: hashedPassword,
+		Role:         models.RoleBuyer,
 	}
 
 	tests := []struct {
@@ -132,7 +125,6 @@ func TestLogin(t *testing.T) {
 		input         dto.UserLoginRequestDTO
 		mockRepoSetup func()
 		expectedToken string
-		expectedID    uuid.UUID
 		expectedErr   error
 	}{
 		{
@@ -143,9 +135,9 @@ func TestLogin(t *testing.T) {
 			},
 			mockRepoSetup: func() {
 				mockRepo.EXPECT().GetUserByEmail(gomock.Any(), "test@example.com").Return(testUser, nil)
+				mockToken.EXPECT().CreateJWT(testUserID.String(), models.RoleBuyer.String()).Return("token", nil)
 			},
 			expectedToken: "token",
-			expectedID:    testUserID,
 			expectedErr:   nil,
 		},
 		{
@@ -158,7 +150,6 @@ func TestLogin(t *testing.T) {
 				mockRepo.EXPECT().GetUserByEmail(gomock.Any(), "notfound@example.com").Return(nil, errs.ErrNotFound)
 			},
 			expectedToken: "",
-			expectedID:    uuid.Nil,
 			expectedErr:   errs.ErrNotFound,
 		},
 		{
@@ -171,7 +162,6 @@ func TestLogin(t *testing.T) {
 				mockRepo.EXPECT().GetUserByEmail(gomock.Any(), "test@example.com").Return(testUser, nil)
 			},
 			expectedToken: "",
-			expectedID:    uuid.Nil,
 			expectedErr:   errs.ErrInvalidCredentials,
 		},
 	}
@@ -180,17 +170,11 @@ func TestLogin(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.mockRepoSetup()
 
-			if tt.expectedErr == nil {
-				mockToken.EXPECT().CreateJWT(testUserID.String(), 1).Return(tt.expectedToken, nil)
-			}
-
-			token, id, err := authUC.Login(context.Background(), tt.input)
+			token, err := authUC.Login(context.Background(), tt.input)
 
 			assert.Equal(t, tt.expectedToken, token)
-			assert.Equal(t, tt.expectedID, id)
-
 			if tt.expectedErr != nil {
-				assert.True(t, errors.Is(err, tt.expectedErr), "expected error %v, got %v", tt.expectedErr, err)
+				assert.ErrorIs(t, err, tt.expectedErr)
 			} else {
 				assert.NoError(t, err)
 			}
@@ -204,80 +188,60 @@ func TestLogout(t *testing.T) {
 
 	mockRepo := mocks.NewMockIAuthRepository(ctrl)
 	mockToken := mocks.NewMockITokenator(ctrl)
+	mockRedis := mocks.NewMockIAuthRedisRepository(ctrl)
 
-	authUC := auth.NewAuthUsecase(mockRepo, mockToken)
+	authUC := auth.NewAuthUsecase(mockRepo, mockRedis, mockToken)
+
+	testToken := "test_token"
+	testClaims := &jwt.JWTClaims{
+		UserID: "user_id",
+	}
 
 	tests := []struct {
 		name          string
-		ctx           context.Context
-		mockRepoSetup func()
+		token         string
+		mockSetup     func()
 		expectedErr   error
 	}{
 		{
-			name: "Successful logout",
-			ctx:  context.WithValue(context.Background(), domains.UserIDKey{}, "user-id"),
-			mockRepoSetup: func() {
-				mockRepo.EXPECT().IncrementUserVersion(gomock.Any(), "user-id").Return(nil)
+			name:  "Successful logout",
+			token: testToken,
+			mockSetup: func() {
+				mockToken.EXPECT().ParseJWT(testToken).Return(testClaims, nil)
+				mockRedis.EXPECT().AddToBlacklist(gomock.Any(), testClaims.UserID, testToken).Return(nil)
 			},
 			expectedErr: nil,
 		},
 		{
-			name:          "User ID not in context",
-			ctx:           context.Background(),
-			mockRepoSetup: func() {},
-			expectedErr:   errs.ErrNotFound,
+			name:  "Invalid token",
+			token: "invalid_token",
+			mockSetup: func() {
+				mockToken.EXPECT().ParseJWT("invalid_token").Return(nil, errors.New("invalid token"))
+			},
+			expectedErr: errs.ErrInvalidToken,
 		},
 		{
-			name: "Repository error",
-			ctx:  context.WithValue(context.Background(), domains.UserIDKey{}, "user-id"),
-			mockRepoSetup: func() {
-				mockRepo.EXPECT().IncrementUserVersion(gomock.Any(), "user-id").Return(errors.New("repo error"))
+			name:  "Redis error",
+			token: testToken,
+			mockSetup: func() {
+				mockToken.EXPECT().ParseJWT(testToken).Return(testClaims, nil)
+				mockRedis.EXPECT().AddToBlacklist(gomock.Any(), testClaims.UserID, testToken).Return(errors.New("redis error"))
 			},
-			expectedErr: errors.New("repo error"),
+			expectedErr: errs.ErrInternal,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.mockRepoSetup()
+			tt.mockSetup()
 
-			err := authUC.Logout(tt.ctx)
+			err := authUC.Logout(context.Background(), tt.token)
 
 			if tt.expectedErr != nil {
-				assert.Error(t, err)
-				// Check either exact match or that the error contains our expected message
-				assert.True(t, errors.Is(err, tt.expectedErr) ||
-					strings.Contains(err.Error(), tt.expectedErr.Error()),
-					"expected error containing %q, got %v", tt.expectedErr, err)
+				assert.ErrorIs(t, err, tt.expectedErr)
 			} else {
 				assert.NoError(t, err)
 			}
-		})
-	}
-}
-
-func TestGeneratePasswordHash(t *testing.T) {
-	tests := []struct {
-		name        string
-		password    string
-		expectedErr error
-	}{
-		{
-			name:        "Valid password",
-			password:    "validpassword",
-			expectedErr: nil,
-		},
-		{
-			name:        "Empty password",
-			password:    "",
-			expectedErr: nil,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := auth.GeneratePasswordHash(tt.password)
-			assert.Equal(t, tt.expectedErr, err)
 		})
 	}
 }
