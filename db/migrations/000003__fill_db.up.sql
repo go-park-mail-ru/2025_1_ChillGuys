@@ -24,8 +24,8 @@ VALUES ('e29b41d4-a716-4466-5544-000000000004','Продавец','Я тут г�
 INSERT INTO bazaar."user" (id, email, password_hash, name, role)
 VALUES ('e29b41d4-a716-4466-5544-000000000003', 'admin@admin.ru', '$2a$04$yX8uDBleszjVgx6dsVPt0uPv7K4dPc4bNz.1n5MD3RiTBeXKOh6oO', 'Админ', 'admin');
 
-iNSERT INTO bazaar.basket (id, user_id, total_price, total_price_discount)
-VALUES ('e39b41d4-a716-4466-5544-000000000005', 'e29b41d4-a716-4466-5544-000000000003', 0, 0)
+INSERT INTO bazaar.basket (id, user_id, total_price, total_price_discount)
+VALUES ('e33b41d4-a716-4466-5544-000000000005', 'e29b41d4-a716-4466-5544-000000000003', 0, 0);
 
 -- Вставка категорий
 INSERT INTO bazaar.category (id, name)
@@ -165,14 +165,14 @@ VALUES ('550e8400-e29b-41d4-a716-446655440901', 'e29b41d4-a716-4466-5544-0000000
        ('550e8400-e29b-41d4-a716-446655440904', 'e29b41d4-a716-4466-5544-000000000002',
         '550e8400-e29b-41d4-a716-446655440008', 4, 'Хороший звук, удобное управление');
 
--- Вставка скидок
-INSERT INTO bazaar.discount (id, start_date, end_date, product_id, discounted_price)
-VALUES ('550e8400-e29b-41d4-a716-446655441001', NOW(), NOW() + INTERVAL '7 DAY', '550e8400-e29b-41d4-a716-446655440001',
-        17999.00),
-       ('550e8400-e29b-41d4-a716-446655441002', NOW(), NOW() + INTERVAL '14 DAY',
-        '550e8400-e29b-41d4-a716-446655440003', 26999.00),
-       ('550e8400-e29b-41d4-a716-446655441003', NOW(), NOW() + INTERVAL '10 DAY',
-        '550e8400-e29b-41d4-a716-446655440005', 54999.00);
+-- -- Вставка скидок
+-- INSERT INTO bazaar.discount (id, start_date, end_date, product_id, discounted_price)
+-- VALUES ('550e8400-e29b-41d4-a716-446655441001', NOW(), NOW() + INTERVAL '7 DAY', '550e8400-e29b-41d4-a716-446655440001',
+--         17999.00),
+--        ('550e8400-e29b-41d4-a716-446655441002', NOW(), NOW() + INTERVAL '14 DAY',
+--         '550e8400-e29b-41d4-a716-446655440003', 26999.00),
+--        ('550e8400-e29b-41d4-a716-446655441003', NOW(), NOW() + INTERVAL '10 DAY',
+--         '550e8400-e29b-41d4-a716-446655440005', 54999.00);
 
 -- Вставка промокодов
 INSERT INTO bazaar.promo_code (id, code, relative_discount, absolute_discount, start_date, end_date)
