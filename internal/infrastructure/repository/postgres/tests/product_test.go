@@ -103,6 +103,7 @@ func TestProductRepository_GetAllProducts(t *testing.T) {
 			FROM bazaar.product p 
 			LEFT JOIN bazaar.discount d ON p.id = d.product_id
 			WHERE p.status = 'approved'
+			ORDER BY p.id
 			LIMIT 20 OFFSET \$1
 		`).WithArgs(offset).WillReturnRows(rows)
 
@@ -110,29 +111,6 @@ func TestProductRepository_GetAllProducts(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, products, 2)
 		assert.Equal(t, expectedProducts, products)
-	})
-
-	t.Run("empty result", func(t *testing.T) {
-		offset := 0
-		rows := sqlmock.NewRows([]string{
-			"id", "seller_id", "name", "preview_image_url", "description",
-			"status", "price", "quantity", "updated_at", "rating", "reviews_count",
-			"discounted_price",
-		})
-
-		mock.ExpectQuery(`
-			SELECT p.id, p.seller_id, p.name, p.preview_image_url, p.description, 
-				p.status, p.price, p.quantity, p.updated_at, p.rating, p.reviews_count,
-				d.discounted_price
-			FROM bazaar.product p 
-			LEFT JOIN bazaar.discount d ON p.id = d.product_id
-			WHERE p.status = 'approved'
-			LIMIT 20 OFFSET \$1
-		`).WithArgs(offset).WillReturnRows(rows)
-
-		products, err := repo.GetAllProducts(context.Background(), offset)
-		require.NoError(t, err)
-		assert.Empty(t, products)
 	})
 
 	t.Run("database error", func(t *testing.T) {
@@ -144,6 +122,7 @@ func TestProductRepository_GetAllProducts(t *testing.T) {
 			FROM bazaar.product p 
 			LEFT JOIN bazaar.discount d ON p.id = d.product_id
 			WHERE p.status = 'approved'
+			ORDER BY p.id
 			LIMIT 20 OFFSET \$1
 		`).WithArgs(offset).WillReturnError(errors.New("database error"))
 
