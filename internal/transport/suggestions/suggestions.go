@@ -15,7 +15,6 @@ import (
 type ISuggestionsUsecase interface {
 	GetCategorySuggestions(context.Context, string) (dto.CategoryNameResponse, error)
 	GetProductSuggestions(context.Context, null.String, string) (dto.ProductNameResponse, error)
-	GetProductSuggestionsOffset(context.Context, null.String, string, int) (dto.ProductNameResponse, error)
 }
 
 type SuggestionsService struct {

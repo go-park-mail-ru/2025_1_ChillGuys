@@ -65,18 +65,3 @@ func (mr *MockISuggestionsUsecaseMockRecorder) GetProductSuggestions(arg0, arg1,
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProductSuggestions", reflect.TypeOf((*MockISuggestionsUsecase)(nil).GetProductSuggestions), arg0, arg1, arg2)
 }
-
-// GetProductSuggestionsOffset mocks base method.
-func (m *MockISuggestionsUsecase) GetProductSuggestionsOffset(arg0 context.Context, arg1 null.String, arg2 string, arg3 int) (dto.ProductNameResponse, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetProductSuggestionsOffset", arg0, arg1, arg2, arg3)
-	ret0, _ := ret[0].(dto.ProductNameResponse)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetProductSuggestionsOffset indicates an expected call of GetProductSuggestionsOffset.
-func (mr *MockISuggestionsUsecaseMockRecorder) GetProductSuggestionsOffset(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProductSuggestionsOffset", reflect.TypeOf((*MockISuggestionsUsecase)(nil).GetProductSuggestionsOffset), arg0, arg1, arg2, arg3)
-}

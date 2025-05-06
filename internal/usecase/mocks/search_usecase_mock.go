@@ -11,6 +11,7 @@ import (
 	models "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 	dto "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	gomock "github.com/golang/mock/gomock"
+	null "github.com/guregu/null"
 )
 
 // MockISearchUsecase is a mock of ISearchUsecase interface.
@@ -51,32 +52,17 @@ func (mr *MockISearchUsecaseMockRecorder) SearchCategoryByName(arg0, arg1 interf
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SearchCategoryByName", reflect.TypeOf((*MockISearchUsecase)(nil).SearchCategoryByName), arg0, arg1)
 }
 
-// SearchProductsByName mocks base method.
-func (m *MockISearchUsecase) SearchProductsByName(arg0 context.Context, arg1 dto.ProductNameResponse) ([]*models.Product, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SearchProductsByName", arg0, arg1)
-	ret0, _ := ret[0].([]*models.Product)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// SearchProductsByName indicates an expected call of SearchProductsByName.
-func (mr *MockISearchUsecaseMockRecorder) SearchProductsByName(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SearchProductsByName", reflect.TypeOf((*MockISearchUsecase)(nil).SearchProductsByName), arg0, arg1)
-}
-
 // SearchProductsByNameWithFilterAndSort mocks base method.
-func (m *MockISearchUsecase) SearchProductsByNameWithFilterAndSort(ctx context.Context, req dto.ProductNameResponse, offset int, minPrice, maxPrice float64, minRating float32, sortOption models.SortOption) ([]*models.Product, error) {
+func (m *MockISearchUsecase) SearchProductsByNameWithFilterAndSort(ctx context.Context, categoryID null.String, subString string, offset int, minPrice, maxPrice float64, minRating float32, sortOption models.SortOption) ([]*models.Product, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SearchProductsByNameWithFilterAndSort", ctx, req, offset, minPrice, maxPrice, minRating, sortOption)
+	ret := m.ctrl.Call(m, "SearchProductsByNameWithFilterAndSort", ctx, categoryID, subString, offset, minPrice, maxPrice, minRating, sortOption)
 	ret0, _ := ret[0].([]*models.Product)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // SearchProductsByNameWithFilterAndSort indicates an expected call of SearchProductsByNameWithFilterAndSort.
-func (mr *MockISearchUsecaseMockRecorder) SearchProductsByNameWithFilterAndSort(ctx, req, offset, minPrice, maxPrice, minRating, sortOption interface{}) *gomock.Call {
+func (mr *MockISearchUsecaseMockRecorder) SearchProductsByNameWithFilterAndSort(ctx, categoryID, subString, offset, minPrice, maxPrice, minRating, sortOption interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SearchProductsByNameWithFilterAndSort", reflect.TypeOf((*MockISearchUsecase)(nil).SearchProductsByNameWithFilterAndSort), ctx, req, offset, minPrice, maxPrice, minRating, sortOption)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SearchProductsByNameWithFilterAndSort", reflect.TypeOf((*MockISearchUsecase)(nil).SearchProductsByNameWithFilterAndSort), ctx, categoryID, subString, offset, minPrice, maxPrice, minRating, sortOption)
 }

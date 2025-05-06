@@ -17,16 +17,22 @@ type ISuggestionsRepository interface {
 	GetAllCategoriesName(ctx context.Context) ([]*models.CategorySuggestion, error)
 	GetAllProductsName(ctx context.Context) ([]*models.ProductSuggestion, error)
 	GetProductsNameByCategory(ctx context.Context, categoryID string) ([]*models.ProductSuggestion, error)
-	GetProductsNameByCategoryOffset(ctx context.Context, categoryID string, offset int) ([]*models.ProductSuggestion, error)
-	GetAllProductsNameOffset(ctx context.Context, offset int) ([]*models.ProductSuggestion, error)
+}
+
+type ISuggestionsRedisRepository interface {
+	AddProductSuggestionsByCategory(ctx context.Context, categoryID string, names []string) error
+	AddSuggestionsByKey(ctx context.Context, key string, names []string) error
+	GetProductSuggestionsByCategory(ctx context.Context, categoryID string) ([]string, error)
+	GetProductSuggestionsByCategoryPaginated(ctx context.Context, categoryID string, pageNum int, limit int) ([]string, int64, error)
+	GetSuggestionsByKey(ctx context.Context, key string) ([]string, error)
 }
 
 type SuggestionsUsecase struct {
 	repo      ISuggestionsRepository
-	redisRepo *redis.SuggestionsRepository
+	redisRepo ISuggestionsRedisRepository
 }
 
-func NewSuggestionsUsecase(repo ISuggestionsRepository, redisRepo *redis.SuggestionsRepository) *SuggestionsUsecase {
+func NewSuggestionsUsecase(repo ISuggestionsRepository, redisRepo ISuggestionsRedisRepository) *SuggestionsUsecase {
 	return &SuggestionsUsecase{
 		repo:      repo,
 		redisRepo: redisRepo,
@@ -115,46 +121,6 @@ func (u *SuggestionsUsecase) GetProductSuggestions(ctx context.Context, category
 		} else {
 			_ = u.redisRepo.AddSuggestionsByKey(ctx, redis.ProductNamesKey, names)
 		}
-	}
-
-	// Фильтрация по подстроке
-	filtered := filterSuggestions(names, subString)
-
-	// Возврат
-	suggestions := make([]models.ProductSuggestion, 0, len(filtered))
-	for _, name := range filtered {
-		suggestions = append(suggestions, models.ProductSuggestion{Name: name})
-	}
-
-	return dto.ProductNameResponse{ProductNames: suggestions}, nil
-}
-
-func (u *SuggestionsUsecase) GetProductSuggestionsOffset(ctx context.Context, categoryID null.String, subString string, offset int) (dto.ProductNameResponse, error) {
-	const op = "SuggestionsUsecase.GetProductSuggestions"
-	logger := logctx.GetLogger(ctx).WithField("op", op)
-
-	var names []string
-	var err error
-
-	var products []*models.ProductSuggestion
-
-	if categoryID.Valid {
-		products, err = u.repo.GetProductsNameByCategoryOffset(ctx, categoryID.String, offset)
-		if err != nil {
-			logger.WithError(err).Error("get products by category from repository")
-			return dto.ProductNameResponse{}, fmt.Errorf("%s: %w", op, err)
-		}
-	} else {
-		products, err = u.repo.GetAllProductsNameOffset(ctx, offset)
-		if err != nil {
-			logger.WithError(err).Error("get all products from repository")
-			return dto.ProductNameResponse{}, fmt.Errorf("%s: %w", op, err)
-		}
-	}
-
-	names = make([]string, 0, len(products))
-	for _, p := range products {
-		names = append(names, p.Name)
 	}
 
 	// Фильтрация по подстроке

@@ -10,6 +10,7 @@ import (
 
 	models "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 	gomock "github.com/golang/mock/gomock"
+	null "github.com/guregu/null"
 )
 
 // MockISearchRepository is a mock of ISearchRepository interface.
@@ -36,46 +37,31 @@ func (m *MockISearchRepository) EXPECT() *MockISearchRepositoryMockRecorder {
 }
 
 // GetCategoryByName mocks base method.
-func (m *MockISearchRepository) GetCategoryByName(arg0 context.Context, arg1 string) (*models.Category, error) {
+func (m *MockISearchRepository) GetCategoryByName(ctx context.Context, name string) (*models.Category, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetCategoryByName", arg0, arg1)
+	ret := m.ctrl.Call(m, "GetCategoryByName", ctx, name)
 	ret0, _ := ret[0].(*models.Category)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetCategoryByName indicates an expected call of GetCategoryByName.
-func (mr *MockISearchRepositoryMockRecorder) GetCategoryByName(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockISearchRepositoryMockRecorder) GetCategoryByName(ctx, name interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCategoryByName", reflect.TypeOf((*MockISearchRepository)(nil).GetCategoryByName), arg0, arg1)
-}
-
-// GetProductsByName mocks base method.
-func (m *MockISearchRepository) GetProductsByName(arg0 context.Context, arg1 string) ([]*models.Product, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetProductsByName", arg0, arg1)
-	ret0, _ := ret[0].([]*models.Product)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetProductsByName indicates an expected call of GetProductsByName.
-func (mr *MockISearchRepositoryMockRecorder) GetProductsByName(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProductsByName", reflect.TypeOf((*MockISearchRepository)(nil).GetProductsByName), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCategoryByName", reflect.TypeOf((*MockISearchRepository)(nil).GetCategoryByName), ctx, name)
 }
 
 // GetProductsByNameWithFilterAndSort mocks base method.
-func (m *MockISearchRepository) GetProductsByNameWithFilterAndSort(ctx context.Context, name string, offset int, minPrice, maxPrice float64, minRating float32, sortOption models.SortOption) ([]*models.Product, error) {
+func (m *MockISearchRepository) GetProductsByNameWithFilterAndSort(ctx context.Context, name string, categoryID null.String, offset int, minPrice, maxPrice float64, minRating float32, sortOption models.SortOption) ([]*models.Product, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetProductsByNameWithFilterAndSort", ctx, name, offset, minPrice, maxPrice, minRating, sortOption)
+	ret := m.ctrl.Call(m, "GetProductsByNameWithFilterAndSort", ctx, name, categoryID, offset, minPrice, maxPrice, minRating, sortOption)
 	ret0, _ := ret[0].([]*models.Product)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetProductsByNameWithFilterAndSort indicates an expected call of GetProductsByNameWithFilterAndSort.
-func (mr *MockISearchRepositoryMockRecorder) GetProductsByNameWithFilterAndSort(ctx, name, offset, minPrice, maxPrice, minRating, sortOption interface{}) *gomock.Call {
+func (mr *MockISearchRepositoryMockRecorder) GetProductsByNameWithFilterAndSort(ctx, name, categoryID, offset, minPrice, maxPrice, minRating, sortOption interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProductsByNameWithFilterAndSort", reflect.TypeOf((*MockISearchRepository)(nil).GetProductsByNameWithFilterAndSort), ctx, name, offset, minPrice, maxPrice, minRating, sortOption)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProductsByNameWithFilterAndSort", reflect.TypeOf((*MockISearchRepository)(nil).GetProductsByNameWithFilterAndSort), ctx, name, categoryID, offset, minPrice, maxPrice, minRating, sortOption)
 }
