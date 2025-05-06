@@ -65,21 +65,6 @@ func (mr *MockISuggestionsRepositoryMockRecorder) GetAllProductsName(ctx interfa
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllProductsName", reflect.TypeOf((*MockISuggestionsRepository)(nil).GetAllProductsName), ctx)
 }
 
-// GetAllProductsNameOffset mocks base method.
-func (m *MockISuggestionsRepository) GetAllProductsNameOffset(ctx context.Context, offset int) ([]*models.ProductSuggestion, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAllProductsNameOffset", ctx, offset)
-	ret0, _ := ret[0].([]*models.ProductSuggestion)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetAllProductsNameOffset indicates an expected call of GetAllProductsNameOffset.
-func (mr *MockISuggestionsRepositoryMockRecorder) GetAllProductsNameOffset(ctx, offset interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllProductsNameOffset", reflect.TypeOf((*MockISuggestionsRepository)(nil).GetAllProductsNameOffset), ctx, offset)
-}
-
 // GetProductsNameByCategory mocks base method.
 func (m *MockISuggestionsRepository) GetProductsNameByCategory(ctx context.Context, categoryID string) ([]*models.ProductSuggestion, error) {
 	m.ctrl.T.Helper()
@@ -95,17 +80,99 @@ func (mr *MockISuggestionsRepositoryMockRecorder) GetProductsNameByCategory(ctx,
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProductsNameByCategory", reflect.TypeOf((*MockISuggestionsRepository)(nil).GetProductsNameByCategory), ctx, categoryID)
 }
 
-// GetProductsNameByCategoryOffset mocks base method.
-func (m *MockISuggestionsRepository) GetProductsNameByCategoryOffset(ctx context.Context, categoryID string, offset int) ([]*models.ProductSuggestion, error) {
+// MockISuggestionsRedisRepository is a mock of ISuggestionsRedisRepository interface.
+type MockISuggestionsRedisRepository struct {
+	ctrl     *gomock.Controller
+	recorder *MockISuggestionsRedisRepositoryMockRecorder
+}
+
+// MockISuggestionsRedisRepositoryMockRecorder is the mock recorder for MockISuggestionsRedisRepository.
+type MockISuggestionsRedisRepositoryMockRecorder struct {
+	mock *MockISuggestionsRedisRepository
+}
+
+// NewMockISuggestionsRedisRepository creates a new mock instance.
+func NewMockISuggestionsRedisRepository(ctrl *gomock.Controller) *MockISuggestionsRedisRepository {
+	mock := &MockISuggestionsRedisRepository{ctrl: ctrl}
+	mock.recorder = &MockISuggestionsRedisRepositoryMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockISuggestionsRedisRepository) EXPECT() *MockISuggestionsRedisRepositoryMockRecorder {
+	return m.recorder
+}
+
+// AddProductSuggestionsByCategory mocks base method.
+func (m *MockISuggestionsRedisRepository) AddProductSuggestionsByCategory(ctx context.Context, categoryID string, names []string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetProductsNameByCategoryOffset", ctx, categoryID, offset)
-	ret0, _ := ret[0].([]*models.ProductSuggestion)
+	ret := m.ctrl.Call(m, "AddProductSuggestionsByCategory", ctx, categoryID, names)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AddProductSuggestionsByCategory indicates an expected call of AddProductSuggestionsByCategory.
+func (mr *MockISuggestionsRedisRepositoryMockRecorder) AddProductSuggestionsByCategory(ctx, categoryID, names interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddProductSuggestionsByCategory", reflect.TypeOf((*MockISuggestionsRedisRepository)(nil).AddProductSuggestionsByCategory), ctx, categoryID, names)
+}
+
+// AddSuggestionsByKey mocks base method.
+func (m *MockISuggestionsRedisRepository) AddSuggestionsByKey(ctx context.Context, key string, names []string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddSuggestionsByKey", ctx, key, names)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AddSuggestionsByKey indicates an expected call of AddSuggestionsByKey.
+func (mr *MockISuggestionsRedisRepositoryMockRecorder) AddSuggestionsByKey(ctx, key, names interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddSuggestionsByKey", reflect.TypeOf((*MockISuggestionsRedisRepository)(nil).AddSuggestionsByKey), ctx, key, names)
+}
+
+// GetProductSuggestionsByCategory mocks base method.
+func (m *MockISuggestionsRedisRepository) GetProductSuggestionsByCategory(ctx context.Context, categoryID string) ([]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetProductSuggestionsByCategory", ctx, categoryID)
+	ret0, _ := ret[0].([]string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetProductsNameByCategoryOffset indicates an expected call of GetProductsNameByCategoryOffset.
-func (mr *MockISuggestionsRepositoryMockRecorder) GetProductsNameByCategoryOffset(ctx, categoryID, offset interface{}) *gomock.Call {
+// GetProductSuggestionsByCategory indicates an expected call of GetProductSuggestionsByCategory.
+func (mr *MockISuggestionsRedisRepositoryMockRecorder) GetProductSuggestionsByCategory(ctx, categoryID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProductsNameByCategoryOffset", reflect.TypeOf((*MockISuggestionsRepository)(nil).GetProductsNameByCategoryOffset), ctx, categoryID, offset)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProductSuggestionsByCategory", reflect.TypeOf((*MockISuggestionsRedisRepository)(nil).GetProductSuggestionsByCategory), ctx, categoryID)
+}
+
+// GetProductSuggestionsByCategoryPaginated mocks base method.
+func (m *MockISuggestionsRedisRepository) GetProductSuggestionsByCategoryPaginated(ctx context.Context, categoryID string, pageNum, limit int) ([]string, int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetProductSuggestionsByCategoryPaginated", ctx, categoryID, pageNum, limit)
+	ret0, _ := ret[0].([]string)
+	ret1, _ := ret[1].(int64)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// GetProductSuggestionsByCategoryPaginated indicates an expected call of GetProductSuggestionsByCategoryPaginated.
+func (mr *MockISuggestionsRedisRepositoryMockRecorder) GetProductSuggestionsByCategoryPaginated(ctx, categoryID, pageNum, limit interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProductSuggestionsByCategoryPaginated", reflect.TypeOf((*MockISuggestionsRedisRepository)(nil).GetProductSuggestionsByCategoryPaginated), ctx, categoryID, pageNum, limit)
+}
+
+// GetSuggestionsByKey mocks base method.
+func (m *MockISuggestionsRedisRepository) GetSuggestionsByKey(ctx context.Context, key string) ([]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSuggestionsByKey", ctx, key)
+	ret0, _ := ret[0].([]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetSuggestionsByKey indicates an expected call of GetSuggestionsByKey.
+func (mr *MockISuggestionsRedisRepositoryMockRecorder) GetSuggestionsByKey(ctx, key interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSuggestionsByKey", reflect.TypeOf((*MockISuggestionsRedisRepository)(nil).GetSuggestionsByKey), ctx, key)
 }
