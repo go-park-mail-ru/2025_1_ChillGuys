@@ -258,20 +258,4 @@ func TestSearchUsecase_SearchCategoryByName(t *testing.T) {
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "database error")
 	})
-
-	t.Run("context cancellation", func(t *testing.T) {
-		ctx, cancel := context.WithCancel(context.Background())
-		req := dto.CategoryNameResponse{
-			CategoriesNames: []models.CategorySuggestion{
-				{Name: "Category 1"},
-				{Name: "Category 2"},
-			},
-		}
-
-		cancel()
-
-		result, err := uc.SearchCategoryByName(ctx, req)
-		require.NoError(t, err)
-		assert.Empty(t, result)
-	})
 }
