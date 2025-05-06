@@ -13,9 +13,9 @@ import (
 
 const (
 	ServiceMainName   = "bazaar_app"
-	ServiceAuthName   = "auth-service"
-	ServiceUserName   = "user-service"
-	ServiceReviewName = "review-service"
+	ServiceAuthName   = "auth_service"
+	ServiceUserName   = "user_service"
+	ServiceReviewName = "review_service"
 )
 
 var (
