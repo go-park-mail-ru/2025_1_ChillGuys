@@ -237,7 +237,6 @@ func NewApp(conf *config.Config) (*App, error) {
 
 	searchRouter := apiRouter.PathPrefix("/search").Subrouter()
 	{
-		searchRouter.HandleFunc("/{offset}", searchService.Search).Methods(http.MethodPost)
 		searchRouter.HandleFunc("/sort/{offset}", searchService.SearchWithFilterAndSort).Methods(http.MethodPost)
 	}
 

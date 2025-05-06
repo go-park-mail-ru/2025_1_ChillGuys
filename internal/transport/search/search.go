@@ -28,12 +28,6 @@ type ISearchUsecase interface {
 		minRating float32,
 		sortOption models.SortOption,
 	) ([]*models.Product, error)
-	SearchProductsBySubString(
-		ctx context.Context,
-		subString string,
-		categoryID null.String,
-		offset int,
-	) ([]*models.Product, error)
 }
 
 type SearchService struct {
@@ -46,70 +40,6 @@ func NewSearchService(u ISearchUsecase, s suggestions.ISuggestionsUsecase) *Sear
 		u: u,
 		s: s,
 	}
-}
-
-func (h *SearchService) Search(w http.ResponseWriter, r *http.Request) {
-	const op = "SearchService.Search"
-	logger := logctx.GetLogger(r.Context()).WithField("op", op)
-
-	vars := mux.Vars(r)
-	offsetStr := vars["offset"]
-	offset := 0
-	var err error
-	if offsetStr != "" {
-		offset, err = strconv.Atoi(offsetStr)
-		if err != nil {
-			logger.WithError(err).WithField("offset", offsetStr).Error("parse offset")
-			response.HandleDomainError(r.Context(), w, errs.ErrParseRequestData, op)
-			return
-		}
-	}
-
-	// Чтение строки запроса
-	var req dto.SearchReq
-	if err := request.ParseData(r, &req); err != nil {
-		logger.WithError(err).Error("failed to parse request data")
-		response.SendJSONError(r.Context(), w, http.StatusBadRequest, err.Error())
-		return
-	}
-
-	// Получение продуктов по найденным предложениям
-	products, err := h.u.SearchProductsBySubString(r.Context(), req.SubString, req.CategoryID, offset)
-	if err != nil {
-		logger.WithError(err).Error("failed to search products by names")
-		response.HandleDomainError(r.Context(), w, err, "search products by names")
-		return
-	}
-
-	var categories []*models.Category
-	if !req.CategoryID.Valid {
-		categoryResponse, err := h.s.GetCategorySuggestions(r.Context(), req.SubString)
-		if err != nil {
-			logger.WithError(err).Error("failed to get category suggestions")
-			response.HandleDomainError(r.Context(), w, err, "get category suggestions")
-			return
-		}
-
-		categories, err = h.u.SearchCategoryByName(r.Context(), categoryResponse)
-		if err != nil {
-			logger.WithError(err).Error("failed to search categories by names")
-			response.HandleDomainError(r.Context(), w, err, "search categories by names")
-			return
-		}
-	}
-
-	// Преобразуем продукты и категории
-	convertToProductsResponse := dto.ConvertToProductsResponse(products)
-	convertToCategoriesResponse := dto.ConvertToCategoriesResponse(categories)
-
-	// Объединяем результаты в общий ответ
-	searchResponse := dto.SearchResponse{
-		Categories: convertToCategoriesResponse,
-		Products:   convertToProductsResponse,
-	}
-
-	// Отправляем объединенный ответ
-	response.SendJSONResponse(r.Context(), w, http.StatusOK, searchResponse)
 }
 
 func (h *SearchService) SearchWithFilterAndSort(w http.ResponseWriter, r *http.Request) {
