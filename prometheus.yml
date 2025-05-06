@@ -12,6 +12,6 @@ scrape_configs:
     static_configs:
       - targets: ['bazaar-app:8081', 'auth-service:8085', 'user-service:8086', 'review-service:8087']
 
-  - job_name: 'metrics_node'
-    static_configs:
-      - targets: [ 'node-exporter:9100' ]
+#  - job_name: 'metrics_node'
+#    static_configs:
+#      - targets: [ 'node-exporter:9100' ]
