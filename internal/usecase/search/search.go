@@ -15,7 +15,6 @@ import (
 //go:generate mockgen -source=search.go -destination=../../infrastructure/repository/postgres/mocks/search_repository_mock.go -package=mocks ISearchRepository
 type ISearchRepository interface {
 	GetCategoryByName(ctx context.Context, name string) (*models.Category, error)
-	GetProductsByName(ctx context.Context, name string, categoryID null.String, offset int) ([]*models.Product, error)
 	GetProductsByNameWithFilterAndSort(
 		ctx context.Context,
 		name string,
@@ -86,24 +85,6 @@ func trySendError(err error, errCh chan<- error, cancel context.CancelFunc) {
 	default:
 		// Если ошибка уже есть - игнорируем (сохраняем первую)
 	}
-}
-
-func (u *SearchUsecase) SearchProductsBySubString(
-	ctx context.Context,
-	subString string,
-	categoryID null.String,
-	offset int,
-) ([]*models.Product, error) {
-	const op = "SearchUsecase.SearchProductsBySubString"
-	logger := logctx.GetLogger(ctx).WithField("op", op).WithField("sub_string", subString)
-
-	products, err := u.repo.GetProductsByName(ctx, subString, categoryID, offset)
-	if err != nil {
-		logger.WithError(err).Warn("failed to search products by substring")
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
-
-	return products, nil
 }
 
 func (u *SearchUsecase) SearchCategoryByName(ctx context.Context, req dto.CategoryNameResponse) ([]*models.Category, error) {

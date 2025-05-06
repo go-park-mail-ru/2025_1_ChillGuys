@@ -10,15 +10,6 @@ import (
 )
 
 const (
-	querySearchProductsByName = `
-	SELECT p.id, p.seller_id, p.name, p.preview_image_url, p.description,
-		p.status, p.price, p.quantity, p.updated_at, p.rating, p.reviews_count,
-		d.discounted_price
-		FROM bazaar.product p
-		LEFT JOIN bazaar.discount d ON p.id = d.product_id
-		WHERE p.status = 'approved' AND LOWER(p.name) LIKE LOWER($1)
-		ORDER BY p.updated_at DESC
-		LIMIT 20 OFFSET $2`
 	queryGetCategoryByName = `
 	SELECT id, name FROM bazaar.subcategory
 	WHERE LOWER(name) = LOWER($1)`
@@ -47,58 +38,6 @@ func NewSearchRepository(db *sql.DB) *SearchRepository {
 	return &SearchRepository{
 		db: db,
 	}
-}
-
-func (s *SearchRepository) GetProductsByName(ctx context.Context, name string, categoryID null.String, offset int) ([]*models.Product, error) {
-	const op = "SearchRepository.GetProductsByName"
-	logger := logctx.GetLogger(ctx).WithField("op", op)
-
-	pattern := fmt.Sprintf("%%%s%%", name)
-	var rows *sql.Rows
-	var err error
-
-	if categoryID.Valid {
-		query := `
-		SELECT p.id, p.seller_id, p.name, p.preview_image_url, p.description, 
-			p.status, p.price, p.quantity, p.updated_at, p.rating, p.reviews_count,
-			d.discounted_price
-		FROM bazaar.product p
-		JOIN bazaar.product_subcategory ps ON p.id = ps.product_id
-		LEFT JOIN bazaar.discount d ON p.id = d.product_id
-		WHERE p.status = 'approved' AND LOWER(p.name) LIKE LOWER($1) AND ps.subcategory_id = $2
-		ORDER BY p.updated_at DESC
-		LIMIT 20 OFFSET $3`
-		rows, err = s.db.QueryContext(ctx, query, pattern, categoryID.String, offset)
-	} else {
-		rows, err = s.db.QueryContext(ctx, querySearchProductsByName, pattern, offset)
-	}
-
-	if err != nil {
-		logger.WithError(err).Error("query search products by name")
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
-	defer rows.Close()
-
-	var products []*models.Product
-	for rows.Next() {
-		var priceDiscount sql.NullFloat64
-		product := &models.Product{}
-		err = rows.Scan(&product.ID, &product.SellerID, &product.Name, &product.PreviewImageURL,
-			&product.Description, &product.Status, &product.Price, &product.Quantity,
-			&product.UpdatedAt, &product.Rating, &product.ReviewsCount, &priceDiscount)
-		if err != nil {
-			logger.WithError(err).Error("scan product row")
-			return nil, fmt.Errorf("%s: %w", op, err)
-		}
-		product.PriceDiscount = priceDiscount.Float64
-		products = append(products, product)
-	}
-	if err = rows.Err(); err != nil {
-		logger.WithError(err).Error("rows iteration error")
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
-
-	return products, nil
 }
 
 func (s *SearchRepository) GetCategoryByName(ctx context.Context, name string) (*models.Category, error) {
