@@ -3,6 +3,9 @@ package middleware
 import (
 	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/shirou/gopsutil/v3/cpu"
+	"github.com/shirou/gopsutil/v3/disk"
+	"github.com/shirou/gopsutil/v3/mem"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"math/rand"
@@ -44,12 +47,18 @@ func (w *writer) WriteHeader(code int) {
 }
 
 type MetricsMiddleware struct {
-	metric      *prometheus.GaugeVec
-	counter     *prometheus.CounterVec
-	durations   *prometheus.HistogramVec
-	errors      *prometheus.CounterVec
-	durationNew *prometheus.SummaryVec
-	name        string
+	metric          *prometheus.GaugeVec
+	counter         *prometheus.CounterVec
+	durations       *prometheus.HistogramVec
+	errors          *prometheus.CounterVec
+	durationNew     *prometheus.SummaryVec
+	name            string
+	cpuUsage        prometheus.Gauge
+	memoryUsage     prometheus.Gauge
+	diskUsage       *prometheus.GaugeVec
+	diskReadBytes   prometheus.Counter
+	diskWriteBytes  prometheus.Counter
+	collectorTicker *time.Ticker
 }
 
 func NewMetricsMiddleware() *MetricsMiddleware {
@@ -69,7 +78,6 @@ func (m *MetricsMiddleware) ServerMetricsInterceptor(ctx context.Context,
 		ServiceName: m.name,
 		URL:         info.FullMethod,
 		Method:      "GRPC",
-		StatusCode:  "OK",
 	}
 
 	m.metric.With(labels).Inc()
@@ -130,6 +138,42 @@ func (m *MetricsMiddleware) Register(name string) {
 		labels,
 	)
 
+	m.cpuUsage = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Name: name + "_cpu_usage_percent",
+			Help: "Current CPU usage in percent",
+		},
+	)
+
+	m.memoryUsage = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Name: name + "_memory_usage_bytes",
+			Help: "Current memory usage in bytes",
+		},
+	)
+
+	m.diskUsage = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: name + "_disk_usage_percent",
+			Help: "Disk usage in percent by mount point",
+		},
+		[]string{"mount"},
+	)
+
+	m.diskReadBytes = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: name + "_disk_read_bytes_total",
+			Help: "Total bytes read from disk",
+		},
+	)
+
+	m.diskWriteBytes = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: name + "_disk_write_bytes_total",
+			Help: "Total bytes written to disk",
+		},
+	)
+
 	rand.Seed(time.Now().Unix())
 
 	prometheus.MustRegister(m.metric)
@@ -137,6 +181,47 @@ func (m *MetricsMiddleware) Register(name string) {
 	prometheus.MustRegister(m.durations)
 	prometheus.MustRegister(m.errors)
 	prometheus.MustRegister(m.durationNew)
+	prometheus.MustRegister(m.cpuUsage)
+	prometheus.MustRegister(m.memoryUsage)
+	prometheus.MustRegister(m.diskUsage)
+	prometheus.MustRegister(m.diskReadBytes)
+	prometheus.MustRegister(m.diskWriteBytes)
+
+	m.collectorTicker = time.NewTicker(10 * time.Second)
+	go m.collectSystemMetrics()
+}
+
+func (m *MetricsMiddleware) collectSystemMetrics() {
+	for range m.collectorTicker.C {
+		if cpuPercent, err := cpu.Percent(time.Second, false); err == nil && len(cpuPercent) > 0 {
+			m.cpuUsage.Set(cpuPercent[0])
+		}
+
+		if memInfo, err := mem.VirtualMemory(); err == nil {
+			m.memoryUsage.Set(float64(memInfo.Used))
+		}
+
+		if partitions, err := disk.Partitions(false); err == nil {
+			for _, partition := range partitions {
+				if usage, err := disk.Usage(partition.Mountpoint); err == nil {
+					m.diskUsage.WithLabelValues(partition.Mountpoint).Set(usage.UsedPercent)
+				}
+			}
+		}
+
+		if ioCounters, err := disk.IOCounters(); err == nil {
+			for _, counter := range ioCounters {
+				m.diskReadBytes.Add(float64(counter.ReadBytes))
+				m.diskWriteBytes.Add(float64(counter.WriteBytes))
+			}
+		}
+	}
+}
+
+func (m *MetricsMiddleware) Close() {
+	if m.collectorTicker != nil {
+		m.collectorTicker.Stop()
+	}
 }
 
 func (m *MetricsMiddleware) LogMetrics(next http.Handler) http.Handler {
