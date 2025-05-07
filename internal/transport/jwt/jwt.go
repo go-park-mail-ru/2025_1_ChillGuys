@@ -21,22 +21,22 @@ type JWTClaims struct {
 
 // Tokenator структура для создания и парсинга токенов
 type Tokenator struct {
-	sign          string
-	tokenLifeSpan time.Duration
+	Sign          string
+	TokenLifeSpan time.Duration
 }
 
 // NewTokenator создает новый экземпляр Tokenator
 func NewTokenator(conf *config.JWTConfig) *Tokenator {
 	return &Tokenator{
-		sign:          conf.Signature,
-		tokenLifeSpan: conf.TokenLifeSpan,
+		Sign:          conf.Signature,
+		TokenLifeSpan: conf.TokenLifeSpan,
 	}
 }
 
 // CreateJWT генерирует JWT токен для заданного userID и version
 func (t *Tokenator) CreateJWT(userID string, role string) (string, error) {
 	now := time.Now()
-	expiration := now.Add(t.tokenLifeSpan)
+	expiration := now.Add(t.TokenLifeSpan)
 
 	claims := JWTClaims{
 		UserID:    userID,
@@ -50,7 +50,7 @@ func (t *Tokenator) CreateJWT(userID string, role string) (string, error) {
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
-	return token.SignedString([]byte(t.sign))
+	return token.SignedString([]byte(t.Sign))
 }
 
 // ParseJWT парсит и валидирует JWT-токен
@@ -62,7 +62,7 @@ func (t *Tokenator) ParseJWT(tokenString string) (*JWTClaims, error) {
 			return nil, errors.New("unexpected signing method")
 		}
 
-		return []byte(t.sign), nil
+		return []byte(t.Sign), nil
 	})
 
 	if err != nil {

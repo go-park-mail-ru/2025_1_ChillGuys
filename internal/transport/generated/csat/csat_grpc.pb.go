@@ -26,6 +26,7 @@ const (
 	SurveyService_GetAllSurveys_FullMethodName          = "/csat.SurveyService/GetAllSurveys"
 )
 
+//go:generate mockgen -source=csat_grpc.pb.go -destination=mocks/csat_service_mock.go -package=mocks
 // SurveyServiceClient is the client API for SurveyService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.

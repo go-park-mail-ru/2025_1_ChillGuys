@@ -18,6 +18,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
+//go:generate mockgen -source=seller.go -destination=../../usecase/mocks/seller_usecase_mock.go -package=mocks ISellerUsecase
 type ISellerUsecase interface {
 	AddProduct(ctx context.Context, product *models.Product, categoryID uuid.UUID) (*models.Product, error)
 	UploadProductImage(ctx context.Context, productID uuid.UUID, imageURL string) error
