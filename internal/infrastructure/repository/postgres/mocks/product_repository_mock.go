@@ -36,19 +36,34 @@ func (m *MockIProductRepository) EXPECT() *MockIProductRepositoryMockRecorder {
 	return m.recorder
 }
 
-// GetAllProducts mocks base method.
-func (m *MockIProductRepository) GetAllProducts(ctx context.Context) ([]*models.Product, error) {
+// AddProduct mocks base method.
+func (m *MockIProductRepository) AddProduct(ctx context.Context, product *models.Product, categoryID uuid.UUID) (*models.Product, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAllProducts", ctx)
+	ret := m.ctrl.Call(m, "AddProduct", ctx, product, categoryID)
+	ret0, _ := ret[0].(*models.Product)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AddProduct indicates an expected call of AddProduct.
+func (mr *MockIProductRepositoryMockRecorder) AddProduct(ctx, product, categoryID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddProduct", reflect.TypeOf((*MockIProductRepository)(nil).AddProduct), ctx, product, categoryID)
+}
+
+// GetAllProducts mocks base method.
+func (m *MockIProductRepository) GetAllProducts(ctx context.Context, offset int) ([]*models.Product, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAllProducts", ctx, offset)
 	ret0, _ := ret[0].([]*models.Product)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetAllProducts indicates an expected call of GetAllProducts.
-func (mr *MockIProductRepositoryMockRecorder) GetAllProducts(ctx interface{}) *gomock.Call {
+func (mr *MockIProductRepositoryMockRecorder) GetAllProducts(ctx, offset interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllProducts", reflect.TypeOf((*MockIProductRepository)(nil).GetAllProducts), ctx)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllProducts", reflect.TypeOf((*MockIProductRepository)(nil).GetAllProducts), ctx, offset)
 }
 
 // GetProductByID mocks base method.
@@ -67,16 +82,16 @@ func (mr *MockIProductRepositoryMockRecorder) GetProductByID(ctx, id interface{}
 }
 
 // GetProductsByCategory mocks base method.
-func (m *MockIProductRepository) GetProductsByCategory(ctx context.Context, id uuid.UUID) ([]*models.Product, error) {
+func (m *MockIProductRepository) GetProductsByCategory(ctx context.Context, id uuid.UUID, offset int, minPrice, maxPrice float64, minRating float32, sortOption models.SortOption) ([]*models.Product, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetProductsByCategory", ctx, id)
+	ret := m.ctrl.Call(m, "GetProductsByCategory", ctx, id, offset, minPrice, maxPrice, minRating, sortOption)
 	ret0, _ := ret[0].([]*models.Product)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetProductsByCategory indicates an expected call of GetProductsByCategory.
-func (mr *MockIProductRepositoryMockRecorder) GetProductsByCategory(ctx, id interface{}) *gomock.Call {
+func (mr *MockIProductRepositoryMockRecorder) GetProductsByCategory(ctx, id, offset, minPrice, maxPrice, minRating, sortOption interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProductsByCategory", reflect.TypeOf((*MockIProductRepository)(nil).GetProductsByCategory), ctx, id)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProductsByCategory", reflect.TypeOf((*MockIProductRepository)(nil).GetProductsByCategory), ctx, id, offset, minPrice, maxPrice, minRating, sortOption)
 }

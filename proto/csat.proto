@@ -1,0 +1,75 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+
+package csat;
+option go_package = "2025_1_ChillGuys/internal/transport/generated/csat";
+
+/* ############### Survey ############### */
+message GetSurveyRequest {
+  string name = 1;
+}
+
+message SurveyWithQuestionsResponse {
+  string surveyId = 1;
+  string title = 2;
+  string description = 3;
+  repeated QuestionResponseDTO questions = 4;
+}
+
+message QuestionResponseDTO {
+  string question_id = 1;
+  string text = 2;
+}
+
+message BriefSurvey {
+  string id = 1;
+  string title = 2;
+}
+
+message SurveysList {
+  repeated BriefSurvey surveys = 1;
+}
+
+/* ############### Answers ############### */
+message SubmitAnswerRequest {
+  string surveyId = 1;
+  repeated AnswerRequestDTO answers = 2;
+}
+
+message AnswerRequestDTO {
+  string questionId = 1;
+  uint32 value = 2;
+}
+
+/* ############### Statistics ############### */
+message GetStatisticsRequest {
+  string surveyId = 1;
+}
+
+message QuestionStatisticsDTO {
+  string question_id = 1;
+  string text = 2;
+  repeated uint32 stats = 3;
+}
+
+message SurveyStatisticsResponse {
+  string description = 1;
+  repeated QuestionStatisticsDTO questions = 2;
+}
+
+/* ############### SurveyService ############### */
+service SurveyService {
+  // Получение опроса с вопросами
+  rpc GetSurveyWithQuestions(GetSurveyRequest) returns (SurveyWithQuestionsResponse);
+  
+  // Отправка ответов на опрос
+  rpc SubmitAnswer(SubmitAnswerRequest) returns (google.protobuf.Empty);
+  
+  // Получение статистики по опросу
+  rpc GetSurveyStatistics(GetStatisticsRequest) returns (SurveyStatisticsResponse);
+
+
+  // Получение всех опросов
+  rpc GetAllSurveys(google.protobuf.Empty) returns (SurveysList);
+}

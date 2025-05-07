@@ -5,14 +5,14 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/domains"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
-	"github.com/google/uuid"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/domains"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
 )
 
 const (
@@ -32,26 +32,14 @@ func CSRFMiddleware(tokenator *jwt.Tokenator, next http.Handler, cfg *config.CSR
 			return
 		}
 		jwtToken := jwtCookie.Value
-
-		claims, err := tokenator.ParseJWT(jwtToken)
-		if err != nil {
-			http.Error(w, "Invalid JWT token", http.StatusForbidden)
-			return
-		}
-
-		userID, err := uuid.Parse(claims.UserID)
-		if err != nil {
-			http.Error(w, "Invalid user ID in token", http.StatusForbidden)
-			return
-		}
-
+		
 		token := r.Header.Get(CSRFTokenHeader)
 		if token == "" {
 			http.Error(w, "CSRF token missing", http.StatusForbidden)
 			return
 		}
-
-		valid, err := CheckCSRFToken(jwtToken, userID, token, cfg.SecretKey)
+		
+		valid, err := CheckCSRFToken(jwtToken, token, cfg.SecretKey)
 		if err != nil || !valid {
 			http.Error(w, "Invalid CSRF token", http.StatusForbidden)
 			return
@@ -61,7 +49,7 @@ func CSRFMiddleware(tokenator *jwt.Tokenator, next http.Handler, cfg *config.CSR
 	})
 }
 
-func CheckCSRFToken(tokenJWT string, userID uuid.UUID, tokenCSRF string, secretKey string) (bool, error) {
+func CheckCSRFToken(tokenJWT string, tokenCSRF string, secretKey string) (bool, error) {
 	csrfData := strings.Split(tokenCSRF, ":")
 	if len(csrfData) != 2 {
 		return false, fmt.Errorf("bad tokenJWT data")
@@ -77,7 +65,7 @@ func CheckCSRFToken(tokenJWT string, userID uuid.UUID, tokenCSRF string, secretK
 	}
 
 	h := hmac.New(sha256.New, []byte(secretKey))
-	data := fmt.Sprintf("%s:%s:%d", tokenJWT, userID.String(), csrfExp)
+	data := fmt.Sprintf("%s:%d", tokenJWT, csrfExp)
 	h.Write([]byte(data))
 	expectedMAC := h.Sum(nil)
 	messageMAC, err := hex.DecodeString(csrfData[0])
@@ -88,13 +76,14 @@ func CheckCSRFToken(tokenJWT string, userID uuid.UUID, tokenCSRF string, secretK
 	return hmac.Equal(messageMAC, expectedMAC), nil
 }
 
-func GenerateCSRFToken(tokenJWT string, userID uuid.UUID, secretKey string, tokenExpiry time.Duration) (string, error) {
+func GenerateCSRFToken(tokenJWT string, secretKey string, tokenExpiry time.Duration) (string, error) {
 	expiry := time.Now().Add(tokenExpiry).Unix()
 
 	h := hmac.New(sha256.New, []byte(secretKey))
-	data := fmt.Sprintf("%s:%s:%d", tokenJWT, userID.String(), expiry)
+	data := fmt.Sprintf("%s:%d", tokenJWT, expiry)
 	h.Write([]byte(data))
 	mac := hex.EncodeToString(h.Sum(nil))
 
 	return fmt.Sprintf("%s:%d", mac, expiry), nil
 }
+

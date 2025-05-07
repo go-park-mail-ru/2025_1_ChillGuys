@@ -11,20 +11,32 @@ type BriefProduct struct {
 	ImageURL      string    `json:"image"`
 	Price         float64   `json:"price"`
 	PriceDiscount float64   `json:"discount_price"`
+	Quantity      uint      `json:"quantity"`
 	ReviewsCount  uint      `json:"reviews_count"`
-	Rating        uint      `json:"rating,omitempty"`
+	Rating        float32   `json:"rating"`
+	SellerInfo 	  *SellerInfo `json:"seller_info,omitempty"`
 }
 
 func ConvertToBriefProduct(product *models.Product) BriefProduct {
-	return BriefProduct{
+	briefProduct := BriefProduct{
 		ID:            product.ID,
 		Name:          product.Name,
 		ImageURL:      product.PreviewImageURL,
 		Price:         product.Price,
 		PriceDiscount: product.PriceDiscount,
+		Quantity:      product.Quantity,
 		ReviewsCount:  product.ReviewsCount,
 		Rating:        product.Rating,
 	}
+
+	if product.Seller != nil {
+        briefProduct.SellerInfo = &SellerInfo{
+            Title:       product.Seller.Title,
+            Description: product.Seller.Description,
+        }
+    }
+
+	return briefProduct
 }
 
 type ProductsResponse struct {
@@ -46,4 +58,29 @@ func ConvertToProductsResponse(products []*models.Product) ProductsResponse {
 
 type GetProductsByIDRequest struct {
 	ProductIDs []uuid.UUID `json:"productIDs" validate:"required,min=1"`
+}
+
+type AddProductRequest struct {
+    Name            string  `json:"name" validate:"required"`
+    SellerID       string  `json:"seller_id" validate:"required,uuid4"`
+    PreviewImageURL string `json:"preview_image_url,omitempty"`
+    Description     string `json:"description,omitempty"`
+    Price          float64 `json:"price" validate:"required,gt=0"`
+    PriceDiscount  float64 `json:"price_discount" validate:"gte=0"`
+    Quantity       uint    `json:"quantity" validate:"gte=0"`
+    Rating         float32 `json:"rating,omitempty" validate:"gte=0,lte=5"`
+    ReviewsCount   uint    `json:"reviews_count,omitempty" validate:"gte=0"`
+    Category       string  `json:"category" validate:"required,uuid4"`
+}
+
+type ProductsSellerResponse struct {
+	Total int 						`json:"total"`
+	Products []*models.Product      `json:"products"`
+}
+
+func ConvertToSellerProductsResponse(products []*models.Product) ProductsSellerResponse {
+	return ProductsSellerResponse{
+		Total:    len(products),
+		Products: products,
+	}
 }

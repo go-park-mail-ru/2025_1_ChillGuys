@@ -3,15 +3,17 @@ package order
 import (
 	"context"
 	"errors"
+	"fmt"
+	"sync"
+	"time"
+
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/order"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/logctx"
 	"github.com/google/uuid"
 	"github.com/guregu/null"
-	"github.com/sirupsen/logrus"
-	"sync"
-	"time"
 )
 
 //go:generate mockgen -source=order.go -destination=../mocks/order_usecase_mock.go -package=mocks IOrderUsecase
@@ -22,20 +24,20 @@ type IOrderUsecase interface {
 
 type OrderUsecase struct {
 	repo order.IOrderRepository
-	log  *logrus.Logger
 }
 
 func NewOrderUsecase(
 	repo order.IOrderRepository,
-	log *logrus.Logger,
 ) *OrderUsecase {
 	return &OrderUsecase{
 		repo: repo,
-		log:  log,
 	}
 }
 
 func (u *OrderUsecase) CreateOrder(ctx context.Context, in dto.CreateOrderDTO) error {
+	const op = "OrderUsecase.CreateOrder"
+	logger := logctx.GetLogger(ctx).WithField("op", op).WithField("user_id", in.UserID)
+	
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -78,11 +80,9 @@ func (u *OrderUsecase) CreateOrder(ctx context.Context, in dto.CreateOrderDTO) e
 
 				product, productErr = u.repo.ProductPrice(ctx, item.ProductID)
 				if productErr != nil {
-					u.log.WithFields(logrus.Fields{
-						"product_id": item.ProductID,
-						"error":      productErr,
-						"action":     "get_product_price",
-					}).Error("Failed to fetch product price")
+					logger.WithError(productErr).
+						WithField("product_id", item.ProductID).
+						Error("failed to fetch product price")
 					trySendError(productErr, errCh, cancel)
 					return
 				}
@@ -96,12 +96,10 @@ func (u *OrderUsecase) CreateOrder(ctx context.Context, in dto.CreateOrderDTO) e
 				}
 
 				discounts, discountErr = u.repo.ProductDiscounts(ctx, item.ProductID)
-				u.log.WithFields(logrus.Fields{
-					"product_id": item.ProductID,
-					"error":      discountErr,
-					"action":     "get_product_discount",
-				}).Error("Failed to fetch product discount")
 				if discountErr != nil && !errors.Is(discountErr, errs.ErrNotFound) {
+					logger.WithError(discountErr).
+						WithField("product_id", item.ProductID).
+						Error("failed to fetch product discount")
 					trySendError(discountErr, errCh, cancel)
 					return
 				}
@@ -115,15 +113,20 @@ func (u *OrderUsecase) CreateOrder(ctx context.Context, in dto.CreateOrderDTO) e
 			}
 
 			if product.Status != models.ProductApproved {
-				u.log.WithFields(logrus.Fields{
+				logger.WithFields(map[string]interface{}{
 					"product_id":      item.ProductID,
 					"status":          product.Status,
 					"required_status": models.ProductApproved,
-				}).Warn("Product not approved")
+				}).Warn("product not approved")
 				trySendError(errs.ErrProductNotApproved, errCh, cancel)
 				return
 			}
 			if product.Quantity < item.Quantity {
+				logger.WithFields(map[string]interface{}{
+					"product_id":       item.ProductID,
+					"requested":        item.Quantity,
+					"available":        product.Quantity,
+				}).Warn("not enough stock")
 				trySendError(errs.ErrNotEnoughStock, errCh, cancel)
 				return
 			}
@@ -171,8 +174,6 @@ func (u *OrderUsecase) CreateOrder(ctx context.Context, in dto.CreateOrderDTO) e
 		Items:              orderItems,
 	}
 
-	u.log.Infoln(totalPrice, totalDiscountedPrice)
-
 	return u.repo.CreateOrder(ctx, dto.CreateOrderRepoReq{
 		Order:             order,
 		UpdatedQuantities: newQuantities,
@@ -180,12 +181,20 @@ func (u *OrderUsecase) CreateOrder(ctx context.Context, in dto.CreateOrderDTO) e
 }
 
 func (u *OrderUsecase) GetUserOrders(ctx context.Context, userID uuid.UUID) (*[]dto.OrderPreviewDTO, error) {
+	const op = "OrderUsecase.GetUserOrders"
+	logger := logctx.GetLogger(ctx).WithField("op", op).WithField("user_id", userID)
+
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	orders, err := u.repo.GetOrdersByUserID(ctx, userID)
 	if err != nil {
-		return nil, err
+		if errors.Is(err, errs.ErrNotFound) {
+			logger.Warn("no orders found for user")
+			return nil, fmt.Errorf("%s: %w", op, errs.NewNotFoundError(op))
+		}
+		logger.WithError(err).Error("failed to get orders by user ID")
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	mu := &sync.Mutex{}
@@ -213,6 +222,9 @@ func (u *OrderUsecase) GetUserOrders(ctx context.Context, userID uuid.UUID) (*[]
 
 				productIDs, productErr := u.repo.GetOrderProducts(ctx, orderItem.ID)
 				if productErr != nil {
+					logger.WithError(productErr).
+						WithField("order_id", orderItem.ID).
+						Error("failed to get order products")
 					trySendError(productErr, errCh, cancel)
 					return
 				}
@@ -262,6 +274,9 @@ func (u *OrderUsecase) GetUserOrders(ctx context.Context, userID uuid.UUID) (*[]
 
 				addressRes, addressErr := u.repo.GetOrderAddress(ctx, orderItem.AddressID)
 				if addressErr != nil {
+					logger.WithError(addressErr).
+						WithField("address_id", orderItem.AddressID).
+						Error("failed to get order address")
 					trySendError(addressErr, errCh, cancel)
 					return
 				}
@@ -289,9 +304,10 @@ func (u *OrderUsecase) GetUserOrders(ctx context.Context, userID uuid.UUID) (*[]
 
 	// Возвращаем первую ошибку (если есть)
 	if err = <-errCh; err != nil {
-		return nil, err
+		logger.WithError(err).Error("failed to get order details")
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
-
+	
 	return &ordersPreview, nil
 }
 

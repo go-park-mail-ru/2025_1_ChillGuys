@@ -12,13 +12,15 @@ import (
 
 // Config объединяет все конфигурационные настройки приложения.
 type Config struct {
-	MinioConfig      *MinioConfig
-	DBConfig         *DBConfig
-	ServerConfig     *ServerConfig
-	JWTConfig        *JWTConfig
-	MigrationsConfig *MigrationsConfig
-	GeoapifyConfig   *GeoapifyConfig
-	CSRFConfig       *CSRFConfig
+	MinioConfig       *MinioConfig
+	DBConfig          *DBConfig
+	ServerConfig      *ServerConfig
+	JWTConfig         *JWTConfig
+	MigrationsConfig  *MigrationsConfig
+	GeoapifyConfig    *GeoapifyConfig
+	CSRFConfig        *CSRFConfig
+	AuthRedisConfig   *RedisConfig
+	SearchRedisConfig *RedisConfig
 }
 
 // NewConfig загружает переменные окружения и инициализирует все компоненты конфига.
@@ -53,23 +55,35 @@ func NewConfig() (*Config, error) {
 	}
 
 	geoapifyConfig, err := newGeoapifyConfig()
-  if err != nil {
+	if err != nil {
 		return nil, err
 	}
-  
+
 	csrfConfig, err := newCSRFConfig()
 	if err != nil {
 		return nil, err
 	}
 
+	authRedisConfig, err := newRedisConfig("AUTH")
+	if err != nil {
+		return nil, err
+	}
+
+	searchRedisConfig, err := newRedisConfig("SEARCH")
+	if err != nil {
+		return nil, err
+	}
+
 	return &Config{
-		MinioConfig:      minioConf,
-		DBConfig:         dbConfig,
-		ServerConfig:     serverConfig,
-		JWTConfig:        jwtConfig,
-		MigrationsConfig: migrationsConfig,
-		GeoapifyConfig:   geoapifyConfig,
-		CSRFConfig:       csrfConfig,
+		MinioConfig:       minioConf,
+		DBConfig:          dbConfig,
+		ServerConfig:      serverConfig,
+		JWTConfig:         jwtConfig,
+		MigrationsConfig:  migrationsConfig,
+		GeoapifyConfig:    geoapifyConfig,
+		CSRFConfig:        csrfConfig,
+		AuthRedisConfig:   authRedisConfig,
+		SearchRedisConfig: searchRedisConfig,
 	}, nil
 }
 
@@ -294,6 +308,53 @@ func newCSRFConfig() (*CSRFConfig, error) {
 		TokenExpiry:  tokenExpiry,
 		CookieName:   cookieName,
 		SecureCookie: secureCookie,
+	}, nil
+}
+
+type RedisConfig struct {
+	Host     string
+	Port     string
+	Password string
+	DB       int
+}
+
+func newRedisConfig(redisType string) (*RedisConfig, error) {
+	var host, port, passwordEnv string
+
+	if redisType == "AUTH" {
+		host, _ = os.LookupEnv("AUTH_REDIS_HOST")
+		port, _ = os.LookupEnv("AUTH_REDIS_PORT")
+		passwordEnv = "AUTH_REDIS_PASSWORD"
+	} else if redisType == "SEARCH" {
+		host, _ = os.LookupEnv("SEARCH_REDIS_HOST")
+		port, _ = os.LookupEnv("SEARCH_REDIS_PORT")
+		passwordEnv = "SEARCH_REDIS_PASSWORD"
+	} else {
+		return nil, errors.New("invalid Redis type")
+	}
+
+	password, _ := os.LookupEnv(passwordEnv)
+	if host == "" || port == "" {
+		return &RedisConfig{
+			Host:     "",
+			Port:     "",
+			Password: "",
+			DB:       0,
+		}, nil
+	}
+
+	db := 0
+	if dbStr, exists := os.LookupEnv(redisType + "_REDIS_DB"); exists {
+		if parsed, err := strconv.Atoi(dbStr); err == nil {
+			db = parsed
+		}
+	}
+
+	return &RedisConfig{
+		Host:     host,
+		Port:     port,
+		Password: password,
+		DB:       db,
 	}, nil
 }
 

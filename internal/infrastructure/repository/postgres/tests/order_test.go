@@ -784,12 +784,21 @@ func TestGetOrderAddress_Success(t *testing.T) {
 		Coordinate:    null.StringFrom("10.0,20.0"),
 	}
 
-	rows := sqlmock.NewRows([]string{"region", "city", "address_string", "coordinate"}).
-		AddRow(expectedAddress.Region, expectedAddress.City, expectedAddress.AddressString, expectedAddress.Coordinate)
-
-	mock.ExpectQuery("SELECT region, city, address_string, coordinate FROM bazaar.address").
+	mock.ExpectQuery(`SELECT a.region, a.city, a.address_string, a.coordinate, ua.label
+	FROM bazaar.address a
+	LEFT JOIN bazaar.user_address ua ON a.id = ua.address_id
+	WHERE a.id = \$1
+	LIMIT 1`).
 		WithArgs(addressID).
-		WillReturnRows(rows)
+		WillReturnRows(sqlmock.NewRows([]string{
+			"region", "city", "address_string", "coordinate", "label",
+		}).AddRow(
+			expectedAddress.Region,
+			expectedAddress.City,
+			expectedAddress.AddressString,
+			expectedAddress.Coordinate,
+			expectedAddress.Label, // <-- добавь поле Label в expectedAddress
+		))
 
 	repo := order2.NewOrderRepository(db)
 	address, err := repo.GetOrderAddress(context.Background(), addressID)
@@ -808,9 +817,13 @@ func TestGetOrderAddress_NotFound(t *testing.T) {
 
 	addressID := uuid.New()
 
-	mock.ExpectQuery("SELECT region, city, address_string, coordinate FROM bazaar.address").
+	mock.ExpectQuery(`SELECT a\.region, a\.city, a\.address_string, a\.coordinate, ua\.label
+	FROM bazaar\.address a
+	LEFT JOIN bazaar\.user_address ua ON a\.id = ua\.address_id
+	WHERE a\.id = \$1
+	LIMIT 1`).
 		WithArgs(addressID).
-		WillReturnError(sql.ErrNoRows)
+		WillReturnError(sql.ErrNoRows) // для TestGetOrderAddress_NotFound
 
 	repo := order2.NewOrderRepository(db)
 	address, err := repo.GetOrderAddress(context.Background(), addressID)
@@ -830,9 +843,13 @@ func TestGetOrderAddress_QueryError(t *testing.T) {
 
 	addressID := uuid.New()
 
-	mock.ExpectQuery("SELECT region, city, address_string, coordinate FROM bazaar.address").
+	mock.ExpectQuery(`SELECT a\.region, a\.city, a\.address_string, a\.coordinate, ua\.label
+	FROM bazaar\.address a
+	LEFT JOIN bazaar\.user_address ua ON a\.id = ua\.address_id
+	WHERE a\.id = \$1
+	LIMIT 1`).
 		WithArgs(addressID).
-		WillReturnError(errors.New("database error"))
+		WillReturnError(errors.New("database error")) // для TestGetOrderAddress_QueryError
 
 	repo := order2.NewOrderRepository(db)
 	address, err := repo.GetOrderAddress(context.Background(), addressID)

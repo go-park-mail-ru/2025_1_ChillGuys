@@ -3,6 +3,18 @@ package app
 import (
 	"database/sql"
 	"fmt"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/redis"
+	http2 "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/auth/http"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/generated/auth"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/generated/csat"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/generated/review"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/generated/user"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/search"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/suggestions"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+	"log"
 	"net/http"
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
@@ -10,28 +22,35 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/minio"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres"
 	addressrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/address"
-	authrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/auth"
+	adminrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/admin"
 	basketrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/basket"
 	categoryrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/category"
 	orderrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/order"
 	productrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/product"
-	userrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/user"
+	searchrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/search"
+	sellerrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/seller"
+	suggestionrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/suggestions"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/address"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/auth"
+	admint "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/admin"
 	baskett "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/basket"
 	categoryt "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/category"
+	csatt "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/csat/http"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/order"
 	producttr "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/product"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/user"
+	reviewt "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/review/http"
+	sellert "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/seller"
+	usert "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/user/http"
 	addressus "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/address"
-	authus "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/auth"
+	adminuc "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/admin"
 	basketuc "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/basket"
 	categoryuc "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/category"
 	orderus "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/order"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/product"
-	userus "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/user"
+	searchus "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/search"
+	selleruc "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/seller"
+	suggestionsus "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/suggestions"
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
 	httpSwagger "github.com/swaggo/http-swagger"
@@ -72,27 +91,72 @@ func NewApp(conf *config.Config) (*App, error) {
 		return nil, fmt.Errorf("minio initialization error: %w", err)
 	}
 
+	// Инициализация микросервисов
+	authConn, err := grpc.Dial(
+		"auth-service:50051",
+		//":8010",
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+
+	// Подключение к Redis
+	redisSearchClient, err := redis.NewClient(conf.SearchRedisConfig)
+	if err != nil {
+		log.Fatalf("redis auth connection error: %v", err)
+	}
+
+	// Создаем Redis репозиторий
+	redisSearchRepo := redis.NewSuggestionsRepository(redisSearchClient)
+
+	authClient := auth.NewAuthServiceClient(authConn)
+
+	userConn, err := grpc.Dial(
+		"user-service:50052",
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("user service connection error: %w", err)
+	}
+	userClient := user.NewUserServiceClient(userConn)
+
+	userHandler := usert.NewUserHandler(userClient, conf)
+
+	csatConn, err := grpc.Dial(
+		"csat-service:50053",
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("csat service connection error: %w", err)
+	}
+	csatClient := csat.NewSurveyServiceClient(csatConn)
+
+	csatHandler := csatt.NewCsatHandler(csatClient)
+
+	reviewConn, err := grpc.Dial(
+		"review-service:50054",
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("review service connection error: %w", err)
+	}
+	reviewClient := review.NewReviewServiceClient(reviewConn)
+
+	reviewHandler := reviewt.NewReviewHandler(reviewClient)
+
 	// Инициализация репозиториев и use-case-ов.
-	authRepo := authrepo.NewAuthRepository(db, logger)
-	tokenator := jwt.NewTokenator(authRepo, conf.JWTConfig)
-	authUsecase := authus.NewAuthUsecase(authRepo, tokenator, logger)
-	authHandler := auth.NewAuthHandler(authUsecase, logger, conf)
+	tokenator := jwt.NewTokenator(conf.JWTConfig)
+	authHandler := http2.NewAuthHandler(authClient, conf)
 
-	userRepository := userrepo.NewUserRepository(db)
-	userUsecase := userus.NewUserUsecase(userRepository, tokenator, logger, minioClient)
-	userService := user.NewUserHandler(userUsecase, logger, minioClient, conf)
-
-	addressRepo := addressrepo.NewAddressRepository(db, logger)
-	addressUsecase := addressus.NewAddressUsecase(addressRepo, logger)
-	addressService := address.NewAddressHandler(addressUsecase, logger, conf.GeoapifyConfig.APIKey)
+	addressRepo := addressrepo.NewAddressRepository(db)
+	addressUsecase := addressus.NewAddressUsecase(addressRepo)
+	addressService := address.NewAddressHandler(addressUsecase, conf.GeoapifyConfig.APIKey)
 
 	productRepo := productrepo.NewProductRepository(db)
 	productUsecase := product.NewProductUsecase(productRepo)
 	ProductService := producttr.NewProductService(productUsecase, minioClient)
 
 	orderRepo := orderrepo.NewOrderRepository(db)
-	orderUsecase := orderus.NewOrderUsecase(orderRepo, logger)
-	orderService := order.NewOrderService(orderUsecase, logger)
+	orderUsecase := orderus.NewOrderUsecase(orderRepo)
+	orderService := order.NewOrderService(orderUsecase)
 
 	basketRepo := basketrepo.NewBasketRepository(db)
 	basketUsecase := basketuc.NewBasketUsecase(basketRepo)
@@ -101,6 +165,22 @@ func NewApp(conf *config.Config) (*App, error) {
 	categoryRepo := categoryrepo.NewCategoryRepository(db)
 	categoryUsecase := categoryuc.NewCategoryUsecase(categoryRepo)
 	categoryService := categoryt.NewCategoryService(categoryUsecase)
+
+	suggestionsRepo := suggestionrepo.NewSuggestionsRepository(db)
+	suggestionsUsecase := suggestionsus.NewSuggestionsUsecase(suggestionsRepo, redisSearchRepo)
+	suggestionsService := suggestions.NewSuggestionsService(suggestionsUsecase)
+
+	adminRepo := adminrepo.NewAdminRepository(db)
+	adminUsecase := adminuc.NewAdminUsecase(adminRepo, redisSearchRepo, productRepo)
+	adminService := admint.NewAdminService(adminUsecase)
+
+	sellerRepo := sellerrepo.NewSellerRepository(db)
+	sellerUsecase := selleruc.NewSellerUsecase(sellerRepo)
+	sellerService := sellert.NewSellerHandler(sellerUsecase, minioClient)
+
+	searchRepo := searchrepo.NewSearchRepository(db)
+	searchUsecase := searchus.NewSearchUsecase(searchRepo)
+	searchService := search.NewSearchService(searchUsecase, suggestionsUsecase)
 
 	router := mux.NewRouter()
 	router.PathPrefix("/swagger/").Handler(httpSwagger.WrapHandler)
@@ -116,53 +196,79 @@ func NewApp(conf *config.Config) (*App, error) {
 		return middleware.LogRequest(logger, next)
 	})
 
+	metricsMw := middleware.NewMetricsMiddleware()
+	metricsMw.Register(middleware.ServiceMainName)
+	apiRouter.PathPrefix("/metrics").Handler(promhttp.Handler())
+	apiRouter.Use(metricsMw.LogMetrics)
+
 	// Маршруты для продуктов.
-	productsRouter := apiRouter.PathPrefix("/products").Subrouter()
+	productsRouter := apiRouter.PathPrefix("").Subrouter()
 	{
-		productsRouter.Handle("/batch",
+		productsRouter.Handle("/products/batch",
 			middleware.CSRFMiddleware(tokenator,
-				middleware.JWTMiddleware(tokenator, http.HandlerFunc(ProductService.GetProductsByIDs)),
+				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(ProductService.GetProductsByIDs)),
 				conf.CSRFConfig,
 			)).Methods(http.MethodPost)
-		productsRouter.HandleFunc("", ProductService.GetAllProducts).Methods(http.MethodGet)
-		productsRouter.HandleFunc("/{id}", ProductService.GetProductByID).Methods(http.MethodGet)
-		productsRouter.HandleFunc("/category/{id}", ProductService.GetProductsByCategory).Methods(http.MethodGet)
+		productsRouter.HandleFunc("/products/{offset}", ProductService.GetAllProducts).Methods(http.MethodGet)
+		productsRouter.HandleFunc("/product/{id}", ProductService.GetProductByID).Methods(http.MethodGet)
+		productsRouter.HandleFunc("/products/category/{id}/{offset}", ProductService.GetProductsByCategory).Methods(http.MethodGet)
+
+		productsRouter.Handle("/add", 
+			http.HandlerFunc(ProductService.AddProduct),
+		).Methods(http.MethodPost)
 	}
 
 	// Маршруты для категорий.
 	catalogRouter := apiRouter.PathPrefix("/categories").Subrouter()
 	{
 		catalogRouter.HandleFunc("", categoryService.GetAllCategories).Methods(http.MethodGet)
+		catalogRouter.HandleFunc("/{id}", categoryService.GetAllSubcategories).Methods(http.MethodGet)
+	}
+
+	subcategoryRouter := apiRouter.PathPrefix("/subcategory").Subrouter()
+	{
+		subcategoryRouter.HandleFunc("/{id}", categoryService.GetNameSubcategory).Methods(http.MethodGet)
+	}
+
+	suggestionsRouter := apiRouter.PathPrefix("/suggestions").Subrouter()
+	{
+		suggestionsRouter.HandleFunc("", suggestionsService.GetSuggestions).Methods(http.MethodPost)
+	}
+
+	searchRouter := apiRouter.PathPrefix("/search").Subrouter()
+	{
+		searchRouter.HandleFunc("/sort/{offset}", searchService.SearchWithFilterAndSort).Methods(http.MethodPost)
 	}
 
 	basketRouter := apiRouter.PathPrefix("/basket").Subrouter()
 	{
 		basketRouter.Handle("", middleware.JWTMiddleware(
+			authClient,
 			tokenator,
 			http.HandlerFunc(basketService.Get)),
 		).Methods(http.MethodGet)
 
 		basketRouter.Handle("/{id}",
 			middleware.CSRFMiddleware(tokenator,
-				middleware.JWTMiddleware(tokenator, http.HandlerFunc(basketService.Add)),
+				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(basketService.Add)),
 				conf.CSRFConfig,
 			)).Methods(http.MethodPost)
 
 		basketRouter.Handle("/{id}",
 			middleware.CSRFMiddleware(tokenator,
-				middleware.JWTMiddleware(tokenator, http.HandlerFunc(basketService.Delete)),
+				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(basketService.Delete)),
 				conf.CSRFConfig,
 			)).Methods(http.MethodDelete)
 
 		basketRouter.Handle("/{id}",
 			middleware.CSRFMiddleware(tokenator,
-				middleware.JWTMiddleware(tokenator, http.HandlerFunc(basketService.UpdateQuantity)),
+				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(basketService.UpdateQuantity)),
 				conf.CSRFConfig,
 			)).Methods(http.MethodPatch)
 
 		basketRouter.Handle("",
 			middleware.CSRFMiddleware(tokenator,
-				middleware.JWTMiddleware(tokenator, http.HandlerFunc(basketService.Clear)),
+				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(basketService.Clear)),
 				conf.CSRFConfig,
 			)).Methods(http.MethodDelete)
 	}
@@ -179,7 +285,7 @@ func NewApp(conf *config.Config) (*App, error) {
 		authRouter.HandleFunc("/register", authHandler.Register).Methods(http.MethodPost)
 		authRouter.Handle("/logout",
 			middleware.CSRFMiddleware(tokenator,
-				middleware.JWTMiddleware(tokenator, http.HandlerFunc(authHandler.Logout)),
+				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(authHandler.Logout)),
 				conf.CSRFConfig,
 			)).Methods(http.MethodPost)
 	}
@@ -187,26 +293,36 @@ func NewApp(conf *config.Config) (*App, error) {
 	// Маршруты для работы с пользователями.
 	userRouter := apiRouter.PathPrefix("/users").Subrouter()
 	{
-		userRouter.Handle("/me", middleware.JWTMiddleware(tokenator, http.HandlerFunc(userService.GetMe))).
+		userRouter.Handle("/me", middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(userHandler.GetMe))).
 			Methods(http.MethodGet)
 		userRouter.Handle("/upload-avatar",
 			middleware.CSRFMiddleware(tokenator,
-				middleware.JWTMiddleware(tokenator, http.HandlerFunc(userService.UploadAvatar)),
+				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(userHandler.UploadAvatar)),
 				conf.CSRFConfig,
 			)).Methods(http.MethodPost)
 		userRouter.Handle("/update-profile",
 			middleware.CSRFMiddleware(tokenator,
-				middleware.JWTMiddleware(tokenator, http.HandlerFunc(userService.UpdateUserProfile)),
+				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(userHandler.UpdateUserProfile)),
 				conf.CSRFConfig,
 			)).Methods(http.MethodPost)
 		userRouter.Handle("/update-email",
 			middleware.CSRFMiddleware(tokenator,
-				middleware.JWTMiddleware(tokenator, http.HandlerFunc(userService.UpdateUserEmail)),
+				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(userHandler.UpdateUserEmail)),
 				conf.CSRFConfig,
 			)).Methods(http.MethodPost)
 		userRouter.Handle("/update-password",
 			middleware.CSRFMiddleware(tokenator,
-				middleware.JWTMiddleware(tokenator, http.HandlerFunc(userService.UpdateUserPassword)),
+				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(userHandler.UpdateUserPassword)),
+				conf.CSRFConfig,
+			)).Methods(http.MethodPost)
+
+		userRouter.Handle("/update-role",
+			middleware.CSRFMiddleware(tokenator,
+				middleware.JWTMiddleware(authClient, tokenator,
+					middleware.RoleMiddleware("buyer")(
+						http.HandlerFunc(userHandler.BecomeSeller),
+					),
+				),
 				conf.CSRFConfig,
 			)).Methods(http.MethodPost)
 	}
@@ -215,10 +331,11 @@ func NewApp(conf *config.Config) (*App, error) {
 	{
 		orderRouter.Handle("",
 			middleware.CSRFMiddleware(tokenator,
-				middleware.JWTMiddleware(tokenator, http.HandlerFunc(orderService.CreateOrder)),
+				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(orderService.CreateOrder)),
 				conf.CSRFConfig,
 			)).Methods(http.MethodPost)
 		orderRouter.Handle("", middleware.JWTMiddleware(
+			authClient,
 			tokenator,
 			http.HandlerFunc(orderService.GetOrders),
 		)).Methods(http.MethodGet)
@@ -228,14 +345,123 @@ func NewApp(conf *config.Config) (*App, error) {
 	{
 		addressRouter.Handle("",
 			middleware.CSRFMiddleware(tokenator,
-				middleware.JWTMiddleware(tokenator, http.HandlerFunc(addressService.CreateAddress)),
+				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(addressService.CreateAddress)),
 				conf.CSRFConfig,
 			)).Methods(http.MethodPost)
 		addressRouter.Handle("", middleware.JWTMiddleware(
+			authClient,
 			tokenator,
 			http.HandlerFunc(addressService.GetAddress),
 		)).Methods(http.MethodGet)
 		addressRouter.HandleFunc("/pickup-points", addressService.GetPickupPoints).Methods(http.MethodGet)
+	}
+
+	csatRouter := apiRouter.PathPrefix("").Subrouter()
+	{
+		csatRouter.Handle("/csat/{name}",
+			middleware.CSRFMiddleware(tokenator,
+				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(csatHandler.GetSurvey)),
+				conf.CSRFConfig,
+			)).Methods(http.MethodGet)
+
+		csatRouter.Handle("/csat",
+			middleware.CSRFMiddleware(tokenator,
+				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(csatHandler.SubmitAnswer)),
+				conf.CSRFConfig,
+			)).Methods(http.MethodPost)
+
+		csatRouter.Handle("/survey",
+			middleware.CSRFMiddleware(tokenator,
+				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(csatHandler.GetAllSurveys)),
+				conf.CSRFConfig,
+			)).Methods(http.MethodGet)
+
+		csatRouter.Handle("/stat/{surveyId}",
+			middleware.CSRFMiddleware(tokenator,
+				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(csatHandler.GetSurveyStatistics)),
+				conf.CSRFConfig,
+			)).Methods(http.MethodGet)
+	}
+
+	reviewRouter := apiRouter.PathPrefix("/review").Subrouter()
+	{
+		reviewRouter.HandleFunc("", reviewHandler.Get).Methods(http.MethodPost)
+
+		reviewRouter.Handle("/add",
+			middleware.CSRFMiddleware(tokenator,
+				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(reviewHandler.Add)),
+				conf.CSRFConfig,
+			)).Methods(http.MethodPost)
+	}
+
+	adminRouter := apiRouter.PathPrefix("/admin").Subrouter()
+	{
+		adminRouter.Handle("/products/{offset}",
+			middleware.JWTMiddleware(authClient, tokenator,
+				middleware.RoleMiddleware("admin")(
+					http.HandlerFunc(adminService.GetPendingProducts),
+				),
+			),
+		).Methods(http.MethodGet)
+
+		adminRouter.Handle("/users/{offset}",
+			middleware.JWTMiddleware(authClient, tokenator,
+				middleware.RoleMiddleware("admin")(
+					http.HandlerFunc(adminService.GetPendingUsers),
+				),
+			),
+		).Methods(http.MethodGet)
+
+		adminRouter.Handle("/product/update",
+			middleware.CSRFMiddleware(tokenator,
+				middleware.JWTMiddleware(authClient, tokenator,
+					middleware.RoleMiddleware("admin")(
+						http.HandlerFunc(adminService.UpdateProductStatus),
+					),
+				),
+				conf.CSRFConfig,
+			)).Methods(http.MethodPost)
+
+		adminRouter.Handle("/user/update",
+			middleware.CSRFMiddleware(tokenator,
+				middleware.JWTMiddleware(authClient, tokenator,
+					middleware.RoleMiddleware("admin")(
+						http.HandlerFunc(adminService.UpdateUserRole),
+					),
+				),
+				conf.CSRFConfig,
+			)).Methods(http.MethodPost)
+	}
+
+	sellerRouter := apiRouter.PathPrefix("/seller").Subrouter()
+	{
+		sellerRouter.Handle("/add-product",
+			middleware.CSRFMiddleware(tokenator,
+				middleware.JWTMiddleware(authClient, tokenator,
+					middleware.RoleMiddleware("seller")(
+						http.HandlerFunc(sellerService.AddProduct),
+					),
+				),
+				conf.CSRFConfig,
+			)).Methods(http.MethodPost)
+
+		sellerRouter.Handle("/add-image/{id}",
+			middleware.CSRFMiddleware(tokenator,
+				middleware.JWTMiddleware(authClient, tokenator,
+					middleware.RoleMiddleware("seller")(
+						http.HandlerFunc(sellerService.UploadProductImage),
+					),
+				),
+				conf.CSRFConfig,
+			)).Methods(http.MethodPost)
+
+		sellerRouter.Handle("/products/{offset}",
+			middleware.JWTMiddleware(authClient, tokenator,
+				middleware.RoleMiddleware("seller")(
+					http.HandlerFunc(sellerService.GetSellerProducts),
+				),
+			),
+		).Methods(http.MethodGet)
 	}
 
 	app := &App{
@@ -250,6 +476,7 @@ func NewApp(conf *config.Config) (*App, error) {
 
 // Run запускает HTTP-сервер.
 func (a *App) Run() {
+
 	server := &http.Server{
 		Handler:      a.router,
 		Addr:         fmt.Sprintf(":%s", a.conf.ServerConfig.Port),

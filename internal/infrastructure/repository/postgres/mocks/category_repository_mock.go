@@ -10,6 +10,7 @@ import (
 
 	models "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 	gomock "github.com/golang/mock/gomock"
+	uuid "github.com/google/uuid"
 )
 
 // MockICategoryRepository is a mock of ICategoryRepository interface.
@@ -48,4 +49,34 @@ func (m *MockICategoryRepository) GetAllCategories(ctx context.Context) ([]*mode
 func (mr *MockICategoryRepositoryMockRecorder) GetAllCategories(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllCategories", reflect.TypeOf((*MockICategoryRepository)(nil).GetAllCategories), ctx)
+}
+
+// GetAllSubcategories mocks base method.
+func (m *MockICategoryRepository) GetAllSubcategories(ctx context.Context, category_id uuid.UUID) ([]*models.Category, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAllSubcategories", ctx, category_id)
+	ret0, _ := ret[0].([]*models.Category)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAllSubcategories indicates an expected call of GetAllSubcategories.
+func (mr *MockICategoryRepositoryMockRecorder) GetAllSubcategories(ctx, category_id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllSubcategories", reflect.TypeOf((*MockICategoryRepository)(nil).GetAllSubcategories), ctx, category_id)
+}
+
+// GetNameSubcategory mocks base method.
+func (m *MockICategoryRepository) GetNameSubcategory(ctx context.Context, id uuid.UUID) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetNameSubcategory", ctx, id)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetNameSubcategory indicates an expected call of GetNameSubcategory.
+func (mr *MockICategoryRepositoryMockRecorder) GetNameSubcategory(ctx, id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNameSubcategory", reflect.TypeOf((*MockICategoryRepository)(nil).GetNameSubcategory), ctx, id)
 }

@@ -23,7 +23,20 @@ const (
 	queryGetOrdersByUserID     = `SELECT id, status, total_price, total_price_discount, address_id, expected_delivery_at, actual_delivery_at, created_at FROM bazaar.order WHERE user_id = $1`
 	queryGetOrderProducts      = `SELECT product_id, quantity FROM bazaar.order_item WHERE order_id = $1`
 	queryGetProductImg         = `SELECT preview_image_url FROM bazaar.product WHERE id = $1 LIMIT 1`
-	queryGetOrderAddress       = `SELECT region, city, address_string, coordinate FROM bazaar.address WHERE id = $1 LIMIT 1`
+	queryGetOrderAddress       = `
+        SELECT 
+            a.region, 
+            a.city, 
+            a.address_string, 
+            a.coordinate,
+            ua.label
+        FROM 
+            bazaar.address a
+        LEFT JOIN 
+            bazaar.user_address ua ON a.id = ua.address_id
+        WHERE 
+            a.id = $1 
+        LIMIT 1`
 )
 
 //go:generate mockgen -source=order.go -destination=../mocks/order_repository_mock.go -package=mocks IOrderRepository
@@ -273,6 +286,7 @@ func (r *OrderRepository) GetOrderAddress(ctx context.Context, addressID uuid.UU
 		&address.City,
 		&address.AddressString,
 		&address.Coordinate,
+		&address.Label,
 	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errs.NewNotFoundError("order address not found")

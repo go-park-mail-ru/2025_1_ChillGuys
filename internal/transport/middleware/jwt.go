@@ -2,16 +2,19 @@ package middleware
 
 import (
 	"context"
+	"net/http"
+	"time"
+
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/domains"
+	gen "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/generated/auth"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/jwt"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/response"
 	"github.com/sirupsen/logrus"
-	"net/http"
-	"time"
+	"google.golang.org/grpc/metadata"
 )
 
 // JWTMiddleware проверяет наличие и валидность JWT-токена в куках
-func JWTMiddleware(tokenator *jwt.Tokenator, next http.Handler) http.Handler {
+func JWTMiddleware(authClient gen.AuthServiceClient, tokenator *jwt.Tokenator, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
@@ -49,16 +52,26 @@ func JWTMiddleware(tokenator *jwt.Tokenator, next http.Handler) http.Handler {
 			return
 		}
 
-		// Вызываем ParseJWT через экземпляр Tokenator
+		// Вызываем gRPC метод CheckToken для проверки токена
+		checkResp, err := authClient.CheckToken(ctx, &gen.CheckTokenReq{
+			Token: tokenString,
+		})
+		if err != nil {
+			requestLogger.WithError(err).Error("Failed to check token via gRPC")
+			response.SendJSONError(ctx, w, http.StatusUnauthorized, "Invalid token")
+			return
+		}
+
+		if !checkResp.Valid {
+			requestLogger.Warn("Token is not valid")
+			response.SendJSONError(ctx, w, http.StatusUnauthorized, "Invalid token")
+			return
+		}
+
+		// Дополнительно парсим токен для получения claims (если нужно)
 		claims, err := tokenator.ParseJWT(tokenString)
 		if err != nil {
-			requestLogger.WithFields(logrus.Fields{
-				"method": r.Method,
-				"path":   r.URL.Path,
-				"ip":     r.RemoteAddr,
-				"error":  err.Error(),
-			}).Error("Invalid token")
-
+			requestLogger.WithError(err).Error("Failed to parse token after gRPC validation")
 			response.SendJSONError(ctx, w, http.StatusUnauthorized, "Invalid token")
 			return
 		}
@@ -70,14 +83,16 @@ func JWTMiddleware(tokenator *jwt.Tokenator, next http.Handler) http.Handler {
 			return
 		}
 
-		if !tokenator.VC.CheckUserVersion(ctx, claims.UserID, claims.Version) {
-			requestLogger.Warn("Token is invalid or expired")
-			response.SendJSONError(ctx, w, http.StatusUnauthorized, "Token is invalid or expired")
-			return
-		}
-
-		// Передаем userID в контекст
+		// Передаем userID и role в контекст
 		ctx = context.WithValue(ctx, domains.UserIDKey{}, claims.UserID)
+		ctx = context.WithValue(ctx, domains.RoleKey{}, claims.Role)
+
+		// Добавляем user-id в метаданные для gRPC
+		ctx = metadata.AppendToOutgoingContext(ctx, 
+			"user-id", claims.UserID,
+			"role", claims.Role,  // <- Добавьте эту строку
+		)
+		
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

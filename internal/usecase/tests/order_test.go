@@ -3,6 +3,7 @@ package tests
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/mocks"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
@@ -10,7 +11,7 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/order"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
+	"github.com/guregu/null"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -20,9 +21,8 @@ func TestCreateOrder(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockRepo := mocks.NewMockIOrderRepository(ctrl)
-	logger := logrus.New()
 
-	orderUC := order.NewOrderUsecase(mockRepo, logger)
+	orderUC := order.NewOrderUsecase(mockRepo)
 
 	testUserID := uuid.New()
 	testAddressID := uuid.New()
@@ -163,6 +163,112 @@ func TestCreateOrder(t *testing.T) {
 				assert.Contains(t, err.Error(), tt.expectedError.Error())
 			} else {
 				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestGetUserOrders(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRepo := mocks.NewMockIOrderRepository(ctrl)
+	orderUC := order.NewOrderUsecase(mockRepo)
+
+	testUserID := uuid.New()
+	orderID := uuid.New()
+	addressID := uuid.New()
+	productID := uuid.New()
+
+	tests := []struct {
+		name           string
+		mockSetup      func()
+		expectedOrders *[]dto.OrderPreviewDTO
+		expectedError  error
+	}{
+		{
+			name: "Successful retrieval of orders",
+			mockSetup: func() {
+				mockRepo.EXPECT().GetOrdersByUserID(gomock.Any(), testUserID).
+					Return(&[]dto.GetOrderByUserIDResDTO{
+						{
+							ID:                 orderID,
+							Status:             models.Placed,
+							TotalPrice:         100.0,
+							TotalPriceDiscount: 10.0,
+							AddressID:          addressID,
+							ExpectedDeliveryAt: nil,
+							ActualDeliveryAt:   nil,
+							CreatedAt:          nil,
+						},
+					}, nil)
+
+				mockRepo.EXPECT().GetOrderProducts(gomock.Any(), orderID).
+					Return(&[]dto.GetOrderProductResDTO{
+						{
+							ProductID: productID,
+							Quantity:  2,
+						},
+					}, nil)
+
+				mockRepo.EXPECT().GetOrderAddress(gomock.Any(), addressID).
+					Return(&models.AddressDB{ID: addressID, City: null.StringFrom("City")}, nil)
+
+				mockRepo.EXPECT().GetProductImage(gomock.Any(), productID).
+					Return("https://example.com/image.jpg", nil)
+			},
+			expectedOrders: &[]dto.OrderPreviewDTO{
+				{
+					ID:                 orderID,
+					Status:             models.Placed,
+					TotalPrice:         100.0,
+					TotalDiscountPrice: 10.0,
+					Products: []models.OrderPreviewProductDTO{
+						{
+							ProductImageURL: null.StringFrom("https://example.com/image.jpg"),
+							ProductQuantity: 2,
+						},
+					},
+					Address:            models.AddressDB{ID: addressID, City: null.StringFrom("City")},
+					ExpectedDeliveryAt: nil,
+					ActualDeliveryAt:   nil,
+					CreatedAt:          nil,
+				},
+			},
+			expectedError: nil,
+		},
+		{
+			name: "Error retrieving orders",
+			mockSetup: func() {
+				mockRepo.EXPECT().GetOrdersByUserID(gomock.Any(), testUserID).
+					Return(nil, errors.New("database error"))
+			},
+			expectedOrders: nil,
+			expectedError:  fmt.Errorf("OrderUsecase.GetUserOrders: database error"),
+		},
+		{
+			name: "No orders found",
+			mockSetup: func() {
+				mockRepo.EXPECT().GetOrdersByUserID(gomock.Any(), testUserID).
+					Return(nil, errs.ErrNotFound)
+			},
+			expectedOrders: nil,
+			expectedError:  fmt.Errorf("OrderUsecase.GetUserOrders: %w", errs.NewNotFoundError("OrderUsecase.GetUserOrders")),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.mockSetup()
+
+			orders, err := orderUC.GetUserOrders(context.Background(), testUserID)
+
+			if tt.expectedError != nil {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), tt.expectedError.Error())
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, *tt.expectedOrders, *orders)
 			}
 		})
 	}

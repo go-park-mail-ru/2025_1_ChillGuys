@@ -72,3 +72,30 @@ CREATE TRIGGER update_user_balance_updated_at
     ON bazaar.user_balance
     FOR EACH ROW
 EXECUTE FUNCTION update_updated_at();
+
+CREATE OR REPLACE FUNCTION update_product_review_stats()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Обновляем статистику продукта при любых изменениях в отзывах
+    UPDATE bazaar.product p
+    SET 
+        reviews_count = subquery.review_count,
+        rating = subquery.avg_rating
+    FROM (
+        SELECT 
+            COUNT(*) as review_count,
+            COALESCE(AVG(rating), 0) as avg_rating
+        FROM bazaar.review
+        WHERE product_id = COALESCE(NEW.product_id, OLD.product_id)
+    ) subquery
+    WHERE p.id = COALESCE(NEW.product_id, OLD.product_id);
+    
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Триггер для вставки нового отзыва
+CREATE TRIGGER after_review_insert
+AFTER INSERT ON bazaar.review
+FOR EACH ROW
+EXECUTE FUNCTION update_product_review_stats();

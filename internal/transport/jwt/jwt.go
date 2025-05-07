@@ -1,7 +1,6 @@
 package jwt
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
@@ -11,43 +10,38 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 )
 
-type VersionChecker interface {
-	CheckUserVersion(ctx context.Context, userID string, version int) bool
-}
-
 // JWTClaims структура для данных токена
 type JWTClaims struct {
 	UserID    string
 	Version   int
 	ExpiresAt int64
+	Role      string
 	jwt.StandardClaims
 }
 
 // Tokenator структура для создания и парсинга токенов
 type Tokenator struct {
-	sign          string
-	tokenLifeSpan time.Duration
-	VC            VersionChecker
+	Sign          string
+	TokenLifeSpan time.Duration
 }
 
 // NewTokenator создает новый экземпляр Tokenator
-func NewTokenator(vc VersionChecker, conf *config.JWTConfig) *Tokenator {
+func NewTokenator(conf *config.JWTConfig) *Tokenator {
 	return &Tokenator{
-		sign:          conf.Signature,
-		tokenLifeSpan: conf.TokenLifeSpan,
-		VC:            vc,
+		Sign:          conf.Signature,
+		TokenLifeSpan: conf.TokenLifeSpan,
 	}
 }
 
 // CreateJWT генерирует JWT токен для заданного userID и version
-func (t *Tokenator) CreateJWT(userID string, version int) (string, error) {
+func (t *Tokenator) CreateJWT(userID string, role string) (string, error) {
 	now := time.Now()
-	expiration := now.Add(t.tokenLifeSpan)
+	expiration := now.Add(t.TokenLifeSpan)
 
 	claims := JWTClaims{
 		UserID:    userID,
-		Version:   version,
 		ExpiresAt: expiration.Unix(),
+		Role:      role,
 		StandardClaims: jwt.StandardClaims{
 			IssuedAt:  now.Unix(),
 			ExpiresAt: expiration.Unix(),
@@ -56,7 +50,7 @@ func (t *Tokenator) CreateJWT(userID string, version int) (string, error) {
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
-	return token.SignedString([]byte(t.sign))
+	return token.SignedString([]byte(t.Sign))
 }
 
 // ParseJWT парсит и валидирует JWT-токен
@@ -68,7 +62,7 @@ func (t *Tokenator) ParseJWT(tokenString string) (*JWTClaims, error) {
 			return nil, errors.New("unexpected signing method")
 		}
 
-		return []byte(t.sign), nil
+		return []byte(t.Sign), nil
 	})
 
 	if err != nil {

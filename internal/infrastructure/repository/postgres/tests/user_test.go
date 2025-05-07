@@ -5,16 +5,15 @@ import (
 	"database/sql"
 	"errors"
 	"testing"
-	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	userRepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/user"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
 	"github.com/google/uuid"
 	"github.com/guregu/null"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	user "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/user"
 )
 
 func TestUserRepository_GetUserByEmail(t *testing.T) {
@@ -24,63 +23,38 @@ func TestUserRepository_GetUserByEmail(t *testing.T) {
 	require.NoError(t, err)
 	defer db.Close()
 
-	repo := userRepo.NewUserRepository(db)
+	repo := user.NewUserRepository(db)
 
 	t.Run("success", func(t *testing.T) {
 		userID := uuid.New()
-		versionID := uuid.New()
-		now := time.Now()
-
+		email := "test@example.com"
 		expectedUser := &models.UserDB{
 			ID:           userID,
-			Email:        "test@example.com",
+			Email:        email,
 			Name:         "Test",
 			Surname:      null.StringFrom("User"),
-			PasswordHash: []byte("hashed_password"),
+			PasswordHash: []byte("hash"),
 			ImageURL:     null.StringFrom("image.jpg"),
-			UserVersion: models.UserVersionDB{
-				ID:        versionID,
-				UserID:    userID,
-				Version:   1,
-				UpdatedAt: now,
-			},
+			Role:         models.RoleBuyer,
 		}
 
 		row := sqlmock.NewRows([]string{
-			"id", "email", "name", "surname", "password_hash", "image_url",
-			"user_version_id", "version", "updated_at",
-		}).
-			AddRow(
-				expectedUser.ID,
-				expectedUser.Email,
-				expectedUser.Name,
-				expectedUser.Surname,
-				expectedUser.PasswordHash,
-				expectedUser.ImageURL,
-				expectedUser.UserVersion.ID,
-				expectedUser.UserVersion.Version,
-				expectedUser.UserVersion.UpdatedAt,
-			)
+			"id", "email", "name", "surname", "password_hash", "image_url", "role",
+		}).AddRow(
+			expectedUser.ID,
+			expectedUser.Email,
+			expectedUser.Name,
+			expectedUser.Surname,
+			expectedUser.PasswordHash,
+			expectedUser.ImageURL,
+			expectedUser.Role.String(),
+		)
 
-		mock.ExpectQuery(`
-      SELECT
-        u.id,
-        u.email,
-        u.name,
-        u.surname,
-        u.password_hash,
-        u.image_url,
-        uv.id AS user_version_id,
-        uv.version,
-        uv.updated_at
-      FROM bazaar.user u
-        LEFT JOIN bazaar.user_version uv ON u.id = uv.user_id
-      WHERE u.email = \$1;
-    `).
-			WithArgs(expectedUser.Email).
+		mock.ExpectQuery(`SELECT.*FROM bazaar.user`).
+			WithArgs(email).
 			WillReturnRows(row)
 
-		user, err := repo.GetUserByEmail(context.Background(), expectedUser.Email)
+		user, err := repo.GetUserByEmail(context.Background(), email)
 		require.NoError(t, err)
 		assert.Equal(t, expectedUser, user)
 	})
@@ -88,48 +62,20 @@ func TestUserRepository_GetUserByEmail(t *testing.T) {
 	t.Run("not found", func(t *testing.T) {
 		email := "notfound@example.com"
 
-		mock.ExpectQuery(`
-      SELECT
-        u.id,
-        u.email,
-        u.name,
-        u.surname,
-        u.password_hash,
-        u.image_url,
-        uv.id AS user_version_id,
-        uv.version,
-        uv.updated_at
-      FROM bazaar.user u
-        LEFT JOIN bazaar.user_version uv ON u.id = uv.user_id
-      WHERE u.email = \$1;
-    `).
+		mock.ExpectQuery(`SELECT.*FROM bazaar.user`).
 			WithArgs(email).
 			WillReturnError(sql.ErrNoRows)
 
 		user, err := repo.GetUserByEmail(context.Background(), email)
 		require.Error(t, err)
-		require.ErrorIs(t, err, errs.ErrNotFound)
+		assert.True(t, errors.Is(err, errs.ErrInvalidCredentials))
 		assert.Nil(t, user)
 	})
 
 	t.Run("database error", func(t *testing.T) {
-		email := "test@example.com"
+		email := "error@example.com"
 
-		mock.ExpectQuery(`
-      SELECT
-        u.id,
-        u.email,
-        u.name,
-        u.surname,
-        u.password_hash,
-        u.image_url,
-        uv.id AS user_version_id,
-        uv.version,
-        uv.updated_at
-      FROM bazaar.user u
-        LEFT JOIN bazaar.user_version uv ON u.id = uv.user_id
-      WHERE u.email = \$1;
-    `).
+		mock.ExpectQuery(`SELECT.*FROM bazaar.user`).
 			WithArgs(email).
 			WillReturnError(errors.New("database error"))
 
@@ -146,62 +92,35 @@ func TestUserRepository_GetUserByID(t *testing.T) {
 	require.NoError(t, err)
 	defer db.Close()
 
-	repo := userRepo.NewUserRepository(db)
+	repo := user.NewUserRepository(db)
 
 	t.Run("success", func(t *testing.T) {
 		userID := uuid.New()
-		versionID := uuid.New()
-		now := time.Now()
-
 		expectedUser := &models.UserDB{
 			ID:           userID,
 			Email:        "test@example.com",
 			Name:         "Test",
 			Surname:      null.StringFrom("User"),
-			PasswordHash: []byte("hashed_password"),
+			PasswordHash: []byte("hash"),
 			ImageURL:     null.StringFrom("image.jpg"),
 			PhoneNumber:  null.StringFrom("+1234567890"),
-			UserVersion: models.UserVersionDB{
-				ID:        versionID,
-				UserID:    userID,
-				Version:   1,
-				UpdatedAt: now,
-			},
+			Role:         models.RoleBuyer,
 		}
 
 		row := sqlmock.NewRows([]string{
-			"id", "email", "name", "surname", "password_hash", "image_url", "phone_number",
-			"user_version_id", "version", "updated_at",
-		}).
-			AddRow(
-				expectedUser.ID,
-				expectedUser.Email,
-				expectedUser.Name,
-				expectedUser.Surname,
-				expectedUser.PasswordHash,
-				expectedUser.ImageURL,
-				expectedUser.PhoneNumber,
-				expectedUser.UserVersion.ID,
-				expectedUser.UserVersion.Version,
-				expectedUser.UserVersion.UpdatedAt,
-			)
+			"id", "email", "name", "surname", "password_hash", "image_url", "phone_number", "role",
+		}).AddRow(
+			expectedUser.ID,
+			expectedUser.Email,
+			expectedUser.Name,
+			expectedUser.Surname,
+			expectedUser.PasswordHash,
+			expectedUser.ImageURL,
+			expectedUser.PhoneNumber,
+			expectedUser.Role.String(),
+		)
 
-		mock.ExpectQuery(`
-      SELECT 
-        u.id, 
-        u.email, 
-        u.name, 
-        u.surname, 
-        u.password_hash, 
-        u.image_url, 
-        u.phone_number,
-        uv.id AS user_version_id, 
-        uv.version, 
-        uv.updated_at
-      FROM bazaar.user u
-      LEFT JOIN bazaar.user_version uv ON u.id = uv.user_id
-      WHERE u.id = \$1;
-    `).
+		mock.ExpectQuery(`SELECT.*FROM bazaar.user`).
 			WithArgs(userID).
 			WillReturnRows(row)
 
@@ -213,50 +132,20 @@ func TestUserRepository_GetUserByID(t *testing.T) {
 	t.Run("not found", func(t *testing.T) {
 		userID := uuid.New()
 
-		mock.ExpectQuery(`
-      SELECT 
-        u.id, 
-        u.email, 
-        u.name, 
-        u.surname, 
-        u.password_hash, 
-        u.image_url, 
-        u.phone_number,
-        uv.id AS user_version_id, 
-        uv.version, 
-        uv.updated_at
-      FROM bazaar.user u
-      LEFT JOIN bazaar.user_version uv ON u.id = uv.user_id
-      WHERE u.id = \$1;
-    `).
+		mock.ExpectQuery(`SELECT.*FROM bazaar.user`).
 			WithArgs(userID).
 			WillReturnError(sql.ErrNoRows)
 
 		user, err := repo.GetUserByID(context.Background(), userID)
 		require.Error(t, err)
-		require.ErrorIs(t, err, errs.ErrNotFound)
+		assert.True(t, errors.Is(err, errs.ErrInvalidCredentials))
 		assert.Nil(t, user)
 	})
 
 	t.Run("database error", func(t *testing.T) {
 		userID := uuid.New()
 
-		mock.ExpectQuery(`
-      SELECT 
-        u.id, 
-        u.email, 
-        u.name, 
-        u.surname, 
-        u.password_hash, 
-        u.image_url, 
-        u.phone_number,
-        uv.id AS user_version_id, 
-        uv.version, 
-        uv.updated_at
-      FROM bazaar.user u
-      LEFT JOIN bazaar.user_version uv ON u.id = uv.user_id
-      WHERE u.id = \$1;
-    `).
+		mock.ExpectQuery(`SELECT.*FROM bazaar.user`).
 			WithArgs(userID).
 			WillReturnError(errors.New("database error"))
 
@@ -273,15 +162,13 @@ func TestUserRepository_UpdateUserImageURL(t *testing.T) {
 	require.NoError(t, err)
 	defer db.Close()
 
-	repo := userRepo.NewUserRepository(db)
+	repo := user.NewUserRepository(db)
 
 	t.Run("success", func(t *testing.T) {
 		userID := uuid.New()
 		imageURL := "new_image.jpg"
 
-		mock.ExpectExec(`
-      UPDATE bazaar.user SET image_url = \$1 WHERE id = \$2
-    `).
+		mock.ExpectExec(`UPDATE bazaar.user SET image_url = \$1 WHERE id = \$2`).
 			WithArgs(imageURL, userID).
 			WillReturnResult(sqlmock.NewResult(0, 1))
 
@@ -293,24 +180,20 @@ func TestUserRepository_UpdateUserImageURL(t *testing.T) {
 		userID := uuid.New()
 		imageURL := "new_image.jpg"
 
-		mock.ExpectExec(`
-      UPDATE bazaar.user SET image_url = \$1 WHERE id = \$2
-    `).
+		mock.ExpectExec(`UPDATE bazaar.user SET image_url = \$1 WHERE id = \$2`).
 			WithArgs(imageURL, userID).
 			WillReturnResult(sqlmock.NewResult(0, 0))
 
 		err := repo.UpdateUserImageURL(context.Background(), userID, imageURL)
 		require.Error(t, err)
-		require.ErrorIs(t, err, errs.ErrNotFound)
+		assert.True(t, errors.Is(err, errs.ErrNotFound))
 	})
 
 	t.Run("database error", func(t *testing.T) {
 		userID := uuid.New()
 		imageURL := "new_image.jpg"
 
-		mock.ExpectExec(`
-      UPDATE bazaar.user SET image_url = \$1 WHERE id = \$2
-    `).
+		mock.ExpectExec(`UPDATE bazaar.user SET image_url = \$1 WHERE id = \$2`).
 			WithArgs(imageURL, userID).
 			WillReturnError(errors.New("database error"))
 
@@ -326,19 +209,17 @@ func TestUserRepository_UpdateUserProfile(t *testing.T) {
 	require.NoError(t, err)
 	defer db.Close()
 
-	repo := userRepo.NewUserRepository(db)
+	repo := user.NewUserRepository(db)
 
 	t.Run("success", func(t *testing.T) {
 		userID := uuid.New()
 		updateData := models.UpdateUserDB{
-			Name:        "New Name",
-			Surname:     null.StringFrom("New Surname"),
+			Name:        "NewName",
+			Surname:     null.StringFrom("NewSurname"),
 			PhoneNumber: null.StringFrom("+1234567890"),
 		}
 
-		mock.ExpectExec(`
-      UPDATE bazaar.user SET name = \$1, surname = \$2, phone_number = \$3 WHERE id = \$4;
-    `).
+		mock.ExpectExec(`UPDATE bazaar.user SET name = \$1, surname = \$2, phone_number = \$3 WHERE id = \$4`).
 			WithArgs(updateData.Name, updateData.Surname, updateData.PhoneNumber, userID).
 			WillReturnResult(sqlmock.NewResult(0, 1))
 
@@ -349,14 +230,12 @@ func TestUserRepository_UpdateUserProfile(t *testing.T) {
 	t.Run("database error", func(t *testing.T) {
 		userID := uuid.New()
 		updateData := models.UpdateUserDB{
-			Name:        "New Name",
-			Surname:     null.StringFrom("New Surname"),
+			Name:        "NewName",
+			Surname:     null.StringFrom("NewSurname"),
 			PhoneNumber: null.StringFrom("+1234567890"),
 		}
 
-		mock.ExpectExec(`
-      UPDATE bazaar.user SET name = \$1, surname = \$2, phone_number = \$3 WHERE id = \$4;
-    `).
+		mock.ExpectExec(`UPDATE bazaar.user SET name = \$1, surname = \$2, phone_number = \$3 WHERE id = \$4`).
 			WithArgs(updateData.Name, updateData.Surname, updateData.PhoneNumber, userID).
 			WillReturnError(errors.New("database error"))
 
@@ -372,15 +251,13 @@ func TestUserRepository_UpdateUserEmail(t *testing.T) {
 	require.NoError(t, err)
 	defer db.Close()
 
-	repo := userRepo.NewUserRepository(db)
+	repo := user.NewUserRepository(db)
 
 	t.Run("success", func(t *testing.T) {
 		userID := uuid.New()
 		newEmail := "new@example.com"
 
-		mock.ExpectExec(`
-      UPDATE bazaar.user SET email = \$1 WHERE id = \$2;
-    `).
+		mock.ExpectExec(`UPDATE bazaar.user SET email = \$1 WHERE id = \$2`).
 			WithArgs(newEmail, userID).
 			WillReturnResult(sqlmock.NewResult(0, 1))
 
@@ -392,9 +269,7 @@ func TestUserRepository_UpdateUserEmail(t *testing.T) {
 		userID := uuid.New()
 		newEmail := "new@example.com"
 
-		mock.ExpectExec(`
-      UPDATE bazaar.user SET email = \$1 WHERE id = \$2;
-    `).
+		mock.ExpectExec(`UPDATE bazaar.user SET email = \$1 WHERE id = \$2`).
 			WithArgs(newEmail, userID).
 			WillReturnError(errors.New("database error"))
 
@@ -410,33 +285,119 @@ func TestUserRepository_UpdateUserPassword(t *testing.T) {
 	require.NoError(t, err)
 	defer db.Close()
 
-	repo := userRepo.NewUserRepository(db)
+	repo := user.NewUserRepository(db)
 
 	t.Run("success", func(t *testing.T) {
 		userID := uuid.New()
-		newPasswordHash := []byte("new_hashed_password")
+		passwordHash := []byte("new_hash")
 
-		mock.ExpectExec(`
-      UPDATE bazaar.user SET password_hash = \$1 WHERE id = \$2;
-    `).
-			WithArgs(newPasswordHash, userID).
+		mock.ExpectExec(`UPDATE bazaar.user SET password_hash = \$1 WHERE id = \$2`).
+			WithArgs(passwordHash, userID).
 			WillReturnResult(sqlmock.NewResult(0, 1))
 
-		err := repo.UpdateUserPassword(context.Background(), userID, newPasswordHash)
+		err := repo.UpdateUserPassword(context.Background(), userID, passwordHash)
 		require.NoError(t, err)
 	})
 
 	t.Run("database error", func(t *testing.T) {
 		userID := uuid.New()
-		newPasswordHash := []byte("new_hashed_password")
+		passwordHash := []byte("new_hash")
 
-		mock.ExpectExec(`
-      UPDATE bazaar.user SET password_hash = \$1 WHERE id = \$2;
-    `).
-			WithArgs(newPasswordHash, userID).
+		mock.ExpectExec(`UPDATE bazaar.user SET password_hash = \$1 WHERE id = \$2`).
+			WithArgs(passwordHash, userID).
 			WillReturnError(errors.New("database error"))
 
-		err := repo.UpdateUserPassword(context.Background(), userID, newPasswordHash)
+		err := repo.UpdateUserPassword(context.Background(), userID, passwordHash)
+		require.Error(t, err)
+	})
+}
+
+func TestUserRepository_CreateSellerAndUpdateRole(t *testing.T) {
+	t.Parallel()
+
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+
+	repo := user.NewUserRepository(db)
+
+	t.Run("success", func(t *testing.T) {
+		userID := uuid.New()
+		title := "Test Seller"
+		description := "Test Description"
+
+		mock.ExpectBegin()
+		mock.ExpectExec(`INSERT INTO bazaar.seller`).
+			WithArgs(sqlmock.AnyArg(), title, description, userID).
+			WillReturnResult(sqlmock.NewResult(1, 1))
+		mock.ExpectExec(`UPDATE bazaar.user SET role = \$1 WHERE id = \$2`).
+			WithArgs(models.RolePending.String(), userID).
+			WillReturnResult(sqlmock.NewResult(0, 1))
+		mock.ExpectCommit()
+
+		err := repo.CreateSellerAndUpdateRole(context.Background(), userID, title, description)
+		require.NoError(t, err)
+	})
+
+	t.Run("transaction begin error", func(t *testing.T) {
+		userID := uuid.New()
+		title := "Test Seller"
+		description := "Test Description"
+
+		mock.ExpectBegin().WillReturnError(errors.New("begin error"))
+
+		err := repo.CreateSellerAndUpdateRole(context.Background(), userID, title, description)
+		require.Error(t, err)
+	})
+
+	t.Run("create seller error", func(t *testing.T) {
+		userID := uuid.New()
+		title := "Test Seller"
+		description := "Test Description"
+
+		mock.ExpectBegin()
+		mock.ExpectExec(`INSERT INTO bazaar.seller`).
+			WithArgs(sqlmock.AnyArg(), title, description, userID).
+			WillReturnError(errors.New("insert error"))
+		mock.ExpectRollback()
+
+		err := repo.CreateSellerAndUpdateRole(context.Background(), userID, title, description)
+		require.Error(t, err)
+	})
+
+	t.Run("update role error", func(t *testing.T) {
+		userID := uuid.New()
+		title := "Test Seller"
+		description := "Test Description"
+
+		mock.ExpectBegin()
+		mock.ExpectExec(`INSERT INTO bazaar.seller`).
+			WithArgs(sqlmock.AnyArg(), title, description, userID).
+			WillReturnResult(sqlmock.NewResult(1, 1))
+		mock.ExpectExec(`UPDATE bazaar.user SET role = \$1 WHERE id = \$2`).
+			WithArgs(models.RolePending.String(), userID).
+			WillReturnError(errors.New("update error"))
+		mock.ExpectRollback()
+
+		err := repo.CreateSellerAndUpdateRole(context.Background(), userID, title, description)
+		require.Error(t, err)
+	})
+
+	t.Run("commit error", func(t *testing.T) {
+		userID := uuid.New()
+		title := "Test Seller"
+		description := "Test Description"
+
+		mock.ExpectBegin()
+		mock.ExpectExec(`INSERT INTO bazaar.seller`).
+			WithArgs(sqlmock.AnyArg(), title, description, userID).
+			WillReturnResult(sqlmock.NewResult(1, 1))
+		mock.ExpectExec(`UPDATE bazaar.user SET role = \$1 WHERE id = \$2`).
+			WithArgs(models.RolePending.String(), userID).
+			WillReturnResult(sqlmock.NewResult(0, 1))
+		mock.ExpectCommit().WillReturnError(errors.New("commit error"))
+
+		err := repo.CreateSellerAndUpdateRole(context.Background(), userID, title, description)
 		require.Error(t, err)
 	})
 }

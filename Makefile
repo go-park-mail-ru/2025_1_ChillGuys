@@ -8,7 +8,7 @@ run:
 
 test:
 	mkdir -p coverage
-	go test -v $$(go list ./... | grep -Ev '/(mocks|docs|cmd|db|config|internal/app)') -coverprofile=coverage/cover.out
+	go test -v $$(go list ./... | grep -Ev '/(mocks|docs|cmd|db|config|internal/app|generated)') -coverprofile=coverage/cover.out
 
 coverage: test
 	go tool cover -html=coverage/cover.out -o coverage/cover.html
@@ -50,3 +50,39 @@ migrations:
 swag:
 	swag fmt
 	swag init -g ./cmd/${APP_NAME}/main.go
+
+auth_proto:
+	@mkdir -p internal/transport/generated/auth && \
+	protoc --proto_path=proto \
+		--go_out=internal/transport/generated/auth \
+		--go-grpc_out=internal/transport/generated/auth \
+		--go-grpc_opt=paths=source_relative \
+		--go_opt=paths=source_relative \
+		proto/auth.proto
+
+user_proto:
+	@mkdir -p internal/transport/generated/user && \
+	protoc --proto_path=proto \
+		--go_out=internal/transport/generated/user \
+		--go-grpc_out=internal/transport/generated/user \
+		--go-grpc_opt=paths=source_relative \
+		--go_opt=paths=source_relative \
+		proto/user.proto
+
+csat_proto:
+	@mkdir -p internal/transport/generated/csat && \
+	protoc --proto_path=proto \
+		--go_out=internal/transport/generated/csat \
+		--go-grpc_out=internal/transport/generated/csat \
+		--go-grpc_opt=paths=source_relative \
+		--go_opt=paths=source_relative \
+		proto/csat.proto
+
+review_proto:
+	@mkdir -p internal/transport/generated/review && \
+	protoc --proto_path=proto \
+		--go_out=internal/transport/generated/review \
+		--go-grpc_out=internal/transport/generated/review \
+		--go-grpc_opt=paths=source_relative \
+		--go_opt=paths=source_relative \
+		proto/review.proto

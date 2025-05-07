@@ -6,7 +6,14 @@ CREATE TYPE bazaar.product_status AS ENUM (
     'pending', -- Ожидает
     'rejected', -- Отказано
     'approved' -- Одобрено
-    );
+);
+
+CREATE TYPE user_role AS ENUM (
+    'admin',    -- админ
+    'buyer',    -- покупатель
+    'seller',   -- продавец
+    'pending'   -- в ожидании
+);
 
 -- Создание ENUM для статуса заказа
 CREATE TYPE bazaar.order_status AS ENUM (
@@ -53,7 +60,16 @@ CREATE TABLE IF NOT EXISTS bazaar."user"
     name          TEXT        NOT NULL,
     surname       TEXT,
     image_url     TEXT,
+    role          user_role NOT NULL,
     address_id    UUID        REFERENCES bazaar.address (id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS bazaar.seller
+(
+    id          UUID PRIMARY KEY,
+    title       TEXT NOT NULL,
+    description TEXT NOT NULL,
+    user_id     UUID NOT NULL REFERENCES bazaar."user" (id) ON DELETE CASCADE
 );
 
 -- Связующая таблица: многие ко многим между auth и address
@@ -94,22 +110,6 @@ CREATE TABLE bazaar.user_balance
     UNIQUE (user_id)
 );
 
--- Создание таблицы ролей
-CREATE TABLE IF NOT EXISTS bazaar.role
-(
-    id   UUID PRIMARY KEY,
-    name TEXT UNIQUE NOT NULL
-);
-
--- Создание таблицы user_role
-CREATE TABLE IF NOT EXISTS bazaar.user_role
-(
-    id      UUID PRIMARY KEY,
-    user_id UUID REFERENCES bazaar."user" (id) ON DELETE CASCADE,
-    role_id UUID REFERENCES bazaar.role (id) ON DELETE CASCADE,
-    UNIQUE (user_id, role_id)
-);
-
 -- Версии пользователя
 CREATE TABLE IF NOT EXISTS bazaar.user_version
 (
@@ -131,7 +131,7 @@ CREATE TABLE IF NOT EXISTS bazaar.product
     price             NUMERIC(12, 2) CHECK (price >= 0) NOT NULL,
     quantity          INT CHECK (quantity >= 0)         NOT NULL,
     updated_at        TIMESTAMPTZ                        DEFAULT now(),
-    rating            INT CHECK (rating BETWEEN 0 AND 5) DEFAULT 0,
+    rating            FLOAT CHECK (rating BETWEEN 0 AND 5) DEFAULT 0,
     reviews_count     INT CHECK (reviews_count >= 0)     DEFAULT 0 --trigger
 );
 
@@ -172,13 +172,21 @@ CREATE TABLE IF NOT EXISTS bazaar.category
     name TEXT UNIQUE NOT NULL
 );
 
--- Привязка товаров к категориям
-CREATE TABLE IF NOT EXISTS bazaar.product_category
+-- Подкатегории
+CREATE TABLE IF NOT EXISTS bazaar.subcategory
+(
+    id   UUID PRIMARY KEY,
+    name TEXT UNIQUE NOT NULL,
+    category_id UUID NOT NULL REFERENCES bazaar.category (id) ON DELETE CASCADE
+);
+
+-- Привязка товаров к подкатегориям
+CREATE TABLE IF NOT EXISTS bazaar.product_subcategory
 (
     id          UUID PRIMARY KEY,
     product_id  UUID REFERENCES bazaar.product (id) ON DELETE CASCADE,
-    category_id UUID REFERENCES bazaar.category (id) ON DELETE CASCADE,
-    UNIQUE (product_id, category_id)
+    subcategory_id UUID REFERENCES bazaar.subcategory (id) ON DELETE CASCADE,
+    UNIQUE (product_id, subcategory_id)
 );
 
 -- Заказы
@@ -253,4 +261,43 @@ CREATE TABLE IF NOT EXISTS bazaar.promo_code
     start_date        TIMESTAMPTZ NOT NULL,
     end_date          TIMESTAMPTZ NOT NULL,
     updated_at        TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE bazaar.topic
+(
+    id   UUID PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE
+);
+
+CREATE TABLE bazaar.survey
+(
+    id          UUID PRIMARY KEY,
+    topic_id    UUID REFERENCES bazaar.topic (id) ON DELETE SET NULL,
+    title       TEXT NOT NULL,
+    description TEXT,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE bazaar.question
+(
+    id        UUID PRIMARY KEY,
+    survey_id UUID REFERENCES bazaar.survey (id) ON DELETE CASCADE,
+    text      TEXT NOT NULL,
+    position  INTEGER
+);
+
+CREATE TABLE bazaar.submission
+(
+    id           UUID PRIMARY KEY,
+    user_id      UUID REFERENCES bazaar."user" (id) ON DELETE SET NULL,
+    survey_id    UUID REFERENCES bazaar.survey (id) ON DELETE CASCADE,
+    submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE bazaar.answer
+(
+    id            UUID PRIMARY KEY,
+    submission_id UUID REFERENCES bazaar.submission (id) ON DELETE CASCADE,
+    question_id   UUID REFERENCES bazaar.question (id) ON DELETE CASCADE,
+    value         INTEGER NOT NULL CHECK (value BETWEEN 1 AND 10)
 );

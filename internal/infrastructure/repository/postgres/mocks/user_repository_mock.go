@@ -36,6 +36,20 @@ func (m *MockIUserRepository) EXPECT() *MockIUserRepositoryMockRecorder {
 	return m.recorder
 }
 
+// CreateSellerAndUpdateRole mocks base method.
+func (m *MockIUserRepository) CreateSellerAndUpdateRole(ctx context.Context, userID uuid.UUID, title, description string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateSellerAndUpdateRole", ctx, userID, title, description)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CreateSellerAndUpdateRole indicates an expected call of CreateSellerAndUpdateRole.
+func (mr *MockIUserRepositoryMockRecorder) CreateSellerAndUpdateRole(ctx, userID, title, description interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateSellerAndUpdateRole", reflect.TypeOf((*MockIUserRepository)(nil).CreateSellerAndUpdateRole), ctx, userID, title, description)
+}
+
 // GetUserByEmail mocks base method.
 func (m *MockIUserRepository) GetUserByEmail(arg0 context.Context, arg1 string) (*models.UserDB, error) {
 	m.ctrl.T.Helper()

@@ -2,13 +2,13 @@ package auth
 
 import (
 	"context"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/domains"
+	"errors"
+	"fmt"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
-	"time"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/logctx"
 
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
@@ -16,7 +16,7 @@ import (
 )
 
 type ITokenator interface {
-	CreateJWT(userID string, version int) (string, error)
+	CreateJWT(userID string, role string) (string, error)
 	ParseJWT(tokenString string) (*jwt.JWTClaims, error)
 }
 
@@ -25,38 +25,46 @@ type IAuthRepository interface {
 	CreateUser(context.Context, models.UserDB) error
 	GetUserByEmail(context.Context, string) (*models.UserDB, error)
 	GetUserByID(context.Context, uuid.UUID) (*models.UserDB, error)
-	IncrementUserVersion(context.Context, string) error
-	GetUserCurrentVersion(context.Context, string) (int, error)
-	CheckUserVersion(context.Context, string, int) bool
 	CheckUserExists(context.Context, string) (bool, error)
 }
 
-type AuthUsecase struct {
-	log   *logrus.Logger
-	token ITokenator
-	repo  IAuthRepository
+type IAuthRedisRepository interface {
+    AddToBlacklist(ctx context.Context, userID, token string) error
+    IsInBlacklist(ctx context.Context, userID, token string) (bool, error)
 }
 
-func NewAuthUsecase(repo IAuthRepository, token ITokenator, log *logrus.Logger) *AuthUsecase {
+type AuthUsecase struct {
+	token     ITokenator
+	repo      IAuthRepository
+	redisRepo IAuthRedisRepository 
+}
+
+func NewAuthUsecase(repo IAuthRepository, redisRepo IAuthRedisRepository , token ITokenator) *AuthUsecase {
 	return &AuthUsecase{
-		repo:  repo,
-		token: token,
-		log:   log,
+		repo:      repo,
+		redisRepo: redisRepo,
+		token:     token,
 	}
 }
 
-func (u *AuthUsecase) Register(ctx context.Context, user dto.UserRegisterRequestDTO) (string, uuid.UUID, error) {
+func (u *AuthUsecase) Register(ctx context.Context, user dto.UserRegisterRequestDTO) (string, error) {
+	const op = "AuthUsecase.Register"
+	logger := logctx.GetLogger(ctx).WithField("op", op).WithField("email", user.Email)
+
 	passwordHash, err := GeneratePasswordHash(user.Password)
 	if err != nil {
-		return "", uuid.Nil, err
+		logger.WithError(err).Error("generate password hash")
+		return "", fmt.Errorf("%s: %w", op, err)
 	}
 
 	existed, err := u.repo.CheckUserExists(ctx, user.Email)
 	if err != nil {
-		return "", uuid.Nil, err
+		logger.WithError(err).Error("check user existence")
+		return "", fmt.Errorf("%s: %w", op, err)
 	}
 	if existed {
-		return "", uuid.Nil, errs.ErrAlreadyExists
+		logger.Warn("user already exists")
+		return "", fmt.Errorf("%s: %w", op, errs.ErrAlreadyExists)
 	}
 
 	userID := uuid.New()
@@ -66,51 +74,65 @@ func (u *AuthUsecase) Register(ctx context.Context, user dto.UserRegisterRequest
 		Name:         user.Name,
 		Surname:      user.Surname,
 		PasswordHash: passwordHash,
-		UserVersion: models.UserVersionDB{
-			ID:        uuid.New(),
-			UserID:    userID,
-			Version:   1,
-			UpdatedAt: time.Now(),
-		},
+		Role:         models.RoleBuyer,
 	}
 
 	if err = u.repo.CreateUser(ctx, userDB); err != nil {
-		return "", uuid.Nil, err
+		logger.WithError(err).Error("create user in repository")
+		return "", fmt.Errorf("%s: %w", op, err)
 	}
 
-	token, err := u.token.CreateJWT(userDB.ID.String(), userDB.UserVersion.Version)
+	token, err := u.token.CreateJWT(userDB.ID.String(), userDB.Role.String())
 	if err != nil {
-		return "", uuid.Nil, err
+		logger.WithError(err).Error("create JWT token")
+		return "", fmt.Errorf("%s: %w", op, err)
 	}
 
-	return token, userDB.ID, nil
+	return token, nil
 }
 
-func (u *AuthUsecase) Login(ctx context.Context, user dto.UserLoginRequestDTO) (string, uuid.UUID, error) {
+func (u *AuthUsecase) Login(ctx context.Context, user dto.UserLoginRequestDTO) (string, error) {
+	const op = "AuthUsecase.Login"
+	logger := logctx.GetLogger(ctx).WithField("op", op).WithField("email", user.Email)
+
 	userDB, err := u.repo.GetUserByEmail(ctx, user.Email)
 	if err != nil {
-		return "", uuid.Nil, err
+		if errors.Is(err, errs.ErrNotFound) {
+			logger.Warn("user not found")
+		} else {
+			logger.WithError(err).Error("get user by email")
+		}
+		return "", fmt.Errorf("%s: %w", op, err)
 	}
+
 	if err := bcrypt.CompareHashAndPassword(userDB.PasswordHash, []byte(user.Password)); err != nil {
-		return "", uuid.Nil, errs.ErrInvalidCredentials
+		logger.Warn("invalid credentials")
+		return "", fmt.Errorf("%s: %w", op, errs.ErrInvalidCredentials)
 	}
 
-	token, err := u.token.CreateJWT(userDB.ID.String(), userDB.UserVersion.Version)
+	token, err := u.token.CreateJWT(userDB.ID.String(), userDB.Role.String())
 	if err != nil {
-		return "", uuid.Nil, err
+		logger.WithError(err).Error("create JWT token")
+		return "", fmt.Errorf("%s: %w", op, err)
 	}
 
-	return token, userDB.ID, nil
+	return token, nil
 }
 
-func (u *AuthUsecase) Logout(ctx context.Context) error {
-	userID, isExist := ctx.Value(domains.UserIDKey{}).(string)
-	if !isExist {
-		return errs.ErrNotFound
+func (u *AuthUsecase) Logout(ctx context.Context, token string) error {
+	const op = "AuthUsecase.Logout"
+	logger := logctx.GetLogger(ctx).WithField("op", op)
+
+	claims, err := u.token.ParseJWT(token)
+	if err != nil {
+		logger.WithError(err).Error("failed to parse token")
+		return fmt.Errorf("%s: %w", op, errs.ErrInvalidToken)
 	}
 
-	if err := u.repo.IncrementUserVersion(ctx, userID); err != nil {
-		return err
+	// Add token to blacklist with userID association
+	if err := u.redisRepo.AddToBlacklist(ctx, claims.UserID, token); err != nil {
+		logger.WithError(err).Error("failed to add token to blacklist")
+		return fmt.Errorf("%s: %w", op, errs.ErrInternal)
 	}
 
 	return nil

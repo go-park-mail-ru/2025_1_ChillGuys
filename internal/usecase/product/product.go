@@ -3,19 +3,30 @@ package product
 import (
 	"context"
 	"fmt"
+	"sort"
 	"sync"
 
 	"github.com/google/uuid"
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/logctx"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/helpers"
 )
 
 //go:generate mockgen -source=product.go -destination=../../infrastructure/repository/postgres/mocks/product_repository_mock.go -package=mocks IProductRepository
 type IProductRepository interface {
-	GetAllProducts(ctx context.Context) ([]*models.Product, error)
+	GetAllProducts(ctx context.Context, offset int) ([]*models.Product, error)
 	GetProductByID(ctx context.Context, id uuid.UUID) (*models.Product, error)
-	GetProductsByCategory(ctx context.Context, id uuid.UUID) ([]*models.Product, error)
+	GetProductsByCategory(
+		ctx context.Context, 
+		id uuid.UUID, 
+		offset int,
+		minPrice, maxPrice float64,
+		minRating float32,
+		sortOption models.SortOption,
+	) ([]*models.Product, error)
+	AddProduct(ctx context.Context, product *models.Product, categoryID uuid.UUID) (*models.Product, error)
 }
 
 type ProductUsecase struct {
@@ -28,11 +39,11 @@ func NewProductUsecase(repo IProductRepository) *ProductUsecase {
 	}
 }
 
-func (u *ProductUsecase) GetAllProducts(ctx context.Context) ([]*models.Product, error) {
+func (u *ProductUsecase) GetAllProducts(ctx context.Context, offset int) ([]*models.Product, error) {
 	const op = "ProductUsecase.GetAllProducts"
 	logger := logctx.GetLogger(ctx).WithField("op", op)
 
-	products, err := u.repo.GetAllProducts(ctx)
+	products, err := u.repo.GetAllProducts(ctx, offset)
 	if err != nil {
 		logger.WithError(err).Error("get products from repository")
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -51,19 +62,6 @@ func (u *ProductUsecase) GetProductByID(ctx context.Context, id uuid.UUID) (*mod
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	return product, nil
-}
-
-func (u *ProductUsecase) GetProductsByCategory(ctx context.Context, id uuid.UUID) ([]*models.Product, error) {
-	const op = "ProductUsecase.GetProductsByCategory"
-	logger := logctx.GetLogger(ctx).WithField("op", op).WithField("category_id", id)
-
-	products, err := u.repo.GetProductsByCategory(ctx, id)
-	if err != nil {
-		logger.WithError(err).Error("get products by category from repository")
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
-
-	return products, nil
 }
 
 // GetProductsByIDs возвращает список продуктов по их UUID
@@ -135,4 +133,98 @@ func trySendError(err error, errCh chan<- error, cancel context.CancelFunc) {
 	default:
 		// Если ошибка уже есть - игнорируем (сохраняем первую)
 	}
+}
+
+func (u *ProductUsecase) GetProductsByCategory(
+    ctx context.Context, 
+    id uuid.UUID, 
+    offset int,
+    minPrice, maxPrice float64,
+    minRating float32,
+    sortOption models.SortOption,
+) ([]*models.Product, error) {
+    const op = "ProductUsecase.GetProductsByCategoryWithFilterAndSort"
+    logger := logctx.GetLogger(ctx).WithField("op", op).WithField("category_id", id)
+
+    products, err := u.repo.GetProductsByCategory(
+        ctx, 
+        id, 
+        offset,
+        minPrice,
+        maxPrice,
+        minRating,
+		sortOption,
+    )
+    if err != nil {
+        logger.WithError(err).Error("get products by category with filter and sort from repository")
+        return nil, fmt.Errorf("%s: %w", op, err)
+    }
+
+	switch sortOption {
+    case models.SortByPriceAsc:
+        sort.Slice(products, func(i, j int) bool {
+            priceI := helpers.GetFinalPrice(products[i])
+            priceJ := helpers.GetFinalPrice(products[j])
+            return priceI < priceJ
+        })
+    case models.SortByPriceDesc:
+        sort.Slice(products, func(i, j int) bool {
+            priceI := helpers.GetFinalPrice(products[i])
+            priceJ := helpers.GetFinalPrice(products[j])
+            return priceI > priceJ
+        })
+    case models.SortByRatingAsc:
+        sort.Slice(products, func(i, j int) bool {
+            return products[i].Rating < products[j].Rating
+        })
+    case models.SortByRatingDesc:
+        sort.Slice(products, func(i, j int) bool {
+            return products[i].Rating > products[j].Rating
+        })
+	}
+
+    return products, nil
+}
+
+func (u *ProductUsecase) AddProduct(ctx context.Context, product *models.Product, categoryID uuid.UUID) (*models.Product, error) {
+    const op = "ProductUsecase.AddProduct"
+    logger := logctx.GetLogger(ctx).WithField("op", op)
+
+    // Валидация данных
+    if product.Name == "" {
+        logger.Error("empty product name")
+        return nil, fmt.Errorf("%s: %w", op, errs.ErrEmptyProductName)
+    }
+    if product.Price <= 0 {
+        logger.Error("invalid product price")
+        return nil, fmt.Errorf("%s: %w", op, errs.ErrInvalidProductPrice)
+    }
+    if product.Quantity < 0 {
+        logger.Error("invalid product quantity")
+        return nil, fmt.Errorf("%s: %w", op, errs.ErrInvalidProductQuantity)
+    }
+
+    // Если рейтинг не указан, ставим 0
+    if product.Rating == 0 {
+        product.Rating = 0
+    }
+
+    // Если количество отзывов не указано, ставим 0
+    if product.ReviewsCount == 0 {
+        product.ReviewsCount = 0
+    }
+
+	// Если URL превью не указан, ставим дефолтный
+    if product.PreviewImageURL == "" {
+        product.PreviewImageURL = "media/product-default"
+    }
+
+    // Добавляем продукт в репозиторий
+    newProduct, err := u.repo.AddProduct(ctx, product, categoryID)
+    if err != nil {
+        logger.WithError(err).Error("add product to repository")
+        return nil, fmt.Errorf("%s: %w", op, err)
+    }
+
+    return newProduct, nil
 }
