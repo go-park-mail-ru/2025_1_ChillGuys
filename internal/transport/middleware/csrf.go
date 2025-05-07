@@ -86,3 +86,4 @@ func GenerateCSRFToken(tokenJWT string, secretKey string, tokenExpiry time.Durat
 
 	return fmt.Sprintf("%s:%d", mac, expiry), nil
 }
+
