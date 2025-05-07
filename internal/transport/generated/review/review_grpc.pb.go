@@ -23,6 +23,7 @@ const (
 	ReviewService_GetReviews_FullMethodName = "/review.ReviewService/GetReviews"
 )
 
+//go:generate mockgen -source=review_grpc.pb.go -destination=mocks/review_service_mock.go -package=mocks
 // ReviewServiceClient is the client API for ReviewService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.

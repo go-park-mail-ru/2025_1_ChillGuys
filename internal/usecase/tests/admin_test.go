@@ -288,3 +288,74 @@ func TestAdminUsecase_UpdateUserRole(t *testing.T) {
 		})
 	}
 }
+
+func TestAdminUsecase_UpdateProductStatus(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRepo := mocks.NewMockIAdminRepository(ctrl)
+	mockProductRepo := mocks.NewMockIProductRepository(ctrl)
+	mockRedisRepo := &redis.SuggestionsRepository{} // конкретная реализация, как в твоем успешном примере
+
+	uc := admin.NewAdminUsecase(mockRepo, mockRedisRepo, mockProductRepo)
+
+	ctx := logctx.WithLogger(context.Background(), logrus.NewEntry(logrus.New()))
+	productID := uuid.New() // UUID вместо int64
+
+	tests := []struct {
+		name          string
+		updateValue   int
+		setupMocks    func()
+		expectedError error
+	}{
+		{
+			name:          "некорректное значение статуса",
+			updateValue:   999,
+			setupMocks:    func() {},
+			expectedError: errs.ErrParseRequestData,
+		},
+		{
+			name:        "ошибка обновления статуса в БД",
+			updateValue: 1,
+			setupMocks: func() {
+				mockRepo.EXPECT().
+					UpdateProductStatus(ctx, productID, models.ProductApproved).
+					Return(errors.New("db error"))
+			},
+			expectedError: errors.New("AdminUsecase.UpdateProductStatus: db error"),
+		},
+		{
+			name:        "ошибка получения продукта",
+			updateValue: 1,
+			setupMocks: func() {
+				mockRepo.EXPECT().
+					UpdateProductStatus(ctx, productID, models.ProductApproved).
+					Return(nil)
+
+				mockProductRepo.EXPECT().
+					GetProductByID(ctx, productID).
+					Return(nil, errors.New("not found"))
+			},
+			expectedError: errors.New("AdminUsecase.UpdateProductStatus: not found"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := dto.UpdateProductStatusRequest{
+				ProductID: productID,
+				Update:    tt.updateValue,
+			}
+
+			tt.setupMocks()
+
+			err := uc.UpdateProductStatus(ctx, req)
+
+			if tt.expectedError != nil {
+				assert.EqualError(t, err, tt.expectedError.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}

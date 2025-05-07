@@ -38,6 +38,9 @@ type AuthServiceClient interface {
 	CheckToken(ctx context.Context, in *CheckTokenReq, opts ...grpc.CallOption) (*CheckTokenRes, error)
 }
 
+//go:generate mockgen -source=auth_grpc.pb.go -destination=mocks/auth_service_mock.go -package=mocks
+
+
 type authServiceClient struct {
 	cc grpc.ClientConnInterface
 }

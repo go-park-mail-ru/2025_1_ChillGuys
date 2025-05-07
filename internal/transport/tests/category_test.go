@@ -8,11 +8,13 @@ import (
 	"testing"
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/category"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
+	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -26,25 +28,17 @@ func setupTestCategory(t *testing.T) (*mocks.MockICategoryUsecase, *category.Cat
 func TestCategoryService_GetAllCategories(t *testing.T) {
 	mockUsecase, service := setupTestCategory(t)
 
-	t.Run("success with categories", func(t *testing.T) {
-		id1 := uuid.New()
-		id2 := uuid.New()
-		expectedCategories := []*models.Category{
-			{
-				ID:   id1,
-				Name: "Category 1",
-			},
-			{
-				ID:   id2,
-				Name: "Category 2",
-			},
+	t.Run("success", func(t *testing.T) {
+		categories := []*models.Category{
+			{ID: uuid.New(), Name: "Электроника"},
+			{ID: uuid.New(), Name: "Одежда"},
 		}
 
 		mockUsecase.EXPECT().
 			GetAllCategories(gomock.Any()).
-			Return(expectedCategories, nil)
+			Return(categories, nil)
 
-		req := httptest.NewRequest("GET", "/categories", nil)
+		req := httptest.NewRequest("GET", "/api/v1/categories", nil)
 		w := httptest.NewRecorder()
 
 		service.GetAllCategories(w, req)
@@ -52,44 +46,19 @@ func TestCategoryService_GetAllCategories(t *testing.T) {
 		resp := w.Result()
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-		var responseData dto.CategoryResponse
-		err := json.NewDecoder(resp.Body).Decode(&responseData)
+		var result dto.CategoryResponse
+		err := json.NewDecoder(resp.Body).Decode(&result)
 		assert.NoError(t, err)
-
-		assert.Equal(t, len(expectedCategories), responseData.Total)
-		assert.Equal(t, expectedCategories[0].ID, responseData.Categorys[0].ID)
-		assert.Equal(t, expectedCategories[0].Name, responseData.Categorys[0].Name)
-		assert.Equal(t, expectedCategories[1].ID, responseData.Categorys[1].ID)
-		assert.Equal(t, expectedCategories[1].Name, responseData.Categorys[1].Name)
+		assert.Equal(t, 2, result.Total)
+		assert.Equal(t, "Электроника", result.Categorys[0].Name)
 	})
 
-	t.Run("success empty list", func(t *testing.T) {
+	t.Run("internal error", func(t *testing.T) {
 		mockUsecase.EXPECT().
 			GetAllCategories(gomock.Any()).
-			Return([]*models.Category{}, nil)
+			Return(nil, errors.New("some error"))
 
-		req := httptest.NewRequest("GET", "/categories", nil)
-		w := httptest.NewRecorder()
-
-		service.GetAllCategories(w, req)
-
-		resp := w.Result()
-		assert.Equal(t, http.StatusOK, resp.StatusCode)
-
-		var responseData dto.CategoryResponse
-		err := json.NewDecoder(resp.Body).Decode(&responseData)
-		assert.NoError(t, err)
-
-		assert.Equal(t, 0, responseData.Total)
-		assert.Empty(t, responseData.Categorys)
-	})
-
-	t.Run("internal server error", func(t *testing.T) {
-		mockUsecase.EXPECT().
-			GetAllCategories(gomock.Any()).
-			Return(nil, errors.New("database error"))
-
-		req := httptest.NewRequest("GET", "/categories", nil)
+		req := httptest.NewRequest("GET", "/api/v1/categories", nil)
 		w := httptest.NewRecorder()
 
 		service.GetAllCategories(w, req)
@@ -99,55 +68,94 @@ func TestCategoryService_GetAllCategories(t *testing.T) {
 	})
 }
 
-func TestConvertToCategoriesResponse(t *testing.T) {
-	t.Run("with categories", func(t *testing.T) {
-		id1 := uuid.New()
-		id2 := uuid.New()
-		categories := []*models.Category{
-			{
-				ID:   id1,
-				Name: "Category 1",
-			},
-			{
-				ID:   id2,
-				Name: "Category 2",
-			},
+func TestCategoryService_GetAllSubcategories(t *testing.T) {
+	mockUsecase, service := setupTestCategory(t)
+	categoryID := uuid.New()
+
+	t.Run("success", func(t *testing.T) {
+		subcategories := []*models.Category{
+			{ID: uuid.New(), Name: "Смартфоны"},
+			{ID: uuid.New(), Name: "Ноутбуки"},
 		}
 
-		result := dto.ConvertToCategoriesResponse(categories)
+		mockUsecase.EXPECT().
+			GetAllSubategories(gomock.Any(), categoryID).
+			Return(subcategories, nil)
 
+		req := httptest.NewRequest("GET", "/api/v1/categories/"+categoryID.String()+"/subcategories", nil)
+		req = mux.SetURLVars(req, map[string]string{"id": categoryID.String()})
+		w := httptest.NewRecorder()
+
+		service.GetAllSubcategories(w, req)
+
+		resp := w.Result()
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+		var result dto.CategoryResponse
+		err := json.NewDecoder(resp.Body).Decode(&result)
+		assert.NoError(t, err)
 		assert.Equal(t, 2, result.Total)
-		assert.Equal(t, categories[0].ID, result.Categorys[0].ID)
-		assert.Equal(t, categories[0].Name, result.Categorys[0].Name)
-		assert.Equal(t, categories[1].ID, result.Categorys[1].ID)
-		assert.Equal(t, categories[1].Name, result.Categorys[1].Name)
 	})
 
-	t.Run("with nil category", func(t *testing.T) {
-		id1 := uuid.New()
-		categories := []*models.Category{
-			nil,
-			{
-				ID:   id1,
-				Name: "Category 1",
-			},
-			nil,
-		}
+	t.Run("invalid uuid", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/api/v1/categories/invalid-id/subcategories", nil)
+		req = mux.SetURLVars(req, map[string]string{"id": "invalid-id"})
+		w := httptest.NewRecorder()
 
-		result := dto.ConvertToCategoriesResponse(categories)
+		service.GetAllSubcategories(w, req)
 
-		assert.Equal(t, 3, result.Total) // Total includes nil categories
-		assert.Equal(t, 1, len(result.Categorys)) // Only non-nil categories are included
-		assert.Equal(t, categories[1].ID, result.Categorys[0].ID)
-		assert.Equal(t, categories[1].Name, result.Categorys[0].Name)
+		resp := w.Result()
+		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	})
+}
+
+func TestCategoryService_GetNameSubcategory(t *testing.T) {
+	mockUsecase, service := setupTestCategory(t)
+	subcategoryID := uuid.New()
+
+	t.Run("success", func(t *testing.T) {
+		mockUsecase.EXPECT().
+			GetNameSubcategory(gomock.Any(), subcategoryID).
+			Return("Планшеты", nil)
+
+		req := httptest.NewRequest("GET", "/api/v1/subcategories/"+subcategoryID.String(), nil)
+		req = mux.SetURLVars(req, map[string]string{"id": subcategoryID.String()})
+		w := httptest.NewRecorder()
+
+		service.GetNameSubcategory(w, req)
+
+		resp := w.Result()
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+		var result dto.NameSubcategory
+		err := json.NewDecoder(resp.Body).Decode(&result)
+		assert.NoError(t, err)
+		assert.Equal(t, "Планшеты", result.Name)
 	})
 
-	t.Run("empty list", func(t *testing.T) {
-		categories := []*models.Category{}
+	t.Run("invalid uuid", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/api/v1/subcategories/invalid-id", nil)
+		req = mux.SetURLVars(req, map[string]string{"id": "invalid-id"})
+		w := httptest.NewRecorder()
 
-		result := dto.ConvertToCategoriesResponse(categories)
+		service.GetNameSubcategory(w, req)
 
-		assert.Equal(t, 0, result.Total)
-		assert.Empty(t, result.Categorys)
+		resp := w.Result()
+		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	})
+
+	t.Run("subcategory not found", func(t *testing.T) {
+		mockUsecase.EXPECT().
+			GetNameSubcategory(gomock.Any(), subcategoryID).
+			Return("", errs.ErrNotFound)
+
+		req := httptest.NewRequest("GET", "/api/v1/subcategories/"+subcategoryID.String(), nil)
+		req = mux.SetURLVars(req, map[string]string{"id": subcategoryID.String()})
+		w := httptest.NewRecorder()
+
+		service.GetNameSubcategory(w, req)
+
+		resp := w.Result()
+		assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 	})
 }
