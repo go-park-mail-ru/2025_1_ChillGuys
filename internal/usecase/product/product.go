@@ -19,14 +19,15 @@ type IProductRepository interface {
 	GetAllProducts(ctx context.Context, offset int) ([]*models.Product, error)
 	GetProductByID(ctx context.Context, id uuid.UUID) (*models.Product, error)
 	GetProductsByCategory(
-		ctx context.Context, 
-		id uuid.UUID, 
+		ctx context.Context,
+		id uuid.UUID,
 		offset int,
 		minPrice, maxPrice float64,
 		minRating float32,
 		sortOption models.SortOption,
 	) ([]*models.Product, error)
 	AddProduct(ctx context.Context, product *models.Product, categoryID uuid.UUID) (*models.Product, error)
+	//GetProductsByIDs(ctx context.Context, ids []uuid.UUID) ([]*models.Product, error)
 }
 
 type ProductUsecase struct {
@@ -136,95 +137,95 @@ func trySendError(err error, errCh chan<- error, cancel context.CancelFunc) {
 }
 
 func (u *ProductUsecase) GetProductsByCategory(
-    ctx context.Context, 
-    id uuid.UUID, 
-    offset int,
-    minPrice, maxPrice float64,
-    minRating float32,
-    sortOption models.SortOption,
+	ctx context.Context,
+	id uuid.UUID,
+	offset int,
+	minPrice, maxPrice float64,
+	minRating float32,
+	sortOption models.SortOption,
 ) ([]*models.Product, error) {
-    const op = "ProductUsecase.GetProductsByCategoryWithFilterAndSort"
-    logger := logctx.GetLogger(ctx).WithField("op", op).WithField("category_id", id)
+	const op = "ProductUsecase.GetProductsByCategoryWithFilterAndSort"
+	logger := logctx.GetLogger(ctx).WithField("op", op).WithField("category_id", id)
 
-    products, err := u.repo.GetProductsByCategory(
-        ctx, 
-        id, 
-        offset,
-        minPrice,
-        maxPrice,
-        minRating,
+	products, err := u.repo.GetProductsByCategory(
+		ctx,
+		id,
+		offset,
+		minPrice,
+		maxPrice,
+		minRating,
 		sortOption,
-    )
-    if err != nil {
-        logger.WithError(err).Error("get products by category with filter and sort from repository")
-        return nil, fmt.Errorf("%s: %w", op, err)
-    }
-
-	switch sortOption {
-    case models.SortByPriceAsc:
-        sort.Slice(products, func(i, j int) bool {
-            priceI := helpers.GetFinalPrice(products[i])
-            priceJ := helpers.GetFinalPrice(products[j])
-            return priceI < priceJ
-        })
-    case models.SortByPriceDesc:
-        sort.Slice(products, func(i, j int) bool {
-            priceI := helpers.GetFinalPrice(products[i])
-            priceJ := helpers.GetFinalPrice(products[j])
-            return priceI > priceJ
-        })
-    case models.SortByRatingAsc:
-        sort.Slice(products, func(i, j int) bool {
-            return products[i].Rating < products[j].Rating
-        })
-    case models.SortByRatingDesc:
-        sort.Slice(products, func(i, j int) bool {
-            return products[i].Rating > products[j].Rating
-        })
+	)
+	if err != nil {
+		logger.WithError(err).Error("get products by category with filter and sort from repository")
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-    return products, nil
+	switch sortOption {
+	case models.SortByPriceAsc:
+		sort.Slice(products, func(i, j int) bool {
+			priceI := helpers.GetFinalPrice(products[i])
+			priceJ := helpers.GetFinalPrice(products[j])
+			return priceI < priceJ
+		})
+	case models.SortByPriceDesc:
+		sort.Slice(products, func(i, j int) bool {
+			priceI := helpers.GetFinalPrice(products[i])
+			priceJ := helpers.GetFinalPrice(products[j])
+			return priceI > priceJ
+		})
+	case models.SortByRatingAsc:
+		sort.Slice(products, func(i, j int) bool {
+			return products[i].Rating < products[j].Rating
+		})
+	case models.SortByRatingDesc:
+		sort.Slice(products, func(i, j int) bool {
+			return products[i].Rating > products[j].Rating
+		})
+	}
+
+	return products, nil
 }
 
 func (u *ProductUsecase) AddProduct(ctx context.Context, product *models.Product, categoryID uuid.UUID) (*models.Product, error) {
-    const op = "ProductUsecase.AddProduct"
-    logger := logctx.GetLogger(ctx).WithField("op", op)
+	const op = "ProductUsecase.AddProduct"
+	logger := logctx.GetLogger(ctx).WithField("op", op)
 
-    // Валидация данных
-    if product.Name == "" {
-        logger.Error("empty product name")
-        return nil, fmt.Errorf("%s: %w", op, errs.ErrEmptyProductName)
-    }
-    if product.Price <= 0 {
-        logger.Error("invalid product price")
-        return nil, fmt.Errorf("%s: %w", op, errs.ErrInvalidProductPrice)
-    }
-    if product.Quantity < 0 {
-        logger.Error("invalid product quantity")
-        return nil, fmt.Errorf("%s: %w", op, errs.ErrInvalidProductQuantity)
-    }
+	// Валидация данных
+	if product.Name == "" {
+		logger.Error("empty product name")
+		return nil, fmt.Errorf("%s: %w", op, errs.ErrEmptyProductName)
+	}
+	if product.Price <= 0 {
+		logger.Error("invalid product price")
+		return nil, fmt.Errorf("%s: %w", op, errs.ErrInvalidProductPrice)
+	}
+	if product.Quantity < 0 {
+		logger.Error("invalid product quantity")
+		return nil, fmt.Errorf("%s: %w", op, errs.ErrInvalidProductQuantity)
+	}
 
-    // Если рейтинг не указан, ставим 0
-    if product.Rating == 0 {
-        product.Rating = 0
-    }
+	// Если рейтинг не указан, ставим 0
+	if product.Rating == 0 {
+		product.Rating = 0
+	}
 
-    // Если количество отзывов не указано, ставим 0
-    if product.ReviewsCount == 0 {
-        product.ReviewsCount = 0
-    }
+	// Если количество отзывов не указано, ставим 0
+	if product.ReviewsCount == 0 {
+		product.ReviewsCount = 0
+	}
 
 	// Если URL превью не указан, ставим дефолтный
-    if product.PreviewImageURL == "" {
-        product.PreviewImageURL = "media/product-default"
-    }
+	if product.PreviewImageURL == "" {
+		product.PreviewImageURL = "media/product-default"
+	}
 
-    // Добавляем продукт в репозиторий
-    newProduct, err := u.repo.AddProduct(ctx, product, categoryID)
-    if err != nil {
-        logger.WithError(err).Error("add product to repository")
-        return nil, fmt.Errorf("%s: %w", op, err)
-    }
+	// Добавляем продукт в репозиторий
+	newProduct, err := u.repo.AddProduct(ctx, product, categoryID)
+	if err != nil {
+		logger.WithError(err).Error("add product to repository")
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
 
-    return newProduct, nil
+	return newProduct, nil
 }
