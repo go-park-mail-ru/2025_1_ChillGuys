@@ -6,8 +6,6 @@ package mocks
 
 import (
 	context "context"
-	gen "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/generated/auth"
-	"google.golang.org/grpc"
 	reflect "reflect"
 
 	dto "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
@@ -79,19 +77,4 @@ func (m *MockIAuthUsecase) Register(arg0 context.Context, arg1 dto.UserRegisterR
 func (mr *MockIAuthUsecaseMockRecorder) Register(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Register", reflect.TypeOf((*MockIAuthUsecase)(nil).Register), arg0, arg1)
-}
-
-// Mocking CheckToken method
-func (m *MockIAuthUsecase) CheckToken(ctx context.Context, in *gen.CheckTokenReq, opts ...grpc.CallOption) (*gen.CheckTokenRes, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CheckToken", ctx, in, opts)
-	ret0, _ := ret[0].(*gen.CheckTokenRes)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// Expect CheckToken method
-func (mr *MockIAuthUsecaseMockRecorder) CheckToken(ctx, in, opts interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckToken", reflect.TypeOf((*MockIAuthUsecase)(nil).CheckToken), ctx, in, opts)
 }

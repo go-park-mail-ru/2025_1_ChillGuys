@@ -13,6 +13,7 @@ const (
 	RoleBuyer   UserRole = "buyer"   // покупатель
 	RoleSeller  UserRole = "seller"  // продавец
 	RolePending UserRole = "pending" // в ожидании
+	RoleWarehouseman UserRole = "warehouseman"
 )
 
 // UserRole представляет роль пользователя в системе
@@ -34,6 +35,8 @@ func ParseUserRole(role string) (UserRole, error) {
 		return RoleSeller, nil
 	case "pending":
 		return RolePending, nil
+	case "warehouseman":
+		return RoleWarehouseman, nil
 	default:
 		return RolePending, fmt.Errorf("unknown user role: %s", role)
 	}

@@ -3,6 +3,9 @@ package app
 import (
 	"database/sql"
 	"fmt"
+	"log"
+	"net/http"
+
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/redis"
 	http2 "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/auth/http"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/generated/auth"
@@ -14,8 +17,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	"log"
-	"net/http"
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
 	_ "github.com/go-park-mail-ru/2025_1_ChillGuys/docs"
@@ -25,6 +26,7 @@ import (
 	adminrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/admin"
 	basketrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/basket"
 	categoryrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/category"
+	promorepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/promo"
 	orderrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/order"
 	productrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/product"
 	searchrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/search"
@@ -39,11 +41,16 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/order"
 	producttr "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/product"
+	promot "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/promo"
+	notificationt "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/notification"
+	notificationuc "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/notification"
+	motificationrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/notification"
 	reviewt "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/review/http"
 	sellert "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/seller"
 	usert "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/user/http"
 	addressus "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/address"
 	adminuc "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/admin"
+	promouc "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/promo"
 	basketuc "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/basket"
 	categoryuc "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/category"
 	orderus "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/order"
@@ -154,10 +161,6 @@ func NewApp(conf *config.Config) (*App, error) {
 	productUsecase := product.NewProductUsecase(productRepo)
 	ProductService := producttr.NewProductService(productUsecase, minioClient)
 
-	orderRepo := orderrepo.NewOrderRepository(db)
-	orderUsecase := orderus.NewOrderUsecase(orderRepo)
-	orderService := order.NewOrderService(orderUsecase)
-
 	basketRepo := basketrepo.NewBasketRepository(db)
 	basketUsecase := basketuc.NewBasketUsecase(basketRepo)
 	basketService := baskett.NewBasketService(basketUsecase)
@@ -181,6 +184,18 @@ func NewApp(conf *config.Config) (*App, error) {
 	searchRepo := searchrepo.NewSearchRepository(db)
 	searchUsecase := searchus.NewSearchUsecase(searchRepo)
 	searchService := search.NewSearchService(searchUsecase, suggestionsUsecase)
+
+	promoRepo := promorepo.NewPromoRepository(db)
+	promoUsecase := promouc.NewPromoUsecase(promoRepo)
+	promoService := promot.NewPromoService(promoUsecase)
+
+	notificationRepo := motificationrepo.NewNotificationRepository(db)
+	notificationUsecase := notificationuc.NewNotificationUsecase(notificationRepo)
+	notificationService := notificationt.NewNotificationService(notificationUsecase)
+
+	orderRepo := orderrepo.NewOrderRepository(db)
+	orderUsecase := orderus.NewOrderUsecase(orderRepo, promoRepo, notificationRepo)
+	orderService := order.NewOrderService(orderUsecase)
 
 	router := mux.NewRouter()
 	router.PathPrefix("/swagger/").Handler(httpSwagger.WrapHandler)
@@ -394,6 +409,23 @@ func NewApp(conf *config.Config) (*App, error) {
 			)).Methods(http.MethodPost)
 	}
 
+	notificationRouter := apiRouter.PathPrefix("/notification").Subrouter()
+	{
+		notificationRouter.Handle("/count",
+				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(notificationService.GetUnreadCount)),
+			).Methods(http.MethodGet)
+
+		notificationRouter.Handle("/",
+				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(notificationService.GetUserNotifications)),
+			).Methods(http.MethodGet)
+
+		notificationRouter.Handle("/{id}",
+			middleware.CSRFMiddleware(tokenator,
+				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(notificationService.MarkAsRead)),
+				conf.CSRFConfig,
+			)).Methods(http.MethodPatch)
+	}
+
 	adminRouter := apiRouter.PathPrefix("/admin").Subrouter()
 	{
 		adminRouter.Handle("/products/{offset}",
@@ -427,6 +459,54 @@ func NewApp(conf *config.Config) (*App, error) {
 				middleware.JWTMiddleware(authClient, tokenator,
 					middleware.RoleMiddleware("admin")(
 						http.HandlerFunc(adminService.UpdateUserRole),
+					),
+				),
+				conf.CSRFConfig,
+			)).Methods(http.MethodPost)
+	}
+
+	promoRouter := apiRouter.PathPrefix("/promo").Subrouter()
+	{
+		promoRouter.Handle("/",
+			middleware.CSRFMiddleware(tokenator,
+				middleware.JWTMiddleware(authClient, tokenator,
+					middleware.RoleMiddleware("admin")(
+						http.HandlerFunc(promoService.Create),
+					),
+				),
+				conf.CSRFConfig,
+			)).Methods(http.MethodPost)
+
+		promoRouter.Handle("/{offset}",
+				middleware.JWTMiddleware(authClient, tokenator,
+					middleware.RoleMiddleware("admin")(
+						http.HandlerFunc(promoService.GetAll),
+					),
+			)).Methods(http.MethodGet)
+
+		promoRouter.Handle("/check",
+			middleware.CSRFMiddleware(tokenator,
+				middleware.JWTMiddleware(authClient, tokenator,
+						http.HandlerFunc(promoService.CheckPromoCode),
+					),
+				conf.CSRFConfig,
+			)).Methods(http.MethodPost)
+	}
+
+	warehouseRouter := apiRouter.PathPrefix("/warehouse").Subrouter()
+	{
+		warehouseRouter.Handle("/get",
+				middleware.JWTMiddleware(authClient, tokenator,
+					middleware.RoleMiddleware("warehouseman")(
+						http.HandlerFunc(orderService.GetOrdersPlaced),
+					),
+			)).Methods(http.MethodGet)
+
+		warehouseRouter.Handle("/update",
+			middleware.CSRFMiddleware(tokenator,
+				middleware.JWTMiddleware(authClient, tokenator,
+					middleware.RoleMiddleware("warehouseman")(
+						http.HandlerFunc(orderService.UpdateStatus),
 					),
 				),
 				conf.CSRFConfig,

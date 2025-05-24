@@ -50,6 +50,21 @@ func (mr *MockIOrderUsecaseMockRecorder) CreateOrder(arg0, arg1 interface{}) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateOrder", reflect.TypeOf((*MockIOrderUsecase)(nil).CreateOrder), arg0, arg1)
 }
 
+// GetOrdersPlaced mocks base method.
+func (m *MockIOrderUsecase) GetOrdersPlaced(ctx context.Context) (*[]dto.OrderPreviewDTO, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetOrdersPlaced", ctx)
+	ret0, _ := ret[0].(*[]dto.OrderPreviewDTO)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetOrdersPlaced indicates an expected call of GetOrdersPlaced.
+func (mr *MockIOrderUsecaseMockRecorder) GetOrdersPlaced(ctx interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOrdersPlaced", reflect.TypeOf((*MockIOrderUsecase)(nil).GetOrdersPlaced), ctx)
+}
+
 // GetUserOrders mocks base method.
 func (m *MockIOrderUsecase) GetUserOrders(arg0 context.Context, arg1 uuid.UUID) (*[]dto.OrderPreviewDTO, error) {
 	m.ctrl.T.Helper()
@@ -63,4 +78,18 @@ func (m *MockIOrderUsecase) GetUserOrders(arg0 context.Context, arg1 uuid.UUID) 
 func (mr *MockIOrderUsecaseMockRecorder) GetUserOrders(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserOrders", reflect.TypeOf((*MockIOrderUsecase)(nil).GetUserOrders), arg0, arg1)
+}
+
+// UpdateStatus mocks base method.
+func (m *MockIOrderUsecase) UpdateStatus(ctx context.Context, req dto.UpdateOrderStatusRequest) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateStatus", ctx, req)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateStatus indicates an expected call of UpdateStatus.
+func (mr *MockIOrderUsecaseMockRecorder) UpdateStatus(ctx, req interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateStatus", reflect.TypeOf((*MockIOrderUsecase)(nil).UpdateStatus), ctx, req)
 }

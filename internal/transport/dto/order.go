@@ -20,6 +20,7 @@ type CreateOrderDTO struct {
 	UserID    uuid.UUID
 	Items     []CreateOrderItemDTO `json:"items"`
 	AddressID uuid.UUID            `json:"addressID"`
+	PromoCode *string              `json:"promoCode,omitempty"`
 }
 
 type CreateOrderItemDTO struct {
@@ -74,4 +75,8 @@ func (orderItem *GetOrderByUserIDResDTO) ConvertToGetOrderByUserIDResDTO(
 type GetOrderProductResDTO struct {
 	ProductID uuid.UUID `json:"productID"`
 	Quantity  uint      `json:"quantity"`
+}
+
+type UpdateOrderStatusRequest struct{
+	OrderID uuid.UUID   `json:"orderID"`
 }

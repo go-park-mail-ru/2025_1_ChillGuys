@@ -284,24 +284,24 @@ services:
     networks:
       - bazaar-network
 
-  grafana:
-     image: grafana/grafana:latest
-     container_name: grafana
-     links:
-       - prometheus:prometheus # datasource = http://prometheus:9090
-     environment:
-       GF_SECURITY_ADMIN_USER: ${GF_ADMIN_USER}
-       GF_SECURITY_ADMIN_PASSWORD: ${GF_ADMIN_PASSWORD}
-     ports:
-       - "3000:3000"
-     depends_on:
-       - prometheus
-     networks:
-       - bazaar-network
-     volumes:
-       - "./grafana/datasources:/etc/grafana/provisioning/datasources/"
-       - "./grafana/dashboards:/etc/grafana/provisioning/dashboards/"
-       - "grafana:/var/lib/grafana"
+  # grafana:
+  #    image: grafana/grafana:latest
+  #    container_name: grafana
+  #    links:
+  #      - prometheus:prometheus # datasource = http://prometheus:9090
+  #    environment:
+  #      GF_SECURITY_ADMIN_USER: ${GF_ADMIN_USER}
+  #      GF_SECURITY_ADMIN_PASSWORD: ${GF_ADMIN_PASSWORD}
+  #    ports:
+  #      - "3000:3000"
+  #    depends_on:
+  #      - prometheus
+  #    networks:
+  #      - bazaar-network
+  #    volumes:
+  #      - "./grafana/datasources:/etc/grafana/provisioning/datasources/"
+  #      - "./grafana/dashboards:/etc/grafana/provisioning/dashboards/"
+  #      - "grafana:/var/lib/grafana"
 
 networks:
   bazaar-network:
