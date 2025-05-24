@@ -195,7 +195,7 @@ func TestProductRepository_GetProductByID(t *testing.T) {
 				d.discounted_price, s.id, s.title, s.description
 			FROM bazaar.product p
 			LEFT JOIN bazaar.discount d ON p.id = d.product_id
-			LEFT JOIN bazaar.seller s ON s.id = p.seller_id
+			LEFT JOIN bazaar.seller s ON s.user_id = p.seller_id
 			WHERE p.id = \$1
 		`).
 			WithArgs(productID).
@@ -215,7 +215,7 @@ func TestProductRepository_GetProductByID(t *testing.T) {
 				d.discounted_price, s.id, s.title, s.description
 			FROM bazaar.product p
 			LEFT JOIN bazaar.discount d ON p.id = d.product_id
-			LEFT JOIN bazaar.seller s ON s.id = p.seller_id
+			LEFT JOIN bazaar.seller s ON s.user_id = p.seller_id
 			WHERE p.id = \$1
 		`).
 			WithArgs(productID).
