@@ -9,6 +9,7 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/generated/csat"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/generated/review"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/generated/user"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/recommendation"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/search"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/suggestions"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -27,6 +28,7 @@ import (
 	categoryrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/category"
 	orderrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/order"
 	productrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/product"
+	recrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/recommendation"
 	searchrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/search"
 	sellerrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/seller"
 	suggestionrepo "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/suggestions"
@@ -48,6 +50,7 @@ import (
 	categoryuc "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/category"
 	orderus "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/order"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/product"
+	recus "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/recommendation"
 	searchus "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/search"
 	selleruc "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/seller"
 	suggestionsus "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/suggestions"
@@ -182,6 +185,10 @@ func NewApp(conf *config.Config) (*App, error) {
 	searchUsecase := searchus.NewSearchUsecase(searchRepo)
 	searchService := search.NewSearchService(searchUsecase, suggestionsUsecase)
 
+	recommendationRepo := recrepo.NewRecommendationRepository(db)
+	recommendationUsecase := recus.NewRecommendationUsecase(productUsecase, recommendationRepo)
+	recommendationServise := recommendation.NewRecommendationService(recommendationUsecase)
+
 	router := mux.NewRouter()
 	router.PathPrefix("/swagger/").Handler(httpSwagger.WrapHandler)
 	apiRouter := router.PathPrefix("/api").Subrouter()
@@ -213,7 +220,7 @@ func NewApp(conf *config.Config) (*App, error) {
 		productsRouter.HandleFunc("/product/{id}", ProductService.GetProductByID).Methods(http.MethodGet)
 		productsRouter.HandleFunc("/products/category/{id}/{offset}", ProductService.GetProductsByCategory).Methods(http.MethodGet)
 
-		productsRouter.Handle("/add", 
+		productsRouter.Handle("/add",
 			http.HandlerFunc(ProductService.AddProduct),
 		).Methods(http.MethodPost)
 	}
@@ -462,6 +469,11 @@ func NewApp(conf *config.Config) (*App, error) {
 				),
 			),
 		).Methods(http.MethodGet)
+	}
+
+	recommendationRouter := apiRouter.PathPrefix("/recommendation").Subrouter()
+	{
+		recommendationRouter.HandleFunc("/{id}", recommendationServise.GetRecommendations).Methods(http.MethodGet)
 	}
 
 	app := &App{

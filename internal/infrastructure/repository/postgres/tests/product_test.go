@@ -195,7 +195,7 @@ func TestProductRepository_GetProductByID(t *testing.T) {
 				d.discounted_price, s.id, s.title, s.description
 			FROM bazaar.product p
 			LEFT JOIN bazaar.discount d ON p.id = d.product_id
-			LEFT JOIN bazaar.seller s ON s.user_id = p.seller_id
+			LEFT JOIN bazaar.seller s ON s.id = p.seller_id
 			WHERE p.id = \$1
 		`).
 			WithArgs(productID).
@@ -208,19 +208,19 @@ func TestProductRepository_GetProductByID(t *testing.T) {
 
 	t.Run("not found", func(t *testing.T) {
 		productID := uuid.New()
-	
+
 		mock.ExpectQuery(`
 			SELECT p.id, p.seller_id, p.name, p.preview_image_url, p.description, 
 				p.status, p.price, p.quantity, p.updated_at, p.rating, p.reviews_count,
 				d.discounted_price, s.id, s.title, s.description
 			FROM bazaar.product p
 			LEFT JOIN bazaar.discount d ON p.id = d.product_id
-			LEFT JOIN bazaar.seller s ON s.user_id = p.seller_id
+			LEFT JOIN bazaar.seller s ON s.id = p.seller_id
 			WHERE p.id = \$1
 		`).
 			WithArgs(productID).
 			WillReturnError(sql.ErrNoRows)
-	
+
 		product, err := repo.GetProductByID(context.Background(), productID)
 		require.Error(t, err)
 		require.ErrorContains(t, err, "not found") // More flexible error check
