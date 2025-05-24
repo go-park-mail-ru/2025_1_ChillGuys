@@ -12,7 +12,8 @@ CREATE TYPE user_role AS ENUM (
     'admin',    -- админ
     'buyer',    -- покупатель
     'seller',   -- продавец
-    'pending'   -- в ожидании
+    'pending',   -- в ожидании
+    'warehouseman'  -- работник склада
 );
 
 -- Создание ENUM для статуса заказа
@@ -252,15 +253,21 @@ CREATE TABLE IF NOT EXISTS bazaar.review
 CREATE TABLE IF NOT EXISTS bazaar.promo_code
 (
     id                UUID PRIMARY KEY,
-    user_id           UUID REFERENCES bazaar."user" (id) ON DELETE CASCADE,
-    category_id       UUID REFERENCES bazaar.category (id) ON DELETE CASCADE,
-    seller_id         UUID REFERENCES bazaar."user" (id) ON DELETE CASCADE,
     code              TEXT UNIQUE NOT NULL,
-    relative_discount INT CHECK (relative_discount BETWEEN 0 AND 1),
-    absolute_discount NUMERIC(12, 2) CHECK (absolute_discount >= 0),
+    percent           INT CHECK (percent BETWEEN 0 AND 100),
     start_date        TIMESTAMPTZ NOT NULL,
     end_date          TIMESTAMPTZ NOT NULL,
     updated_at        TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS bazaar.notification 
+(
+    id              UUID PRIMARY KEY, 
+    user_id         UUID REFERENCES bazaar."user" (id) ON DELETE CASCADE,
+    text            TEXT NOT NULL,
+    title           TEXT NOT NULL,
+    is_read         BOOLEAN NOT NULL DEFAULT FALSE,
+    updated_at      TIMESTAMPTZ DEFAULT now() 
 );
 
 CREATE TABLE bazaar.topic

@@ -7,11 +7,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/notification"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/order"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/logctx"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/promo"
 	"github.com/google/uuid"
 	"github.com/guregu/null"
 )
@@ -20,18 +22,26 @@ import (
 type IOrderUsecase interface {
 	CreateOrder(context.Context, dto.CreateOrderDTO) error
 	GetUserOrders(context.Context, uuid.UUID) (*[]dto.OrderPreviewDTO, error)
+	UpdateStatus(ctx context.Context, req dto.UpdateOrderStatusRequest) error
+	GetOrdersPlaced(ctx context.Context) (*[]dto.OrderPreviewDTO, error)
 }
 
 type OrderUsecase struct {
 	repo order.IOrderRepository
+	promoRepo promo.IPromoRepository
+	notificationRepo notification.INotificationRepository
 }
 
 func NewOrderUsecase(
-	repo order.IOrderRepository,
+    repo order.IOrderRepository,
+    promoRepo promo.IPromoRepository,
+	notificationRepo notification.INotificationRepository,
 ) *OrderUsecase {
-	return &OrderUsecase{
-		repo: repo,
-	}
+    return &OrderUsecase{
+        repo:      repo,
+        promoRepo: promoRepo,
+		notificationRepo: notificationRepo,
+    }
 }
 
 func (u *OrderUsecase) CreateOrder(ctx context.Context, in dto.CreateOrderDTO) error {
@@ -164,6 +174,17 @@ func (u *OrderUsecase) CreateOrder(ctx context.Context, in dto.CreateOrderDTO) e
 		return err
 	}
 
+	if in.PromoCode != nil && *in.PromoCode != "" {
+        discountedPrice, err := u.applyPromoDiscount(ctx, *in.PromoCode, totalDiscountedPrice)
+        if err != nil {
+            logctx.GetLogger(ctx).WithError(err).Warn("promo code application failed")
+            return fmt.Errorf("%s: %w", op, errs.NewNotFoundError(op))
+        } else {
+            totalPrice = discountedPrice
+			totalDiscountedPrice = discountedPrice
+        }
+    }
+
 	order := &dto.Order{
 		ID:                 uuid.New(),
 		UserID:             in.UserID,
@@ -174,10 +195,32 @@ func (u *OrderUsecase) CreateOrder(ctx context.Context, in dto.CreateOrderDTO) e
 		Items:              orderItems,
 	}
 
-	return u.repo.CreateOrder(ctx, dto.CreateOrderRepoReq{
+	err := u.repo.CreateOrder(ctx, dto.CreateOrderRepoReq{
 		Order:             order,
 		UpdatedQuantities: newQuantities,
 	})
+	if err != nil {
+		logger.WithError(err).Error("failed to create order")
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	notification := models.Notification{
+		ID:     uuid.New(),
+		UserID: in.UserID,
+		Text:   "Заказ успешно обработан. Статус вашего заказа: 'Оформлен'",
+		Title:  "Ваш заказ оформлен",
+		IsRead: false,
+	}
+
+	fmt.Println("тут саздаю увед")
+
+	err = u.notificationRepo.Create(ctx, notification)
+	if err != nil {
+		logger.WithError(err).Error("failed create notification")
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	return nil
 }
 
 func (u *OrderUsecase) GetUserOrders(ctx context.Context, userID uuid.UUID) (*[]dto.OrderPreviewDTO, error) {
@@ -335,4 +378,187 @@ func findLatestDiscount(discounts []models.ProductDiscount) (models.ProductDisco
 	}
 
 	return latest, true
+}
+
+func (u *OrderUsecase) UpdateStatus(ctx context.Context, req dto.UpdateOrderStatusRequest) error {
+	const op = "WarehouseUsecase.Update"
+	logger := logctx.GetLogger(ctx).WithField("op", op)
+	
+	err := u.repo.UpdateStatus(ctx, req.OrderID, models.InTransit)
+	if err != nil {
+		logger.WithError(err).Error("failed update status order")
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	userID, err := u.repo.GetUserIDByOrderID(ctx, req.OrderID)
+	if err != nil {
+		logger.WithError(err).Warn("failed to get order for notification")
+		return nil
+	}
+
+	notification := models.Notification{
+		ID:     uuid.New(),
+		UserID: userID,
+		Text:   "Статус вашего заказа изменен с 'Оформлен' на 'В доставке'",
+		Title:  "Статус заказа изменен",
+		IsRead: false,
+	}
+
+	err = u.notificationRepo.Create(ctx, notification)
+	if err != nil {
+		logger.WithError(err).Error("failed create notification")
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	return nil
+}
+
+func (u *OrderUsecase) GetOrdersPlaced(ctx context.Context) (*[]dto.OrderPreviewDTO, error) {
+	const op = "OrderUsecase.GetUserOrders"
+	logger := logctx.GetLogger(ctx).WithField("op", op)
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	orders, err := u.repo.GetOrdersPlaced(ctx)
+	if err != nil {
+		if errors.Is(err, errs.ErrNotFound) {
+			logger.Warn("no orders found for user")
+			return nil, fmt.Errorf("%s: %w", op, errs.NewNotFoundError(op))
+		}
+		logger.WithError(err).Error("failed to get orders by user ID")
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	mu := &sync.Mutex{}
+	var wg sync.WaitGroup
+	errCh := make(chan error, 1)
+
+	ordersPreview := make([]dto.OrderPreviewDTO, len(*orders))
+	for i, orderItem := range *orders {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
+			innerWg := sync.WaitGroup{}
+			var (
+				address  *models.AddressDB
+				products []models.OrderPreviewProductDTO
+			)
+
+			innerWg.Add(2)
+			go func() {
+				defer innerWg.Done()
+				if ctx.Err() != nil {
+					return
+				}
+
+				productIDs, productErr := u.repo.GetOrderProducts(ctx, orderItem.ID)
+				if productErr != nil {
+					logger.WithError(productErr).
+						WithField("order_id", orderItem.ID).
+						Error("failed to get order products")
+					trySendError(productErr, errCh, cancel)
+					return
+				}
+
+				// Получаем изображения продуктов
+				productsData := make([]models.OrderPreviewProductDTO, len(*productIDs))
+				imgMu := &sync.Mutex{}
+				imageWg := sync.WaitGroup{}
+				for i, productData := range *productIDs {
+					imageWg.Add(1)
+
+					go func() {
+						defer imageWg.Done()
+						if ctx.Err() != nil {
+							return
+						}
+
+						productImg, imgErr := u.repo.GetProductImage(ctx, productData.ProductID)
+
+						imgMu.Lock()
+						if imgErr != nil {
+							// Ошибка получения изображения, значит будем отдавать nil
+							productsData[i] = models.OrderPreviewProductDTO{
+								ProductImageURL: null.String{},
+								ProductQuantity: productData.Quantity,
+							}
+							return
+						}
+
+						productsData[i] = models.OrderPreviewProductDTO{
+							ProductImageURL: null.StringFrom(productImg),
+							ProductQuantity: productData.Quantity,
+						}
+						imgMu.Unlock()
+					}()
+				}
+
+				imageWg.Wait()
+				products = productsData
+			}()
+
+			go func() {
+				defer innerWg.Done()
+				if ctx.Err() != nil {
+					return
+				}
+
+				addressRes, addressErr := u.repo.GetOrderAddress(ctx, orderItem.AddressID)
+				if addressErr != nil {
+					logger.WithError(addressErr).
+						WithField("address_id", orderItem.AddressID).
+						Error("failed to get order address")
+					trySendError(addressErr, errCh, cancel)
+					return
+				}
+
+				address = addressRes
+				address.ID = orderItem.AddressID
+			}()
+
+			innerWg.Wait()
+			if ctx.Err() != nil || address == nil {
+				return
+			}
+
+			mu.Lock()
+			ordersPreview[i] = orderItem.ConvertToGetOrderByUserIDResDTO(address, products)
+			mu.Unlock()
+		}()
+	}
+
+	// Горутина для закрытия канала после завершения всех операций
+	go func() {
+		wg.Wait()
+		close(errCh)
+	}()
+
+	// Возвращаем первую ошибку (если есть)
+	if err = <-errCh; err != nil {
+		logger.WithError(err).Error("failed to get order details")
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	
+	return &ordersPreview, nil
+}
+
+func (u *OrderUsecase) applyPromoDiscount(ctx context.Context, promoCode string, totalPrice float64) (float64, error) {
+    if promoCode == "" {
+        return totalPrice, nil
+    }
+
+    promo, err := u.promoRepo.CheckPromoCode(ctx, promoCode)
+    if err != nil {
+        return 0, fmt.Errorf("promo code check failed: %w", err)
+    }
+
+    now := time.Now()
+    if now.Before(promo.StartDate) || now.After(promo.EndDate) {
+        return 0, fmt.Errorf("promo code expired")
+    }
+
+    discount := 1 - float64(promo.Percent)/100
+    return totalPrice * discount, nil
 }

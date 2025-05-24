@@ -37,6 +37,20 @@ const (
         WHERE 
             a.id = $1 
         LIMIT 1`
+
+	queryGetOrders  = `
+		SELECT id, status, total_price, total_price_discount, 
+			address_id, expected_delivery_at, actual_delivery_at, created_at 
+		FROM bazaar.order WHERE status = 'placed'`
+
+	queryUpdateOrderStatus = `
+		UPDATE bazaar.order
+		SET 
+			status = $1,
+			updated_at = now()
+		WHERE id = $2`
+
+	queryGetUserIDByOrderID = `SELECT user_id FROM bazaar.order WHERE id = $1`
 )
 
 //go:generate mockgen -source=order.go -destination=../mocks/order_repository_mock.go -package=mocks IOrderRepository
@@ -49,6 +63,9 @@ type IOrderRepository interface {
 	GetOrderProducts(context.Context, uuid.UUID) (*[]dto.GetOrderProductResDTO, error)
 	GetProductImage(context.Context, uuid.UUID) (string, error)
 	GetOrderAddress(context.Context, uuid.UUID) (*models.AddressDB, error)
+	GetOrdersPlaced(ctx context.Context) (*[]dto.GetOrderByUserIDResDTO, error)
+	UpdateStatus(ctx context.Context, orderID uuid.UUID, status models.OrderStatus) error
+	GetUserIDByOrderID(ctx context.Context, orderID uuid.UUID) (uuid.UUID, error)
 }
 
 type OrderRepository struct {
@@ -295,4 +312,80 @@ func (r *OrderRepository) GetOrderAddress(ctx context.Context, addressID uuid.UU
 	}
 
 	return &address, nil
+}
+
+func (w *OrderRepository) UpdateStatus(ctx context.Context, orderID uuid.UUID, status models.OrderStatus) error {
+	const op = "AdminRepository.UpdateProductStatus"
+	logger := logctx.GetLogger(ctx).WithField("op", op).WithField("product_id", orderID)
+
+	_, err := w.db.ExecContext(ctx, queryUpdateOrderStatus, status.String(), orderID)
+	if err != nil {
+		logger.WithError(err).Error("update product status")
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	return nil
+}
+
+func (w *OrderRepository) GetOrdersPlaced(ctx context.Context) (*[]dto.GetOrderByUserIDResDTO, error) {
+	const op = "WarehouseRepository.Get"
+    logger := logctx.GetLogger(ctx).WithField("op", op)
+
+	var orders []dto.GetOrderByUserIDResDTO
+
+	rows, err := w.db.QueryContext(ctx, queryGetOrders)
+	if err != nil {
+		logger.WithError(err).Error("query all products")
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var order dto.GetOrderByUserIDResDTO
+		var status string
+		if err = rows.Scan(
+			&order.ID,
+			&status,
+			&order.TotalPrice,
+			&order.TotalPriceDiscount,
+			&order.AddressID,
+			&order.ExpectedDeliveryAt,
+			&order.ActualDeliveryAt,
+			&order.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		orderStatus, err := models.ParseOrderStatus(status)
+		if err != nil {
+			return nil, err
+		}
+
+		order.Status = orderStatus
+		orders = append(orders, order)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return &orders, nil
+}
+
+func (r *OrderRepository) GetUserIDByOrderID(ctx context.Context, orderID uuid.UUID) (uuid.UUID, error) {
+    const op = "OrderRepository.GetUserIDByOrderID"
+    logger := logctx.GetLogger(ctx).WithField("op", op).WithField("order_id", orderID)
+
+    var userID uuid.UUID
+
+    err := r.db.QueryRowContext(ctx, queryGetUserIDByOrderID, orderID).Scan(&userID)
+    if err != nil {
+        if errors.Is(err, sql.ErrNoRows) {
+            logger.Warn("order not found")
+            return uuid.Nil, errs.NewNotFoundError("order not found")
+        }
+        logger.WithError(err).Error("failed to get user_id by order_id")
+        return uuid.Nil, fmt.Errorf("%s: %w", op, err)
+    }
+
+    return userID, nil
 }

@@ -1,10 +1,13 @@
 package order
 
 import (
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/validator"
+	"fmt"
 	"net/http"
 
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/validator"
+
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/domains"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/logctx"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/request"
@@ -73,6 +76,11 @@ func (o *OrderService) CreateOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	fmt.Println("--")
+	fmt.Println(&createOrderReq.PromoCode)
+	fmt.Println(createOrderReq.PromoCode)
+	fmt.Println("--")
+
 	createOrderReq.UserID = userID
 	logger = logger.WithFields(logrus.Fields{
 		"user_id": userID,
@@ -128,4 +136,38 @@ func (o *OrderService) GetOrders(w http.ResponseWriter, r *http.Request) {
 	response.SendJSONResponse(r.Context(), w, http.StatusOK, map[string]*[]dto.OrderPreviewDTO{
 		"orders": orders,
 	})
+}
+
+func (h* OrderService) UpdateStatus (w http.ResponseWriter, r *http.Request){
+	const op = "WarehouseService.Update"
+    logger := logctx.GetLogger(r.Context()).WithField("op", op)
+
+	var req dto.UpdateOrderStatusRequest
+    if err := request.ParseData(r, &req); err != nil {
+        logger.WithError(err).Error("parse request data")
+        response.HandleDomainError(r.Context(), w, errs.ErrParseRequestData, op)
+        return
+    }
+
+    if err := h.u.UpdateStatus(r.Context(), req); err != nil {
+        logger.WithError(err).Error("update order status")
+        response.HandleDomainError(r.Context(), w, err, op)
+        return
+    }
+
+    response.SendJSONResponse(r.Context(), w, http.StatusOK, nil)
+}
+
+func (h* OrderService) GetOrdersPlaced (w http.ResponseWriter, r *http.Request){
+	const op = "WarehouseService.Get"
+    logger := logctx.GetLogger(r.Context()).WithField("op", op)
+
+	orders, err := h.u.GetOrdersPlaced(r.Context())
+	if err != nil {
+		logger.WithError(err).Error("get placed orders")
+        response.HandleDomainError(r.Context(), w, errs.ErrNotFound, op)
+        return
+	}
+
+	response.SendJSONResponse(r.Context(), w, http.StatusOK, orders)
 }

@@ -19,10 +19,13 @@ VALUES ('e29b41d4-a716-4466-5544-000000000001', 'user1@example.com', '+123456789
        ('e29b41d4-a716-4466-5544-000000000010', 'seller8@example.com', '+1234567899', 'hash10', 'Андрей', 'admin');
 
 INSERT INTO bazaar.seller (id, title, description, user_id) 
-VALUES ('e29b41d4-a716-4466-5544-000000000003','Продавец','Я тут главный','e29b41d4-a716-4466-5544-000000000001');
+VALUES ('e29b41d4-a716-4466-5544-000000000004','Продавец Bazaar','Я тут главный','e29b41d4-a716-4466-5544-000000000001');
 
 INSERT INTO bazaar."user" (id, email, password_hash, name, role)
 VALUES ('e29b41d4-a716-4466-5544-000000000003', 'admin@admin.ru', '$2a$04$yX8uDBleszjVgx6dsVPt0uPv7K4dPc4bNz.1n5MD3RiTBeXKOh6oO', 'Админ', 'admin');
+
+INSERT INTO bazaar."user" (id, email, password_hash, name, role)
+VALUES ('e29b41d4-a716-4466-5544-000000000033', 'sklad@sklad.ru', '$2a$04$TyhWcYrtEhiuDwjNmKThwOQ3yXGZimdtrC3xXPru7byZ7Fwrj11Xa', 'Работник склада', 'warehouseman');
 
 INSERT INTO bazaar.basket (id, user_id, total_price, total_price_discount)
 VALUES ('e33b41d4-a716-4466-5544-000000000005', 'e29b41d4-a716-4466-5544-000000000003', 0, 0);
@@ -173,13 +176,6 @@ VALUES ('550e8400-e29b-41d4-a716-446655440901', 'e29b41d4-a716-4466-5544-0000000
 --         '550e8400-e29b-41d4-a716-446655440003', 26999.00),
 --        ('550e8400-e29b-41d4-a716-446655441003', NOW(), NOW() + INTERVAL '10 DAY',
 --         '550e8400-e29b-41d4-a716-446655440005', 54999.00);
-
--- Вставка промокодов
-INSERT INTO bazaar.promo_code (id, code, relative_discount, absolute_discount, start_date, end_date)
-VALUES ('550e8400-e29b-41d4-a716-446655441101', 'SUMMER10', 0.1, NULL, NOW(), NOW() + INTERVAL '30 DAY'),
-       ('550e8400-e29b-41d4-a716-446655441102', 'TECH500', NULL, 500.00, NOW(), NOW() + INTERVAL '15 DAY'),
-       ('550e8400-e29b-41d4-a716-446655441103', 'XIAOMI20', 0.2, NULL, NOW(), NOW() + INTERVAL '7 DAY');
-
 
 INSERT INTO bazaar.topic (id, name)
 VALUES

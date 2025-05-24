@@ -96,6 +96,21 @@ func (mr *MockIOrderRepositoryMockRecorder) GetOrdersByUserID(arg0, arg1 interfa
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOrdersByUserID", reflect.TypeOf((*MockIOrderRepository)(nil).GetOrdersByUserID), arg0, arg1)
 }
 
+// GetOrdersPlaced mocks base method.
+func (m *MockIOrderRepository) GetOrdersPlaced(ctx context.Context) (*[]dto.GetOrderByUserIDResDTO, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetOrdersPlaced", ctx)
+	ret0, _ := ret[0].(*[]dto.GetOrderByUserIDResDTO)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetOrdersPlaced indicates an expected call of GetOrdersPlaced.
+func (mr *MockIOrderRepositoryMockRecorder) GetOrdersPlaced(ctx interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOrdersPlaced", reflect.TypeOf((*MockIOrderRepository)(nil).GetOrdersPlaced), ctx)
+}
+
 // GetProductImage mocks base method.
 func (m *MockIOrderRepository) GetProductImage(arg0 context.Context, arg1 uuid.UUID) (string, error) {
 	m.ctrl.T.Helper()
@@ -109,6 +124,21 @@ func (m *MockIOrderRepository) GetProductImage(arg0 context.Context, arg1 uuid.U
 func (mr *MockIOrderRepositoryMockRecorder) GetProductImage(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProductImage", reflect.TypeOf((*MockIOrderRepository)(nil).GetProductImage), arg0, arg1)
+}
+
+// GetUserIDByOrderID mocks base method.
+func (m *MockIOrderRepository) GetUserIDByOrderID(ctx context.Context, orderID uuid.UUID) (uuid.UUID, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUserIDByOrderID", ctx, orderID)
+	ret0, _ := ret[0].(uuid.UUID)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUserIDByOrderID indicates an expected call of GetUserIDByOrderID.
+func (mr *MockIOrderRepositoryMockRecorder) GetUserIDByOrderID(ctx, orderID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserIDByOrderID", reflect.TypeOf((*MockIOrderRepository)(nil).GetUserIDByOrderID), ctx, orderID)
 }
 
 // ProductDiscounts mocks base method.
@@ -153,4 +183,18 @@ func (m *MockIOrderRepository) UpdateProductQuantity(arg0 context.Context, arg1 
 func (mr *MockIOrderRepositoryMockRecorder) UpdateProductQuantity(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateProductQuantity", reflect.TypeOf((*MockIOrderRepository)(nil).UpdateProductQuantity), arg0, arg1, arg2)
+}
+
+// UpdateStatus mocks base method.
+func (m *MockIOrderRepository) UpdateStatus(ctx context.Context, orderID uuid.UUID, status models.OrderStatus) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateStatus", ctx, orderID, status)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateStatus indicates an expected call of UpdateStatus.
+func (mr *MockIOrderRepositoryMockRecorder) UpdateStatus(ctx, orderID, status interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateStatus", reflect.TypeOf((*MockIOrderRepository)(nil).UpdateStatus), ctx, orderID, status)
 }
