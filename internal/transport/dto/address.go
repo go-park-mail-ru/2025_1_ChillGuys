@@ -34,3 +34,18 @@ type AddressReqDTO struct {
 	AddressString null.String `json:"AddressString" swaggertype:"primitive,string"`
 	Coordinate    null.String `json:"coordinate" swaggertype:"primitive,string"`
 }
+
+type GeoapifyResponse struct {
+	Features []GeoapifyFeature `json:"features"`
+}
+
+type GeoapifyFeature struct {
+	Properties struct {
+		ResultType string  `json:"result_type"`
+		Lon        float64 `json:"lon"`
+		Lat        float64 `json:"lat"`
+		Rank       struct {
+			Importance float64 `json:"importance"`
+		} `json:"rank"`
+	} `json:"properties"`
+}

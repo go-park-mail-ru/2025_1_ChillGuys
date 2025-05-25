@@ -2,13 +2,13 @@ package promo
 
 import (
 	"context"
+	"github.com/mailru/easyjson"
 	"net/http"
 	"strconv"
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/logctx"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/request"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/response"
 	"github.com/gorilla/mux"
 )
@@ -33,7 +33,7 @@ func (h *PromoService) Create(w http.ResponseWriter, r *http.Request) {
 	logger := logctx.GetLogger(r.Context()).WithField("op", op)
 
 	var req dto.CreatePromoRequest
-	if err := request.ParseData(r, &req); err != nil {
+	if err := easyjson.UnmarshalFromReader(r.Body, &req); err != nil {
 		logger.WithError(err).Error("parse request data")
 		response.HandleDomainError(r.Context(), w, errs.ErrParseRequestData, op)
 		return
@@ -73,22 +73,22 @@ func (h *PromoService) GetAll(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *PromoService) CheckPromoCode(w http.ResponseWriter, r *http.Request) {
-    const op = "PromoService.GetAllPromos"
+	const op = "PromoService.GetAllPromos"
 	logger := logctx.GetLogger(r.Context()).WithField("op", op)
-    
-    var req dto.CheckPromoRequest
-    if err := request.ParseData(r, &req); err != nil {
+
+	var req dto.CheckPromoRequest
+	if err := easyjson.UnmarshalFromReader(r.Body, &req); err != nil {
 		logger.WithError(err).Error("parse request data")
-        response.HandleDomainError(r.Context(), w, errs.ErrParseRequestData, op)
-        return
-    }
-    
-    result, err := h.uc.CheckPromoCode(r.Context(), req.Code)
-    if err != nil {
+		response.HandleDomainError(r.Context(), w, errs.ErrParseRequestData, op)
+		return
+	}
+
+	result, err := h.uc.CheckPromoCode(r.Context(), req.Code)
+	if err != nil {
 		logger.WithError(err).Error("get promo")
-        response.HandleDomainError(r.Context(), w, err, op)
-        return
-    }
-    
-    response.SendJSONResponse(r.Context(), w, http.StatusOK, result)
+		response.HandleDomainError(r.Context(), w, err, op)
+		return
+	}
+
+	response.SendJSONResponse(r.Context(), w, http.StatusOK, result)
 }

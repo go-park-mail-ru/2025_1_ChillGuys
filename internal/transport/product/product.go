@@ -3,11 +3,10 @@ package product
 import (
 	"context"
 	"fmt"
+	"github.com/mailru/easyjson"
 	"io"
 	"net/http"
 	"strconv"
-
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/request"
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/minio"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
@@ -27,8 +26,8 @@ type IProductUsecase interface {
 	GetProductByID(ctx context.Context, id uuid.UUID) (*models.Product, error)
 	GetProductsByIDs(ctx context.Context, ids []uuid.UUID) ([]*models.Product, error)
 	GetProductsByCategory(
-		ctx context.Context, 
-		id uuid.UUID, 
+		ctx context.Context,
+		id uuid.UUID,
 		offset int,
 		minPrice, maxPrice float64,
 		minRating float32,
@@ -66,14 +65,14 @@ func (h *ProductService) GetAllProducts(w http.ResponseWriter, r *http.Request) 
 	offsetStr := vars["offset"]
 	offset := 0
 	var err error
-    if offsetStr != "" {
-        offset, err = strconv.Atoi(offsetStr)
-        if err != nil {
-            logger.WithError(err).WithField("offset", offsetStr).Error("parse offset")
-            response.HandleDomainError(r.Context(), w, errs.ErrParseRequestData, op)
-            return
-        }
-    }
+	if offsetStr != "" {
+		offset, err = strconv.Atoi(offsetStr)
+		if err != nil {
+			logger.WithError(err).WithField("offset", offsetStr).Error("parse offset")
+			response.HandleDomainError(r.Context(), w, errs.ErrParseRequestData, op)
+			return
+		}
+	}
 
 	products, err := h.u.GetAllProducts(r.Context(), offset)
 	if err != nil {
@@ -195,7 +194,7 @@ func (h *ProductService) CreateOne(w http.ResponseWriter, r *http.Request) {
 //	@Router			/products/batch [post]
 func (p *ProductService) GetProductsByIDs(w http.ResponseWriter, r *http.Request) {
 	var req dto.GetProductsByIDRequest
-	if err := request.ParseData(r, &req); err != nil {
+	if err := easyjson.UnmarshalFromReader(r.Body, &req); err != nil {
 		response.SendJSONError(r.Context(), w, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -214,111 +213,110 @@ func (p *ProductService) GetProductsByIDs(w http.ResponseWriter, r *http.Request
 	response.SendJSONResponse(r.Context(), w, http.StatusOK, dto.ConvertToProductsResponse(products))
 }
 
-
 func (h *ProductService) GetProductsByCategory(w http.ResponseWriter, r *http.Request) {
-    const op = "ProductService.GetProductsByCategoryWithFilterAndSort"
-    logger := logctx.GetLogger(r.Context()).WithField("op", op)
+	const op = "ProductService.GetProductsByCategoryWithFilterAndSort"
+	logger := logctx.GetLogger(r.Context()).WithField("op", op)
 
-    // Парсинг ID категории
-    vars := mux.Vars(r)
-    idStr := vars["id"]
-    id, err := uuid.Parse(idStr)
-    if err != nil {
-        logger.WithError(err).WithField("category_id", idStr).Error("parse category ID")
-        response.HandleDomainError(r.Context(), w, errs.ErrInvalidID, op)
-        return
-    }
+	// Парсинг ID категории
+	vars := mux.Vars(r)
+	idStr := vars["id"]
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		logger.WithError(err).WithField("category_id", idStr).Error("parse category ID")
+		response.HandleDomainError(r.Context(), w, errs.ErrInvalidID, op)
+		return
+	}
 
-    // Парсинг offset
-    offsetStr := vars["offset"]
+	// Парсинг offset
+	offsetStr := vars["offset"]
 	offset := 0
-    if offsetStr != "" {
-        offset, err = strconv.Atoi(offsetStr)
-        if err != nil {
-            logger.WithError(err).WithField("offset", offsetStr).Error("parse offset")
-            response.HandleDomainError(r.Context(), w, errs.ErrParseRequestData, op)
-            return
-        }
-    }
+	if offsetStr != "" {
+		offset, err = strconv.Atoi(offsetStr)
+		if err != nil {
+			logger.WithError(err).WithField("offset", offsetStr).Error("parse offset")
+			response.HandleDomainError(r.Context(), w, errs.ErrParseRequestData, op)
+			return
+		}
+	}
 
-    // Парсинг фильтров
-    minPrice, _ := strconv.ParseFloat(r.URL.Query().Get("min_price"), 64)
-    maxPrice, _ := strconv.ParseFloat(r.URL.Query().Get("max_price"), 64)
-    minRating, _ := strconv.ParseFloat(r.URL.Query().Get("min_rating"), 32)
+	// Парсинг фильтров
+	minPrice, _ := strconv.ParseFloat(r.URL.Query().Get("min_price"), 64)
+	maxPrice, _ := strconv.ParseFloat(r.URL.Query().Get("max_price"), 64)
+	minRating, _ := strconv.ParseFloat(r.URL.Query().Get("min_rating"), 32)
 
-    // Парсинг параметра сортировки
-    sortOption := models.SortOption(r.URL.Query().Get("sort"))
-    switch sortOption {
-    case models.SortByPriceAsc, models.SortByPriceDesc, models.SortByRatingAsc, models.SortByRatingDesc, models.SortByDefault:
-        // допустимые значения
-    default:
-        sortOption = models.SortByDefault
-    }
+	// Парсинг параметра сортировки
+	sortOption := models.SortOption(r.URL.Query().Get("sort"))
+	switch sortOption {
+	case models.SortByPriceAsc, models.SortByPriceDesc, models.SortByRatingAsc, models.SortByRatingDesc, models.SortByDefault:
+		// допустимые значения
+	default:
+		sortOption = models.SortByDefault
+	}
 
-    products, err := h.u.GetProductsByCategory(
-        r.Context(), 
-        id, 
-        offset,
-        minPrice,
-        maxPrice,
-        float32(minRating),
-        sortOption,
-    )
-    if err != nil {
-        logger.WithError(err).Error("get products by category with filter and sort")
-        response.HandleDomainError(r.Context(), w, err, op)
-        return
-    }
+	products, err := h.u.GetProductsByCategory(
+		r.Context(),
+		id,
+		offset,
+		minPrice,
+		maxPrice,
+		float32(minRating),
+		sortOption,
+	)
+	if err != nil {
+		logger.WithError(err).Error("get products by category with filter and sort")
+		response.HandleDomainError(r.Context(), w, err, op)
+		return
+	}
 
-    productResponse := dto.ConvertToProductsResponse(products)
-    response.SendJSONResponse(r.Context(), w, http.StatusOK, productResponse)
+	productResponse := dto.ConvertToProductsResponse(products)
+	response.SendJSONResponse(r.Context(), w, http.StatusOK, productResponse)
 }
 
 func (p *ProductService) AddProduct(w http.ResponseWriter, r *http.Request) {
-    const op = "ProductService.AddProduct"
-    logger := logctx.GetLogger(r.Context()).WithField("op", op)
+	const op = "ProductService.AddProduct"
+	logger := logctx.GetLogger(r.Context()).WithField("op", op)
 
-    var req dto.AddProductRequest
-    if err := request.ParseData(r, &req); err != nil {
-        logger.WithError(err).Error("parse request data")
-        response.HandleDomainError(r.Context(), w, errs.ErrParseRequestData, op)
-        return
-    }
+	var req dto.AddProductRequest
+	if err := easyjson.UnmarshalFromReader(r.Body, &req); err != nil {
+		logger.WithError(err).Error("parse request data")
+		response.HandleDomainError(r.Context(), w, errs.ErrParseRequestData, op)
+		return
+	}
 
-    // Парсим UUID категории
-    categoryID, err := uuid.Parse(req.Category)
-    if err != nil {
-        logger.WithError(err).Error("parse category ID")
-        response.HandleDomainError(r.Context(), w, errs.ErrInvalidID, op)
-        return
-    }
+	// Парсим UUID категории
+	categoryID, err := uuid.Parse(req.Category)
+	if err != nil {
+		logger.WithError(err).Error("parse category ID")
+		response.HandleDomainError(r.Context(), w, errs.ErrInvalidID, op)
+		return
+	}
 
-    // Парсим UUID продавца
-    sellerID, err := uuid.Parse(req.SellerID)
-    if err != nil {
-        logger.WithError(err).Error("parse seller ID")
-        response.HandleDomainError(r.Context(), w, errs.ErrInvalidID, op)
-        return
-    }
+	// Парсим UUID продавца
+	sellerID, err := uuid.Parse(req.SellerID)
+	if err != nil {
+		logger.WithError(err).Error("parse seller ID")
+		response.HandleDomainError(r.Context(), w, errs.ErrInvalidID, op)
+		return
+	}
 
 	product := &models.Product{
-        SellerID:        sellerID,
-        Name:           req.Name,
-        PreviewImageURL: req.PreviewImageURL,
-        Description:    req.Description,
-        Price:          req.Price,
-        PriceDiscount:   req.PriceDiscount,
-        Quantity:       req.Quantity,
-        Rating:         req.Rating,
-        ReviewsCount:   req.ReviewsCount,
-    }
+		SellerID:        sellerID,
+		Name:            req.Name,
+		PreviewImageURL: req.PreviewImageURL,
+		Description:     req.Description,
+		Price:           req.Price,
+		PriceDiscount:   req.PriceDiscount,
+		Quantity:        req.Quantity,
+		Rating:          req.Rating,
+		ReviewsCount:    req.ReviewsCount,
+	}
 
-    newProduct, err := p.u.AddProduct(r.Context(), product, categoryID)
-    if err != nil {
-        logger.WithError(err).Error("add product")
-        response.HandleDomainError(r.Context(), w, err, op)
-        return
-    }
+	newProduct, err := p.u.AddProduct(r.Context(), product, categoryID)
+	if err != nil {
+		logger.WithError(err).Error("add product")
+		response.HandleDomainError(r.Context(), w, err, op)
+		return
+	}
 
-    response.SendJSONResponse(r.Context(), w, http.StatusCreated, newProduct)
+	response.SendJSONResponse(r.Context(), w, http.StatusCreated, newProduct)
 }

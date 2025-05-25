@@ -5,9 +5,9 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/logctx"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/request"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/response"
 	"github.com/guregu/null"
+	"github.com/mailru/easyjson"
 	"net/http"
 )
 
@@ -32,7 +32,7 @@ func (h *SuggestionsService) GetSuggestions(w http.ResponseWriter, r *http.Reque
 	logger := logctx.GetLogger(r.Context()).WithField("op", op)
 
 	var req dto.SuggestionsReq
-	if err := request.ParseData(r, &req); err != nil {
+	if err := easyjson.UnmarshalFromReader(r.Body, &req); err != nil {
 		logger.WithError(err).Error("failed to parse request data")
 		response.SendJSONError(r.Context(), w, http.StatusBadRequest, err.Error())
 		return

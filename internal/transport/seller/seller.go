@@ -2,6 +2,7 @@ package transport
 
 import (
 	"context"
+	"github.com/mailru/easyjson"
 	"io"
 	"net/http"
 	"strconv"
@@ -11,7 +12,6 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/logctx"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/request"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/response"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/helpers"
 	"github.com/google/uuid"
@@ -27,13 +27,13 @@ type ISellerUsecase interface {
 }
 
 type SellerHandler struct {
-	usecase ISellerUsecase
+	usecase      ISellerUsecase
 	minioService minio.Provider
 }
 
 func NewSellerHandler(u ISellerUsecase, ms minio.Provider) *SellerHandler {
 	return &SellerHandler{
-		usecase: u,
+		usecase:      u,
 		minioService: ms,
 	}
 }
@@ -56,25 +56,25 @@ func (h *SellerHandler) AddProduct(w http.ResponseWriter, r *http.Request) {
 
 	// Получаем ID продавца из контекста
 	sellerID, err := helpers.GetUserIDFromContext(r.Context())
-    if err != nil {
-        logger.WithError(err).Error("get user ID from context")
-        response.HandleDomainError(r.Context(), w, err, op)
-    }
+	if err != nil {
+		logger.WithError(err).Error("get user ID from context")
+		response.HandleDomainError(r.Context(), w, err, op)
+	}
 
 	var req dto.AddProductRequest
-	if err := request.ParseData(r, &req); err != nil {
-		logger.WithError(err).Error("parse request data")
+	if err := easyjson.UnmarshalFromReader(r.Body, &req); err != nil {
+		logger.WithError(err).Error("failed to parse request data")
 		response.SendJSONError(r.Context(), w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	// Конвертируем в модель
 	product := &models.Product{
-		SellerID:       sellerID,
-		Name:           req.Name,
-		Description:    req.Description,
-		Price:          req.Price,
-		Quantity:       req.Quantity,
+		SellerID:        sellerID,
+		Name:            req.Name,
+		Description:     req.Description,
+		Price:           req.Price,
+		Quantity:        req.Quantity,
 		PreviewImageURL: "", // Будет добавлено позже
 	}
 
@@ -114,10 +114,10 @@ func (h *SellerHandler) UploadProductImage(w http.ResponseWriter, r *http.Reques
 
 	// Получаем ID продавца из контекста
 	sellerID, err := helpers.GetUserIDFromContext(r.Context())
-    if err != nil {
-        logger.WithError(err).Error("get user ID from context")
-        response.HandleDomainError(r.Context(), w, err, op)
-    }
+	if err != nil {
+		logger.WithError(err).Error("get user ID from context")
+		response.HandleDomainError(r.Context(), w, err, op)
+	}
 
 	// Получаем ID товара из URL
 	vars := mux.Vars(r)
@@ -198,22 +198,22 @@ func (h *SellerHandler) GetSellerProducts(w http.ResponseWriter, r *http.Request
 
 	// Получаем ID продавца из контекста
 	sellerID, err := helpers.GetUserIDFromContext(r.Context())
-    if err != nil {
-        logger.WithError(err).Error("get user ID from context")
-        response.HandleDomainError(r.Context(), w, err, op)
-    }
+	if err != nil {
+		logger.WithError(err).Error("get user ID from context")
+		response.HandleDomainError(r.Context(), w, err, op)
+	}
 
 	vars := mux.Vars(r)
 	offsetStr := vars["offset"]
 	offset := 0
-    if offsetStr != "" {
-        offset, err = strconv.Atoi(offsetStr)
-        if err != nil {
-            logger.WithError(err).WithField("offset", offsetStr).Error("parse offset")
-            response.HandleDomainError(r.Context(), w, errs.ErrParseRequestData, op)
-            return
-        }
-    }
+	if offsetStr != "" {
+		offset, err = strconv.Atoi(offsetStr)
+		if err != nil {
+			logger.WithError(err).WithField("offset", offsetStr).Error("parse offset")
+			response.HandleDomainError(r.Context(), w, errs.ErrParseRequestData, op)
+			return
+		}
+	}
 
 	products, err := h.usecase.GetSellerProducts(r.Context(), sellerID, offset)
 	if err != nil {
@@ -223,5 +223,5 @@ func (h *SellerHandler) GetSellerProducts(w http.ResponseWriter, r *http.Request
 	}
 
 	productResponse := dto.ConvertToSellerProductsResponse(products)
-    response.SendJSONResponse(r.Context(), w, http.StatusOK, productResponse)
+	response.SendJSONResponse(r.Context(), w, http.StatusOK, productResponse)
 }

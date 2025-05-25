@@ -1,6 +1,7 @@
 package http
 
 import (
+	"github.com/mailru/easyjson"
 	"net/http"
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/config"
@@ -12,7 +13,6 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/logctx"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/cookie"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/request"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/response"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
@@ -51,7 +51,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	logger := logctx.GetLogger(r.Context()).WithField("op", op)
 
 	var loginReq dto.UserLoginRequestDTO
-	if err := request.ParseData(r, &loginReq); err != nil {
+	if err := easyjson.UnmarshalFromReader(r.Body, &loginReq); err != nil {
 		logger.WithError(err).Error("parse login request")
 		response.SendJSONError(r.Context(), w, http.StatusBadRequest, err.Error())
 		return
@@ -103,7 +103,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	logger := logctx.GetLogger(r.Context()).WithField("op", op)
 
 	var registerReq dto.UserRegisterRequestDTO
-	if err := request.ParseData(r, &registerReq); err != nil {
+	if err := easyjson.UnmarshalFromReader(r.Body, &registerReq); err != nil {
 		logger.WithError(err).Error("parse register request")
 		response.SendJSONError(r.Context(), w, http.StatusBadRequest, err.Error())
 		return

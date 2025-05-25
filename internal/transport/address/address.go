@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/validator"
+	"github.com/mailru/easyjson"
 	"net/http"
 	"net/url"
 	"strings"
@@ -12,7 +13,6 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/domains"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/logctx"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/request"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/response"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/address"
 	"github.com/google/uuid"
@@ -70,7 +70,7 @@ func (h *AddressHandler) CreateAddress(w http.ResponseWriter, r *http.Request) {
 	logger := logctx.GetLogger(r.Context()).WithField("op", op)
 
 	var createAddressReq dto.AddressDTO
-	if err := request.ParseData(r, &createAddressReq); err != nil {
+	if err := easyjson.UnmarshalFromReader(r.Body, &createAddressReq); err != nil {
 		logger.WithError(err).Error("parse request data")
 		response.SendJSONError(r.Context(), w, http.StatusBadRequest, err.Error())
 		return

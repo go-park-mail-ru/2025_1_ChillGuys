@@ -86,3 +86,20 @@ review_proto:
 		--go-grpc_opt=paths=source_relative \
 		--go_opt=paths=source_relative \
 		proto/review.proto
+
+gen-easyjson:
+	easyjson -all internal/transport/dto/address.go
+	easyjson -all internal/transport/dto/admin.go
+	easyjson -all internal/transport/dto/auth.go
+	easyjson -all internal/transport/dto/basket.go
+	easyjson -all internal/transport/dto/category.go
+	easyjson -all internal/transport/dto/csat.go
+	easyjson -all internal/transport/dto/minio.go
+	easyjson -all internal/transport/dto/notification.go
+	easyjson -all internal/transport/dto/order.go
+	easyjson -all internal/transport/dto/product.go
+	easyjson -all internal/transport/dto/promo.go
+	easyjson -all internal/transport/dto/review.go
+	easyjson -all internal/transport/dto/search.go
+	easyjson -all internal/transport/dto/suggestion.go
+	easyjson -all internal/transport/dto/user.go

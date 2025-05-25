@@ -2,12 +2,12 @@ package basket
 
 import (
 	"context"
+	"github.com/mailru/easyjson"
 	"net/http"
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/logctx"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/request"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/response"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
@@ -158,7 +158,7 @@ func (h *BasketService) UpdateQuantity(w http.ResponseWriter, r *http.Request) {
 	logger := logctx.GetLogger(r.Context()).WithField("op", op)
 
 	var req dto.UpdateQuantityRequest
-	if err := request.ParseData(r, &req); err != nil {
+	if err := easyjson.UnmarshalFromReader(r.Body, &req); err != nil {
 		logger.WithError(err).Error("parse request data")
 		response.HandleDomainError(r.Context(), w, err, op)
 		return
