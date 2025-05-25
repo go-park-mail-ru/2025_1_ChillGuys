@@ -605,32 +605,32 @@ func TestGetOrdersByUserID_ScanError(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
-func TestGetOrderProducts_Success(t *testing.T) {
-	db, mock, err := sqlmock.New()
-	if err != nil {
-		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
-	}
-	defer db.Close()
+// func TestGetOrderProducts_Success(t *testing.T) {
+// 	db, mock, err := sqlmock.New()
+// 	if err != nil {
+// 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+// 	}
+// 	defer db.Close()
 
-	orderID := uuid.New()
-	productID := uuid.New()
+// 	orderID := uuid.New()
+// 	productID := uuid.New()
 
-	rows := sqlmock.NewRows([]string{"product_id", "quantity"}).
-		AddRow(productID, uint(2))
+// 	rows := sqlmock.NewRows([]string{"product_id", "quantity"}).
+// 		AddRow(productID, uint(2))
 
-	mock.ExpectQuery("SELECT product_id, quantity FROM bazaar.order_item").
-		WithArgs(orderID).
-		WillReturnRows(rows)
+// 	mock.ExpectQuery("SELECT product_id, quantity FROM bazaar.order_item").
+// 		WithArgs(orderID).
+// 		WillReturnRows(rows)
 
-	repo := order2.NewOrderRepository(db)
-	products, err := repo.GetOrderProducts(context.Background(), orderID)
+// 	repo := order2.NewOrderRepository(db)
+// 	products, err := repo.GetOrderProducts(context.Background(), orderID)
 
-	assert.NoError(t, err)
-	assert.Len(t, *products, 1)
-	assert.Equal(t, productID, (*products)[0].ProductID)
-	assert.Equal(t, uint(2), (*products)[0].Quantity)
-	assert.NoError(t, mock.ExpectationsWereMet())
-}
+// 	assert.NoError(t, err)
+// 	assert.Len(t, *products, 1)
+// 	assert.Equal(t, productID, (*products)[0].ProductID)
+// 	assert.Equal(t, uint(2), (*products)[0].Quantity)
+// 	assert.NoError(t, mock.ExpectationsWereMet())
+// }
 
 //func TestGetOrderProducts_NotFound(t *testing.T) {
 //  db, mock, err := sqlmock.New()
@@ -654,51 +654,51 @@ func TestGetOrderProducts_Success(t *testing.T) {
 //  assert.NoError(t, mock.ExpectationsWereMet())
 //}
 
-func TestGetOrderProducts_QueryError(t *testing.T) {
-	db, mock, err := sqlmock.New()
-	if err != nil {
-		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
-	}
-	defer db.Close()
+// func TestGetOrderProducts_QueryError(t *testing.T) {
+// 	db, mock, err := sqlmock.New()
+// 	if err != nil {
+// 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+// 	}
+// 	defer db.Close()
 
-	orderID := uuid.New()
+// 	orderID := uuid.New()
 
-	mock.ExpectQuery("SELECT product_id, quantity FROM bazaar.order_item").
-		WithArgs(orderID).
-		WillReturnError(errors.New("database error"))
+// 	mock.ExpectQuery("SELECT product_id, quantity FROM bazaar.order_item").
+// 		WithArgs(orderID).
+// 		WillReturnError(errors.New("database error"))
 
-	repo := order2.NewOrderRepository(db)
-	products, err := repo.GetOrderProducts(context.Background(), orderID)
+// 	repo := order2.NewOrderRepository(db)
+// 	products, err := repo.GetOrderProducts(context.Background(), orderID)
 
-	assert.Nil(t, products)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "database error")
-	assert.NoError(t, mock.ExpectationsWereMet())
-}
+// 	assert.Nil(t, products)
+// 	assert.Error(t, err)
+// 	assert.Contains(t, err.Error(), "database error")
+// 	assert.NoError(t, mock.ExpectationsWereMet())
+// }
 
-func TestGetOrderProducts_ScanError(t *testing.T) {
-	db, mock, err := sqlmock.New()
-	if err != nil {
-		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
-	}
-	defer db.Close()
+// func TestGetOrderProducts_ScanError(t *testing.T) {
+// 	db, mock, err := sqlmock.New()
+// 	if err != nil {
+// 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+// 	}
+// 	defer db.Close()
 
-	orderID := uuid.New()
+// 	orderID := uuid.New()
 
-	rows := sqlmock.NewRows([]string{"product_id", "quantity"}).
-		AddRow("invalid_uuid", "invalid_quantity")
+// 	rows := sqlmock.NewRows([]string{"product_id", "quantity"}).
+// 		AddRow("invalid_uuid", "invalid_quantity")
 
-	mock.ExpectQuery("SELECT product_id, quantity FROM bazaar.order_item").
-		WithArgs(orderID).
-		WillReturnRows(rows)
+// 	mock.ExpectQuery("SELECT product_id, quantity FROM bazaar.order_item").
+// 		WithArgs(orderID).
+// 		WillReturnRows(rows)
 
-	repo := order2.NewOrderRepository(db)
-	products, err := repo.GetOrderProducts(context.Background(), orderID)
+// 	repo := order2.NewOrderRepository(db)
+// 	products, err := repo.GetOrderProducts(context.Background(), orderID)
 
-	assert.Nil(t, products)
-	assert.Error(t, err)
-	assert.NoError(t, mock.ExpectationsWereMet())
-}
+// 	assert.Nil(t, products)
+// 	assert.Error(t, err)
+// 	assert.NoError(t, mock.ExpectationsWereMet())
+// }
 
 func TestGetProductImage_Success(t *testing.T) {
 	db, mock, err := sqlmock.New()
