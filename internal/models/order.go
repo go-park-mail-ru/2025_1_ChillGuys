@@ -3,6 +3,8 @@ package models
 import (
 	"encoding/json"
 	"fmt"
+
+	"github.com/google/uuid"
 	"github.com/guregu/null"
 )
 
@@ -40,6 +42,8 @@ func (s OrderStatus) MarshalJSON() ([]byte, error) {
 }
 
 type OrderPreviewProductDTO struct {
+	ProductID       uuid.UUID   `json:"product_id"`
+	ProductName     string      `json:"product_name"`
 	ProductImageURL null.String `json:"ProductImageURL" swaggertype:"primitive,string"`
 	ProductQuantity uint
 }

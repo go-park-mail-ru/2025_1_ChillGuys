@@ -212,8 +212,6 @@ func (u *OrderUsecase) CreateOrder(ctx context.Context, in dto.CreateOrderDTO) e
 		IsRead: false,
 	}
 
-	fmt.Println("тут саздаю увед")
-
 	err = u.notificationRepo.Create(ctx, notification)
 	if err != nil {
 		logger.WithError(err).Error("failed create notification")
@@ -291,6 +289,8 @@ func (u *OrderUsecase) GetUserOrders(ctx context.Context, userID uuid.UUID) (*[]
 						if imgErr != nil {
 							// Ошибка получения изображения, значит будем отдавать nil
 							productsData[i] = models.OrderPreviewProductDTO{
+								ProductID:       productData.ProductID,
+                                ProductName:     productData.ProductName,
 								ProductImageURL: null.String{},
 								ProductQuantity: productData.Quantity,
 							}
@@ -298,6 +298,8 @@ func (u *OrderUsecase) GetUserOrders(ctx context.Context, userID uuid.UUID) (*[]
 						}
 
 						productsData[i] = models.OrderPreviewProductDTO{
+							ProductID:       productData.ProductID,
+                            ProductName:     productData.ProductName,
 							ProductImageURL: null.StringFrom(productImg),
 							ProductQuantity: productData.Quantity,
 						}
@@ -481,6 +483,8 @@ func (u *OrderUsecase) GetOrdersPlaced(ctx context.Context) (*[]dto.OrderPreview
 						if imgErr != nil {
 							// Ошибка получения изображения, значит будем отдавать nil
 							productsData[i] = models.OrderPreviewProductDTO{
+								ProductID:       productData.ProductID,
+								ProductName:     productData.ProductName,
 								ProductImageURL: null.String{},
 								ProductQuantity: productData.Quantity,
 							}
@@ -488,6 +492,8 @@ func (u *OrderUsecase) GetOrdersPlaced(ctx context.Context) (*[]dto.OrderPreview
 						}
 
 						productsData[i] = models.OrderPreviewProductDTO{
+							ProductID:       productData.ProductID,
+							ProductName:     productData.ProductName,
 							ProductImageURL: null.StringFrom(productImg),
 							ProductQuantity: productData.Quantity,
 						}

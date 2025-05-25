@@ -75,6 +75,7 @@ func (orderItem *GetOrderByUserIDResDTO) ConvertToGetOrderByUserIDResDTO(
 type GetOrderProductResDTO struct {
 	ProductID uuid.UUID `json:"productID"`
 	Quantity  uint      `json:"quantity"`
+	ProductName string    `json:"product_name"`
 }
 
 type UpdateOrderStatusRequest struct{

@@ -424,7 +424,7 @@ func NewApp(conf *config.Config) (*App, error) {
 				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(notificationService.GetUnreadCount)),
 			).Methods(http.MethodGet)
 
-		notificationRouter.Handle("/",
+		notificationRouter.Handle("/{offset}",
 				middleware.JWTMiddleware(authClient, tokenator, http.HandlerFunc(notificationService.GetUserNotifications)),
 			).Methods(http.MethodGet)
 

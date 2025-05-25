@@ -22,7 +22,8 @@ const (
 		SELECT id, user_id, text, title, is_read, updated_at 
 		FROM bazaar.notification 
 		WHERE user_id = $1 
-		ORDER BY updated_at DESC`
+		ORDER BY updated_at DESC
+		LIMIT 10 OFFSET $2`
 
 	queryGetUnreadCount = `
 		SELECT COUNT(*) 
@@ -37,7 +38,7 @@ const (
 
 type INotificationRepository interface {
 	Create(ctx context.Context, notification models.Notification) error
-	GetAllByUser(ctx context.Context, userID uuid.UUID) ([]models.Notification, error)
+	GetAllByUser(ctx context.Context, userID uuid.UUID, offset int) ([]models.Notification, error)
 	GetUnreadCount(ctx context.Context, userID uuid.UUID) (int, error)
 	UpdateReadStatus(ctx context.Context, id uuid.UUID, isRead bool) error
 }
@@ -70,11 +71,11 @@ func (r *NotificationRepository) Create(ctx context.Context, notification models
 	return nil
 }
 
-func (r *NotificationRepository) GetAllByUser(ctx context.Context, userID uuid.UUID) ([]models.Notification, error) {
+func (r *NotificationRepository) GetAllByUser(ctx context.Context, userID uuid.UUID, offset int) ([]models.Notification, error) {
 	const op = "NotificationRepository.GetAllByUser"
 	logger := logctx.GetLogger(ctx).WithField("op", op)
 	
-	rows, err := r.db.QueryContext(ctx, queryGetAllNotifications, userID)
+	rows, err := r.db.QueryContext(ctx, queryGetAllNotifications, userID, offset)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			logger.Warn("no notifications found")
