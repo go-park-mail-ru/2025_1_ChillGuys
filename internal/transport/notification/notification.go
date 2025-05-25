@@ -2,7 +2,9 @@ package notification
 
 import (
 	"net/http"
+	"strconv"
 
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/logctx"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/response"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/notification"
@@ -22,7 +24,20 @@ func (h *NotificationService) GetUserNotifications(w http.ResponseWriter, r *htt
 	const op = "NotificationService.GetUserNotifications"
 	logger := logctx.GetLogger(r.Context()).WithField("op", op)
 
-	notifications, err := h.uc.GetAllByUser(r.Context())
+	vars := mux.Vars(r)
+	offsetStr := vars["offset"]
+	offset := 0
+	var err error
+    if offsetStr != "" {
+        offset, err = strconv.Atoi(offsetStr)
+        if err != nil {
+            logger.WithError(err).WithField("offset", offsetStr).Error("parse offset")
+            response.HandleDomainError(r.Context(), w, errs.ErrParseRequestData, op)
+            return
+        }
+    }
+	
+	notifications, err := h.uc.GetAllByUser(r.Context(), offset)
 	if err != nil {
 		logger.WithError(err).Error("failed to get notifications")
 		response.HandleDomainError(r.Context(), w, err, op)

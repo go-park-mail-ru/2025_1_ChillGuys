@@ -12,7 +12,7 @@ import (
 )
 
 type INotificationUsecase interface {
-	GetAllByUser(ctx context.Context) (dto.NotificationsListResponse, error)
+	GetAllByUser(ctx context.Context, offset int) (dto.NotificationsListResponse, error)
 	GetUnreadCount(ctx context.Context) (int, error)
 	MarkAsRead(ctx context.Context, id uuid.UUID) error
 }
@@ -25,7 +25,7 @@ func NewNotificationUsecase(repo notification.INotificationRepository) *Notifica
 	return &NotificationUsecase{repo: repo}
 }
 
-func (u *NotificationUsecase) GetAllByUser(ctx context.Context) (dto.NotificationsListResponse, error) {
+func (u *NotificationUsecase) GetAllByUser(ctx context.Context, offset int) (dto.NotificationsListResponse, error) {
 	const op = "NotificationUsecase.GetAllByUser"
 	logger := logctx.GetLogger(ctx).WithField("op", op)
 
@@ -36,7 +36,7 @@ func (u *NotificationUsecase) GetAllByUser(ctx context.Context) (dto.Notificatio
     }
 	
 	logger = logger.WithField("user_id", userID)
-	notificationsDB, err := u.repo.GetAllByUser(ctx, userID)
+	notificationsDB, err := u.repo.GetAllByUser(ctx, userID, offset)
 	if err != nil {
 		logger.WithError(err).Error("failed to get notifications")
 		return dto.NotificationsListResponse{}, err
@@ -53,9 +53,16 @@ func (u *NotificationUsecase) GetAllByUser(ctx context.Context) (dto.Notificatio
 		})
 	}
 
+	count, err := u.repo.GetUnreadCount(ctx, userID)
+	if err != nil {
+		logger.WithError(err).Error("failed to get count unrad")
+        return dto.NotificationsListResponse{}, fmt.Errorf("%s: %w", op, err)
+	}
+
 	return dto.NotificationsListResponse{
 		Notifications: notifications,
 		Total:         len(notifications),
+		UnreadCount: count,
 	}, nil
 }
 

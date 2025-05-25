@@ -21,7 +21,11 @@ const (
 	queryGetProductDiscount    = `SELECT discounted_price, start_date, end_date FROM bazaar.discount WHERE product_id = $1`
 	queryUpdateProductQuantity = `UPDATE bazaar.product SET quantity = $1 WHERE id = $2`
 	queryGetOrdersByUserID     = `SELECT id, status, total_price, total_price_discount, address_id, expected_delivery_at, actual_delivery_at, created_at FROM bazaar.order WHERE user_id = $1`
-	queryGetOrderProducts      = `SELECT product_id, quantity FROM bazaar.order_item WHERE order_id = $1`
+	queryGetOrderProducts = `
+        SELECT oi.product_id, oi.quantity, p.name 
+        FROM bazaar.order_item oi
+        JOIN bazaar.product p ON oi.product_id = p.id
+        WHERE oi.order_id = $1`
 	queryGetProductImg         = `SELECT preview_image_url FROM bazaar.product WHERE id = $1 LIMIT 1`
 	queryGetOrderAddress       = `
         SELECT 
@@ -250,8 +254,8 @@ func (r *OrderRepository) GetOrdersByUserID(ctx context.Context, userID uuid.UUI
 	return &orders, nil
 }
 
-func (r *OrderRepository) GetOrderProducts(ctx context.Context, productID uuid.UUID) (*[]dto.GetOrderProductResDTO, error) {
-	rows, err := r.db.QueryContext(ctx, queryGetOrderProducts, productID)
+func (r *OrderRepository) GetOrderProducts(ctx context.Context, orderID uuid.UUID) (*[]dto.GetOrderProductResDTO, error) {
+	rows, err := r.db.QueryContext(ctx, queryGetOrderProducts, orderID)
 	if err != nil {
 		return nil, err
 	}
@@ -263,6 +267,7 @@ func (r *OrderRepository) GetOrderProducts(ctx context.Context, productID uuid.U
 		if err = rows.Scan(
 			&response.ProductID,
 			&response.Quantity,
+			&response.ProductName,
 		); err != nil {
 			return nil, err
 		}
