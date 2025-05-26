@@ -30,6 +30,9 @@ VALUES ('e29b41d4-a716-4466-5544-000000000033', 'sklad@sklad.ru', '$2a$04$TyhWcY
 INSERT INTO bazaar.basket (id, user_id, total_price, total_price_discount)
 VALUES ('e33b41d4-a716-4466-5544-000000000005', 'e29b41d4-a716-4466-5544-000000000003', 0, 0);
 
+INSERT INTO bazaar.basket (id, user_id, total_price, total_price_discount)
+VALUES ('e33b41d4-a716-4466-5544-000000000006', 'e29b41d4-a716-4466-5544-000000000033', 0, 0);
+
 -- Вставка категорий
 INSERT INTO bazaar.category (id, name)
 VALUES ('550e8400-e29b-41d4-a716-446655440010', 'Электроника'),
