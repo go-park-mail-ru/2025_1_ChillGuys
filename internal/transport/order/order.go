@@ -2,6 +2,7 @@ package order
 
 import (
 	"fmt"
+	"github.com/mailru/easyjson"
 	"net/http"
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/validator"
@@ -10,7 +11,6 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/logctx"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/request"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/response"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/order"
 	"github.com/google/uuid"
@@ -64,7 +64,7 @@ func (o *OrderService) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var createOrderReq dto.CreateOrderDTO
-	if err := request.ParseData(r, &createOrderReq); err != nil {
+	if err := easyjson.UnmarshalFromReader(r.Body, &createOrderReq); err != nil {
 		logger.WithError(err).Error("parse request data")
 		response.SendJSONError(r.Context(), w, http.StatusBadRequest, err.Error())
 		return
@@ -138,35 +138,35 @@ func (o *OrderService) GetOrders(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (h* OrderService) UpdateStatus (w http.ResponseWriter, r *http.Request){
+func (h *OrderService) UpdateStatus(w http.ResponseWriter, r *http.Request) {
 	const op = "WarehouseService.Update"
-    logger := logctx.GetLogger(r.Context()).WithField("op", op)
+	logger := logctx.GetLogger(r.Context()).WithField("op", op)
 
 	var req dto.UpdateOrderStatusRequest
-    if err := request.ParseData(r, &req); err != nil {
-        logger.WithError(err).Error("parse request data")
-        response.HandleDomainError(r.Context(), w, errs.ErrParseRequestData, op)
-        return
-    }
+	if err := easyjson.UnmarshalFromReader(r.Body, &req); err != nil {
+		logger.WithError(err).Error("parse request data")
+		response.HandleDomainError(r.Context(), w, errs.ErrParseRequestData, op)
+		return
+	}
 
-    if err := h.u.UpdateStatus(r.Context(), req); err != nil {
-        logger.WithError(err).Error("update order status")
-        response.HandleDomainError(r.Context(), w, err, op)
-        return
-    }
+	if err := h.u.UpdateStatus(r.Context(), req); err != nil {
+		logger.WithError(err).Error("update order status")
+		response.HandleDomainError(r.Context(), w, err, op)
+		return
+	}
 
-    response.SendJSONResponse(r.Context(), w, http.StatusOK, nil)
+	response.SendJSONResponse(r.Context(), w, http.StatusOK, nil)
 }
 
-func (h* OrderService) GetOrdersPlaced (w http.ResponseWriter, r *http.Request){
+func (h *OrderService) GetOrdersPlaced(w http.ResponseWriter, r *http.Request) {
 	const op = "WarehouseService.Get"
-    logger := logctx.GetLogger(r.Context()).WithField("op", op)
+	logger := logctx.GetLogger(r.Context()).WithField("op", op)
 
 	orders, err := h.u.GetOrdersPlaced(r.Context())
 	if err != nil {
 		logger.WithError(err).Error("get placed orders")
-        response.HandleDomainError(r.Context(), w, errs.ErrNotFound, op)
-        return
+		response.HandleDomainError(r.Context(), w, errs.ErrNotFound, op)
+		return
 	}
 
 	response.SendJSONResponse(r.Context(), w, http.StatusOK, orders)

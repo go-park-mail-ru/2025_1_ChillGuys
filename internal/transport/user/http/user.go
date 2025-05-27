@@ -1,6 +1,7 @@
 package user
 
 import (
+	"github.com/mailru/easyjson"
 	"io"
 	"net/http"
 
@@ -11,7 +12,6 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/logctx"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/cookie"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/request"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/response"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
@@ -47,32 +47,32 @@ func (h *UserHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 	logger := logctx.GetLogger(r.Context()).WithField("op", op)
 
 	var header metadata.MD
-    res, err := h.userClient.GetMe(
-        r.Context(), 
-        &emptypb.Empty{},
-        grpc.Header(&header),
-    )
-    if err != nil {
-        response.HandleGRPCError(r.Context(), w, err, op)
-        return
-    }
+	res, err := h.userClient.GetMe(
+		r.Context(),
+		&emptypb.Empty{},
+		grpc.Header(&header),
+	)
+	if err != nil {
+		response.HandleGRPCError(r.Context(), w, err, op)
+		return
+	}
 
 	if newTokens := header.Get("x-new-token"); len(newTokens) > 0 {
-        cookieProvider := cookie.NewCookieProvider(h.config)
-        cookieProvider.Set(w, newTokens[0], domains.TokenCookieName)
+		cookieProvider := cookie.NewCookieProvider(h.config)
+		cookieProvider.Set(w, newTokens[0], domains.TokenCookieName)
 
 		csrfToken, err := middleware.GenerateCSRFToken(
-            newTokens[0],
-            h.config.CSRFConfig.SecretKey,
-            h.config.CSRFConfig.TokenExpiry,
-        )
-        if err != nil {
-            logger.WithError(err).Error("generate CSRF token")
-            response.SendJSONError(r.Context(), w, http.StatusInternalServerError, "failed to generate CSRF token")
-            return
-        }
-        w.Header().Set("X-CSRF-Token", csrfToken)
-    }
+			newTokens[0],
+			h.config.CSRFConfig.SecretKey,
+			h.config.CSRFConfig.TokenExpiry,
+		)
+		if err != nil {
+			logger.WithError(err).Error("generate CSRF token")
+			response.SendJSONError(r.Context(), w, http.StatusInternalServerError, "failed to generate CSRF token")
+			return
+		}
+		w.Header().Set("X-CSRF-Token", csrfToken)
+	}
 
 	user, err := dto.ConvertGrpcToUserDTO(res)
 	if err != nil {
@@ -100,14 +100,14 @@ func (h *UserHandler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 	logger := logctx.GetLogger(r.Context()).WithField("op", op)
 
 	userID, ok := r.Context().Value(domains.UserIDKey{}).(string)
-    if !ok {
-        logger.Error("user ID not found in context")
-        response.SendJSONError(r.Context(), w, http.StatusUnauthorized, "user not authenticated")
-        return
-    }
+	if !ok {
+		logger.Error("user ID not found in context")
+		response.SendJSONError(r.Context(), w, http.StatusUnauthorized, "user not authenticated")
+		return
+	}
 
-    // Создаем контекст с метаданными для gRPC
-    ctx := metadata.AppendToOutgoingContext(r.Context(), "user-id", userID)
+	// Создаем контекст с метаданными для gRPC
+	ctx := metadata.AppendToOutgoingContext(r.Context(), "user-id", userID)
 
 	if err := r.ParseMultipartForm(h.config.ServerConfig.MaxMultipartMemory); err != nil {
 		logger.WithError(err).Error("failed to parse form data")
@@ -178,7 +178,7 @@ func (h *UserHandler) UpdateUserProfile(w http.ResponseWriter, r *http.Request) 
 	logger := logctx.GetLogger(r.Context()).WithField("op", op)
 
 	var updateReq dto.UpdateUserProfileRequestDTO
-	if err := request.ParseData(r, &updateReq); err != nil {
+	if err := easyjson.UnmarshalFromReader(r.Body, &updateReq); err != nil {
 		logger.WithError(err).Error("failed to parse request data")
 		response.SendJSONError(r.Context(), w, http.StatusBadRequest, err.Error())
 		return
@@ -210,7 +210,7 @@ func (h *UserHandler) UpdateUserEmail(w http.ResponseWriter, r *http.Request) {
 	logger := logctx.GetLogger(r.Context()).WithField("op", op)
 
 	var updateReq dto.UpdateUserEmailDTO
-	if err := request.ParseData(r, &updateReq); err != nil {
+	if err := easyjson.UnmarshalFromReader(r.Body, &updateReq); err != nil {
 		logger.WithError(err).Error("failed to parse request data")
 		response.HandleDomainError(r.Context(), w, err, op)
 		return
@@ -245,7 +245,7 @@ func (h *UserHandler) UpdateUserPassword(w http.ResponseWriter, r *http.Request)
 	logger := logctx.GetLogger(r.Context()).WithField("op", op)
 
 	var updateReq dto.UpdateUserPasswordDTO
-	if err := request.ParseData(r, &updateReq); err != nil {
+	if err := easyjson.UnmarshalFromReader(r.Body, &updateReq); err != nil {
 		logger.WithError(err).Error("failed to parse request data")
 		response.HandleDomainError(r.Context(), w, err, op)
 		return
@@ -264,24 +264,25 @@ func (h *UserHandler) UpdateUserPassword(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *UserHandler) BecomeSeller(w http.ResponseWriter, r *http.Request) {
-    const op = "UserHandler.BecomeSeller"
-    logger := logctx.GetLogger(r.Context()).WithField("op", op)
+	const op = "UserHandler.BecomeSeller"
+	logger := logctx.GetLogger(r.Context()).WithField("op", op)
 
-    var req dto.UpdateRoleRequest
-    if err := request.ParseData(r, &req); err != nil {
-        logger.WithError(err).Error("failed to parse request data")
-        response.SendJSONError(r.Context(), w, http.StatusBadRequest, err.Error())
-        return
-    }
+	var req dto.UpdateRoleRequest
 
-    _, err := h.userClient.BecomeSeller(r.Context(), &gen.BecomeSellerRequest{
-        Title:       req.Title,
-        Description: req.Description,
-    })
-    if err != nil {
-        response.HandleGRPCError(r.Context(), w, err, op)
-        return
-    }
+	if err := easyjson.UnmarshalFromReader(r.Body, &req); err != nil {
+		logger.WithError(err).Error("failed to parse request data")
+		response.SendJSONError(r.Context(), w, http.StatusBadRequest, err.Error())
+		return
+	}
 
-    response.SendJSONResponse(r.Context(), w, http.StatusOK, nil)
+	_, err := h.userClient.BecomeSeller(r.Context(), &gen.BecomeSellerRequest{
+		Title:       req.Title,
+		Description: req.Description,
+	})
+	if err != nil {
+		response.HandleGRPCError(r.Context(), w, err, op)
+		return
+	}
+
+	response.SendJSONResponse(r.Context(), w, http.StatusOK, nil)
 }

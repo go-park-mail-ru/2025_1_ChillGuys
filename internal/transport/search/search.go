@@ -3,6 +3,7 @@ package search
 import (
 	"context"
 	"github.com/guregu/null"
+	"github.com/mailru/easyjson"
 	"net/http"
 	"strconv"
 
@@ -11,7 +12,6 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/logctx"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/suggestions"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/request"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/response"
 	"github.com/gorilla/mux"
 )
@@ -76,7 +76,7 @@ func (h *SearchService) SearchWithFilterAndSort(w http.ResponseWriter, r *http.R
 
 	// Чтение строки запроса
 	var req dto.SearchReq
-	if err := request.ParseData(r, &req); err != nil {
+	if err := easyjson.UnmarshalFromReader(r.Body, &req); err != nil {
 		logger.WithError(err).Error("failed to parse request data")
 		response.SendJSONError(r.Context(), w, http.StatusBadRequest, err.Error())
 		return

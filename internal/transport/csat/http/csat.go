@@ -1,12 +1,12 @@
 package csat
 
 import (
+	"github.com/mailru/easyjson"
 	"net/http"
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	gen "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/generated/csat"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/logctx"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/request"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/utils/response"
 	"github.com/gorilla/mux"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -53,7 +53,7 @@ func (h *CsatHandler) SubmitAnswer(w http.ResponseWriter, r *http.Request) {
 	logger := logctx.GetLogger(r.Context()).WithField("op", op)
 
 	var answerReq dto.SubmitAnswersRequest
-	if err := request.ParseData(r, &answerReq); err != nil {
+	if err := easyjson.UnmarshalFromReader(r.Body, &answerReq); err != nil {
 		logger.WithError(err).Error("failed to parse request data")
 		response.SendJSONError(r.Context(), w, http.StatusBadRequest, err.Error())
 		return
