@@ -11,6 +11,7 @@ import (
 	"sync"
 )
 
+//go:generate mockgen -source=recommendation.go -destination=../mocks/recommendation_usecase_mock.go -package=mocks IRecommendationUsecase
 type IRecommendationUsecase interface {
 	GetRecommendations(ctx context.Context, productID uuid.UUID) ([]*models.Product, error)
 }

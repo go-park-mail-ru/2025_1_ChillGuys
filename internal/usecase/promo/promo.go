@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 )
 
+//go:generate mockgen -source=promo.go -destination=../../infrastructure/repository/postgres/mocks/promo_repository_mock.go -package=mocks IPromoRepository
 type IPromoRepository interface {
 	Create(ctx context.Context, promo models.PromoCode) error
 	GetAll(ctx context.Context, offset int) ([]*models.PromoCode, error)

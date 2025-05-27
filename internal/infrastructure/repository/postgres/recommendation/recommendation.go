@@ -17,6 +17,8 @@ const (
 		LIMIT 10`
 )
 
+
+//go:generate mockgen -source=recommendation.go -destination=../mocks/recommendation_repository_mock.go -package=mocks IRecommendationRepository
 type IRecommendationRepository interface {
 	GetCategoryIDsByProductID(context.Context, uuid.UUID) ([]uuid.UUID, error)
 	GetProductIDsBySubcategoryID(ctx context.Context, subcategoryID uuid.UUID, count int) ([]uuid.UUID, error)

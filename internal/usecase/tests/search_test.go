@@ -3,14 +3,14 @@ package tests
 import (
 	"context"
 	"errors"
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
+	"github.com/google/uuid"
 	"testing"
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/infrastructure/repository/postgres/mocks"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models"
-	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/usecase/search"
 	"github.com/golang/mock/gomock"
-	"github.com/google/uuid"
 	"github.com/guregu/null"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -169,8 +169,6 @@ func TestSearchUsecase_SearchProductsByNameWithFilterAndSort(t *testing.T) {
 }
 
 func TestSearchUsecase_SearchCategoryByName(t *testing.T) {
-	t.Parallel()
-
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -189,18 +187,24 @@ func TestSearchUsecase_SearchCategoryByName(t *testing.T) {
 		category1 := &models.Category{ID: uuid.New(), Name: "Category 1"}
 		category2 := &models.Category{ID: uuid.New(), Name: "Category 2"}
 
+		// Убедимся, что моки вызываются в правильном порядке
 		mockRepo.EXPECT().
 			GetCategoryByName(gomock.Any(), "Category 1").
-			Return(category1, nil)
+			Return(category1, nil).
+			Times(1)
 		mockRepo.EXPECT().
 			GetCategoryByName(gomock.Any(), "Category 2").
-			Return(category2, nil)
+			Return(category2, nil).
+			Times(1)
 
 		result, err := uc.SearchCategoryByName(ctx, req)
 		require.NoError(t, err)
-		assert.Len(t, result, 2)
-		assert.Contains(t, []string{result[0].Name, result[1].Name}, "Category 1")
-		assert.Contains(t, []string{result[0].Name, result[1].Name}, "Category 2")
+		require.Len(t, result, 2)
+
+		// Проверяем, что оба результата присутствуют
+		names := []string{result[0].Name, result[1].Name}
+		assert.Contains(t, names, "Category 1")
+		assert.Contains(t, names, "Category 2")
 	})
 
 	t.Run("some categories not found", func(t *testing.T) {
@@ -216,14 +220,16 @@ func TestSearchUsecase_SearchCategoryByName(t *testing.T) {
 
 		mockRepo.EXPECT().
 			GetCategoryByName(gomock.Any(), "Category 1").
-			Return(category1, nil)
+			Return(category1, nil).
+			Times(1)
 		mockRepo.EXPECT().
 			GetCategoryByName(gomock.Any(), "Non-existent").
-			Return(nil, nil)
+			Return(nil, nil).
+			Times(1)
 
 		result, err := uc.SearchCategoryByName(ctx, req)
 		require.NoError(t, err)
-		assert.Len(t, result, 1)
+		require.Len(t, result, 1)
 		assert.Equal(t, "Category 1", result[0].Name)
 	})
 
@@ -247,15 +253,21 @@ func TestSearchUsecase_SearchCategoryByName(t *testing.T) {
 			},
 		}
 
+		// Первый вызов возвращает ошибку
 		mockRepo.EXPECT().
 			GetCategoryByName(gomock.Any(), "Category 1").
-			Return(nil, errors.New("database error"))
+			Return(nil, errors.New("database error")).
+			Times(1)
+
+		// Второй вызов МОЖЕТ не произойти, допускаем это
 		mockRepo.EXPECT().
 			GetCategoryByName(gomock.Any(), "Category 2").
-			Return(&models.Category{Name: "Category 2"}, nil)
+			Return(&models.Category{Name: "Category 2"}, nil).
+			AnyTimes()
 
 		_, err := uc.SearchCategoryByName(ctx, req)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "database error")
 	})
+
 }

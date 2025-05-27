@@ -36,6 +36,7 @@ const (
 		WHERE id = $2`
 )
 
+//go:generate mockgen -source=notification.go -destination=../mocks/notification_repository_mock.go -package=mocks INotificationRepository
 type INotificationRepository interface {
 	Create(ctx context.Context, notification models.Notification) error
 	GetAllByUser(ctx context.Context, userID uuid.UUID, offset int) ([]models.Notification, error)
@@ -54,7 +55,7 @@ func NewNotificationRepository(db *sql.DB) *NotificationRepository {
 func (r *NotificationRepository) Create(ctx context.Context, notification models.Notification) error {
 	const op = "NotificationRepository.Create"
 	logger := logctx.GetLogger(ctx).WithField("op", op)
-	
+
 	_, err := r.db.ExecContext(ctx, queryCreateNotification,
 		notification.ID,
 		notification.UserID,
@@ -74,7 +75,7 @@ func (r *NotificationRepository) Create(ctx context.Context, notification models
 func (r *NotificationRepository) GetAllByUser(ctx context.Context, userID uuid.UUID, offset int) ([]models.Notification, error) {
 	const op = "NotificationRepository.GetAllByUser"
 	logger := logctx.GetLogger(ctx).WithField("op", op)
-	
+
 	rows, err := r.db.QueryContext(ctx, queryGetAllNotifications, userID, offset)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -108,7 +109,7 @@ func (r *NotificationRepository) GetAllByUser(ctx context.Context, userID uuid.U
 func (r *NotificationRepository) GetUnreadCount(ctx context.Context, userID uuid.UUID) (int, error) {
 	const op = "NotificationRepository.GetUnreadCount"
 	logger := logctx.GetLogger(ctx).WithField("op", op)
-	
+
 	var count int
 	err := r.db.QueryRowContext(ctx, queryGetUnreadCount, userID).Scan(&count)
 	if err != nil {
@@ -122,7 +123,7 @@ func (r *NotificationRepository) GetUnreadCount(ctx context.Context, userID uuid
 func (r *NotificationRepository) UpdateReadStatus(ctx context.Context, id uuid.UUID, isRead bool) error {
 	const op = "NotificationRepository.UpdateReadStatus"
 	logger := logctx.GetLogger(ctx).WithField("op", op)
-	
+
 	_, err := r.db.ExecContext(ctx, queryUpdateReadStatus, isRead, id)
 	if err != nil {
 		logger.WithError(err).Error(err)
