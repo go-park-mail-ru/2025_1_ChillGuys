@@ -125,7 +125,7 @@ func easyjson120d1ca2DecodeGithubComGoParkMailRu20251ChillGuysInternalTransportD
 				in.Delim('[')
 				if out.Products == nil {
 					if !in.IsDelim(']') {
-						out.Products = make([]models.OrderPreviewProductDTO, 0, 2)
+						out.Products = make([]models.OrderPreviewProductDTO, 0, 1)
 					} else {
 						out.Products = []models.OrderPreviewProductDTO{}
 					}
@@ -390,6 +390,12 @@ func easyjson120d1ca2DecodeGithubComGoParkMailRu20251ChillGuysInternalModels(in 
 			continue
 		}
 		switch key {
+		case "product_id":
+			if data := in.UnsafeBytes(); in.Ok() {
+				in.AddError((out.ProductID).UnmarshalText(data))
+			}
+		case "product_name":
+			out.ProductName = string(in.String())
 		case "ProductImageURL":
 			if data := in.Raw(); in.Ok() {
 				in.AddError((out.ProductImageURL).UnmarshalJSON(data))
@@ -411,8 +417,18 @@ func easyjson120d1ca2EncodeGithubComGoParkMailRu20251ChillGuysInternalModels(out
 	first := true
 	_ = first
 	{
-		const prefix string = ",\"ProductImageURL\":"
+		const prefix string = ",\"product_id\":"
 		out.RawString(prefix[1:])
+		out.RawText((in.ProductID).MarshalText())
+	}
+	{
+		const prefix string = ",\"product_name\":"
+		out.RawString(prefix)
+		out.String(string(in.ProductName))
+	}
+	{
+		const prefix string = ",\"ProductImageURL\":"
+		out.RawString(prefix)
 		out.Raw((in.ProductImageURL).MarshalJSON())
 	}
 	{
@@ -593,6 +609,8 @@ func easyjson120d1ca2DecodeGithubComGoParkMailRu20251ChillGuysInternalTransportD
 			}
 		case "quantity":
 			out.Quantity = uint(in.Uint())
+		case "product_name":
+			out.ProductName = string(in.String())
 		default:
 			in.SkipRecursive()
 		}
@@ -616,6 +634,11 @@ func easyjson120d1ca2EncodeGithubComGoParkMailRu20251ChillGuysInternalTransportD
 		const prefix string = ",\"quantity\":"
 		out.RawString(prefix)
 		out.Uint(uint(in.Quantity))
+	}
+	{
+		const prefix string = ",\"product_name\":"
+		out.RawString(prefix)
+		out.String(string(in.ProductName))
 	}
 	out.RawByte('}')
 }

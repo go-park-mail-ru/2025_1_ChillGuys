@@ -8,7 +8,7 @@ run:
 
 test:
 	mkdir -p coverage
-	go test -v $$(go list ./... | grep -Ev '/(mocks|docs|cmd|db|config|internal/app|generated)') -coverprofile=coverage/cover.out
+	go test -v $$(go list ./... | grep -Ev '/(mocks|docs|cmd|db|config|internal/app|generated|internal/transport/dto)') -coverprofile=coverage/cover.out
 
 coverage: test
 	go tool cover -html=coverage/cover.out -o coverage/cover.html

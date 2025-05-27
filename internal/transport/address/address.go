@@ -18,21 +18,6 @@ import (
 	"github.com/google/uuid"
 )
 
-type GeoapifyResponse struct {
-	Features []GeoapifyFeature `json:"features"`
-}
-
-type GeoapifyFeature struct {
-	Properties struct {
-		ResultType string  `json:"result_type"`
-		Lon        float64 `json:"lon"`
-		Lat        float64 `json:"lat"`
-		Rank       struct {
-			Importance float64 `json:"importance"`
-		} `json:"rank"`
-	} `json:"properties"`
-}
-
 type AddressHandler struct {
 	addressService address.IAddressUsecase
 	geoapifyAPIKey string
@@ -106,14 +91,15 @@ func (h *AddressHandler) CreateAddress(w http.ResponseWriter, r *http.Request) {
 
 	logger = logger.WithField("user_id", userID)
 
-	geoData, err := h.geocodeAddress(r.Context(), createAddressReq)
+	var geoData *dto.GeoapifyResponse
+	geoData, err = h.geocodeAddress(r.Context(), createAddressReq)
 	if err != nil {
 		logger.WithError(err).Error("geoapify API error")
 		response.SendJSONError(r.Context(), w, http.StatusInternalServerError, "failed to validate address")
 		return
 	}
 
-	var bestMatch *GeoapifyFeature
+	var bestMatch *dto.GeoapifyFeature
 	for _, feature := range geoData.Features {
 		if feature.Properties.ResultType == "building" && feature.Properties.Rank.Importance > 0.2 {
 			if bestMatch == nil || feature.Properties.Rank.Importance > bestMatch.Properties.Rank.Importance {
@@ -138,7 +124,7 @@ func (h *AddressHandler) CreateAddress(w http.ResponseWriter, r *http.Request) {
 	response.SendJSONResponse(r.Context(), w, http.StatusCreated, nil)
 }
 
-func (h *AddressHandler) geocodeAddress(ctx context.Context, address dto.AddressDTO) (*GeoapifyResponse, error) {
+func (h *AddressHandler) geocodeAddress(ctx context.Context, address dto.AddressDTO) (*dto.GeoapifyResponse, error) {
 	const op = "AddressHandler.geocodeAddress"
 	logger := logctx.GetLogger(ctx).WithField("op", op)
 
@@ -171,7 +157,7 @@ func (h *AddressHandler) geocodeAddress(ctx context.Context, address dto.Address
 		return nil, fmt.Errorf("Geoapify API returned status: %d", resp.StatusCode)
 	}
 
-	var geoResponse GeoapifyResponse
+	var geoResponse dto.GeoapifyResponse
 	if err = json.NewDecoder(resp.Body).Decode(&geoResponse); err != nil {
 		logger.WithError(err).Error("decode Geoapify response")
 		return nil, fmt.Errorf("%s: failed to decode Geoapify response: %w", op, err)

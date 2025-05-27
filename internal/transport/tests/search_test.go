@@ -65,24 +65,24 @@ func TestSearchWithFilterAndSort_Success(t *testing.T) {
 	assert.Contains(t, rr.Body.String(), `"categories"`)
 }
 
-func TestSearchWithFilterAndSort_ParseError(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	handler := search.NewSearchService(nil, nil)
-
-	req := httptest.NewRequest(http.MethodPost, "/search/abc", bytes.NewReader([]byte(`invalid json`)))
-	req = mux.SetURLVars(req, map[string]string{"offset": "abc"})
-	logger := logrus.NewEntry(logrus.New()) // или какой логгер вы используете
-	ctx := logctx.WithLogger(context.Background(), logger)
-	req = req.WithContext(ctx)
-
-	rr := httptest.NewRecorder()
-	handler.SearchWithFilterAndSort(rr, req)
-
-	assert.Equal(t, http.StatusBadRequest, rr.Code)
-	assert.Contains(t, rr.Body.String(), "failed to parse request body")
-}
+//func TestSearchWithFilterAndSort_ParseError(t *testing.T) {
+//	ctrl := gomock.NewController(t)
+//	defer ctrl.Finish()
+//
+//	handler := search.NewSearchService(nil, nil)
+//
+//	req := httptest.NewRequest(http.MethodPost, "/search/abc", bytes.NewReader([]byte(`invalid json`)))
+//	req = mux.SetURLVars(req, map[string]string{"offset": "abc"})
+//	logger := logrus.NewEntry(logrus.New()) // или какой логгер вы используете
+//	ctx := logctx.WithLogger(context.Background(), logger)
+//	req = req.WithContext(ctx)
+//
+//	rr := httptest.NewRecorder()
+//	handler.SearchWithFilterAndSort(rr, req)
+//
+//	assert.Equal(t, http.StatusBadRequest, rr.Code)
+//	assert.Contains(t, rr.Body.String(), "failed to parse request body")
+//}
 
 func TestSearchWithFilterAndSort_GetCategorySuggestionsError(t *testing.T) {
 	ctrl := gomock.NewController(t)

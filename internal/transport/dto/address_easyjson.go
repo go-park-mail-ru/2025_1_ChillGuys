@@ -40,7 +40,7 @@ func easyjsonF4fdf71eDecodeGithubComGoParkMailRu20251ChillGuysInternalTransportD
 			if data := in.UnsafeBytes(); in.Ok() {
 				in.AddError((out.ID).UnmarshalText(data))
 			}
-		case "AddressString":
+		case "addressString":
 			if data := in.Raw(); in.Ok() {
 				in.AddError((out.AddressString).UnmarshalJSON(data))
 			}
@@ -68,7 +68,7 @@ func easyjsonF4fdf71eEncodeGithubComGoParkMailRu20251ChillGuysInternalTransportD
 		out.RawText((in.ID).MarshalText())
 	}
 	{
-		const prefix string = ",\"AddressString\":"
+		const prefix string = ",\"addressString\":"
 		out.RawString(prefix)
 		out.Raw((in.AddressString).MarshalJSON())
 	}
@@ -130,7 +130,7 @@ func easyjsonF4fdf71eDecodeGithubComGoParkMailRu20251ChillGuysInternalTransportD
 			if data := in.Raw(); in.Ok() {
 				in.AddError((out.Label).UnmarshalJSON(data))
 			}
-		case "AddressString":
+		case "addressString":
 			if data := in.Raw(); in.Ok() {
 				in.AddError((out.AddressString).UnmarshalJSON(data))
 			}
@@ -163,7 +163,7 @@ func easyjsonF4fdf71eEncodeGithubComGoParkMailRu20251ChillGuysInternalTransportD
 		out.Raw((in.Label).MarshalJSON())
 	}
 	{
-		const prefix string = ",\"AddressString\":"
+		const prefix string = ",\"addressString\":"
 		out.RawString(prefix)
 		out.Raw((in.AddressString).MarshalJSON())
 	}
@@ -516,7 +516,7 @@ func easyjsonF4fdf71eDecodeGithubComGoParkMailRu20251ChillGuysInternalTransportD
 			if data := in.Raw(); in.Ok() {
 				in.AddError((out.City).UnmarshalJSON(data))
 			}
-		case "AddressString":
+		case "addressString":
 			if data := in.Raw(); in.Ok() {
 				in.AddError((out.AddressString).UnmarshalJSON(data))
 			}
@@ -554,7 +554,7 @@ func easyjsonF4fdf71eEncodeGithubComGoParkMailRu20251ChillGuysInternalTransportD
 		out.Raw((in.City).MarshalJSON())
 	}
 	{
-		const prefix string = ",\"AddressString\":"
+		const prefix string = ",\"addressString\":"
 		out.RawString(prefix)
 		out.Raw((in.AddressString).MarshalJSON())
 	}
@@ -624,7 +624,7 @@ func easyjsonF4fdf71eDecodeGithubComGoParkMailRu20251ChillGuysInternalTransportD
 			if data := in.Raw(); in.Ok() {
 				in.AddError((out.City).UnmarshalJSON(data))
 			}
-		case "AddressString":
+		case "addressString":
 			if data := in.Raw(); in.Ok() {
 				in.AddError((out.AddressString).UnmarshalJSON(data))
 			}
@@ -667,7 +667,7 @@ func easyjsonF4fdf71eEncodeGithubComGoParkMailRu20251ChillGuysInternalTransportD
 		out.Raw((in.City).MarshalJSON())
 	}
 	{
-		const prefix string = ",\"AddressString\":"
+		const prefix string = ",\"addressString\":"
 		out.RawString(prefix)
 		out.Raw((in.AddressString).MarshalJSON())
 	}
