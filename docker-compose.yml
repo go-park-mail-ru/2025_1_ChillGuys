@@ -19,6 +19,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    image: niknike/bazaar
     container_name: bazaar_app
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -154,6 +155,7 @@ services:
     build:
       context: .
       dockerfile: deployments/user/Dockerfile
+    image: niknike/user-service
     container_name: user_service
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -182,6 +184,7 @@ services:
     build:
       context: .
       dockerfile: deployments/auth/Dockerfile
+    image: niknike/auth-service
     container_name: auth_service
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -216,6 +219,7 @@ services:
     build:
       context: .
       dockerfile: deployments/csat/Dockerfile
+    image: niknike/csat-service
     container_name: csat_service
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -250,6 +254,7 @@ services:
     build:
       context: .
       dockerfile: deployments/review/Dockerfile
+    image: niknike/review-service
     container_name: review_service
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
