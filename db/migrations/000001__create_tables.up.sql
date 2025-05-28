@@ -246,7 +246,8 @@ CREATE TABLE IF NOT EXISTS bazaar.review
     rating     INT CHECK (rating BETWEEN 1 AND 5) NOT NULL,
     comment    TEXT,
     created_at TIMESTAMPTZ DEFAULT now(),
-    updated_at TIMESTAMPTZ DEFAULT now()
+    updated_at TIMESTAMPTZ DEFAULT now(),
+    UNIQUE (user_id, product_id)
 );
 
 -- Промокоды

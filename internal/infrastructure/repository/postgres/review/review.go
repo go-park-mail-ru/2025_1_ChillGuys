@@ -10,6 +10,7 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/logctx"
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 const (
@@ -70,6 +71,15 @@ func (r *ReviewRepository) AddReview(ctx context.Context, review models.ReviewDB
 		review.Comment,
 	)
 	if err != nil {
+		// Проверяем, является ли ошибка нарушением уникальности
+		if pqErr, ok := err.(*pq.Error); ok {
+			if pqErr.Code == "23505" { // Код ошибки "unique_violation"
+				logger.WithError(err).Error("user has already reviewed this product")
+				tx.Rollback()
+				return errs.ErrAlreadyExists
+			}
+		}
+
 		logger.WithError(err).Error("add review")
 		tx.Rollback()
 		return fmt.Errorf("%s: %w", op, err)
