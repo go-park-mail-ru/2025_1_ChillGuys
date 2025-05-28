@@ -29,8 +29,5 @@ COPY --from=builder /app/bin/migrate .
 # Копируем папку с миграциями
 COPY --from=builder /app/db/migrations ./db/migrations
 
-# Копируем .env файл
-COPY --from=builder /app/.env .
-
 # Открываем порт для приложения
 EXPOSE 8080

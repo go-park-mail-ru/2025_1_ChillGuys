@@ -28,8 +28,6 @@ COPY --from=builder /app/bin/migrate .
 # Копируем папку с миграциями
 COPY --from=builder /app/db/migrations ./db/migrations
 
-COPY --from=builder /app/.env .
-
 # Порт gRPC
 EXPOSE 50054
 
