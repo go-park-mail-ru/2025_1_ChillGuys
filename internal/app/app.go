@@ -237,8 +237,6 @@ func NewApp(conf *config.Config) (*App, error) {
 		productsRouter.HandleFunc("/product/{id}", ProductService.GetProductByID).Methods(http.MethodGet)
 		productsRouter.HandleFunc("/products/category/{id}/{offset}", ProductService.GetProductsByCategory).Methods(http.MethodGet)
 
-
-		productsRouter.HandleFunc("/products/test/{offset}", ProductService.GetAllProducts).Methods(http.MethodGet)
 		productsRouter.Handle("/add",
 			http.HandlerFunc(ProductService.AddProduct),
 		).Methods(http.MethodPost)
