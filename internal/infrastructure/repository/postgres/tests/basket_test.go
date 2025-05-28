@@ -370,38 +370,38 @@ func TestBasketRepository_GetProductsInBasket(t *testing.T) {
 
 	repo := basketRepo.NewBasketRepository(db)
 
-	//t.Run("success", func(t *testing.T) {
-	//  userID := uuid.New()
-	//  basketID := uuid.New()
-	//  productID := uuid.New()
-	//  now := time.Now()
-	//
-	//  mock.ExpectQuery(`SELECT id FROM bazaar.basket WHERE user_id = \$1`).
-	//    WithArgs(userID).
-	//    WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(basketID))
-	//
-	//  rows := sqlmock.NewRows([]string{
-	//    "id", "basket_id", "product_id", "quantity", "updated_at",
-	//    "name", "price", "preview_image_url", "discounted_price",
-	//  }).AddRow(
-	//    uuid.New(), basketID, productID, 2, now,
-	//    "Test Product", 1000.0, "image.jpg", 800.0,
-	//  )
-	//
-	//  mock.ExpectQuery(`SELECT`).
-	//    WithArgs(basketID).
-	//    WillReturnRows(rows)
-	//
-	//  items, err := repo.Get(context.Background(), userID)
-	//  require.NoError(t, err)
-	//  require.Len(t, items, 1)
-	//  assert.Equal(t, productID, items[0].ProductID)
-	//  assert.Equal(t, 2, items[0].Quantity)
-	//  assert.Equal(t, "Test Product", items[0].ProductName)
-	//  assert.Equal(t, 1000.0, items[0].Price)
-	//  assert.Equal(t, "image.jpg", items[0].ProductImage)
-	//  assert.Equal(t, 800.0, items[0].PriceDiscount)
-	//})
+	t.Run("success", func(t *testing.T) {
+		userID := uuid.New()
+		basketID := uuid.New()
+		productID := uuid.New()
+		now := time.Now()
+
+		mock.ExpectQuery(`SELECT id FROM bazaar.basket WHERE user_id = \$1`).
+			WithArgs(userID).
+			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(basketID))
+
+		rows := sqlmock.NewRows([]string{
+			"id", "basket_id", "product_id", "quantity", "updated_at",
+			"name", "price", "preview_image_url", "discounted_price", "available_quantity",
+		}).AddRow(
+			uuid.New(), basketID, productID, 2, now,
+			"Test Product", 1000.0, "image.jpg", 800.0, 5,
+		)
+
+		mock.ExpectQuery(`SELECT`).
+			WithArgs(basketID).
+			WillReturnRows(rows)
+
+		items, err := repo.Get(context.Background(), userID)
+		require.NoError(t, err)
+		require.Len(t, items, 1)
+		assert.Equal(t, productID, items[0].ProductID)
+		assert.Equal(t, 2, items[0].Quantity)
+		assert.Equal(t, "Test Product", items[0].ProductName)
+		assert.Equal(t, 1000.0, items[0].Price)
+		assert.Equal(t, "image.jpg", items[0].ProductImage)
+		assert.Equal(t, 800.0, items[0].PriceDiscount)
+	})
 
 	t.Run("basket not found", func(t *testing.T) {
 		userID := uuid.New()

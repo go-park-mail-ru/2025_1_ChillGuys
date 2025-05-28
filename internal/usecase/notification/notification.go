@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 )
 
+//go:generate mockgen -source=notification.go -destination=../mocks/notification_usecase_mock.go -package=mocks INotificationUsecase
 type INotificationUsecase interface {
 	GetAllByUser(ctx context.Context, offset int) (dto.NotificationsListResponse, error)
 	GetUnreadCount(ctx context.Context) (int, error)

@@ -139,3 +139,92 @@ func TestGetOrders_Error(t *testing.T) {
 
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
 }
+
+func TestUpdateStatus_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockUsecase := mocks.NewMockIOrderUsecase(ctrl)
+	handler := order.NewOrderService(mockUsecase)
+
+	orderID := uuid.New()
+	req := dto.UpdateOrderStatusRequest{OrderID: orderID}
+	body, _ := json.Marshal(req)
+
+	mockUsecase.EXPECT().
+		UpdateStatus(gomock.Any(), req).
+		Return(nil)
+
+	r := httptest.NewRequest(http.MethodPut, "/orders/status", bytes.NewReader(body))
+	r.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	handler.UpdateStatus(w, r)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestUpdateStatus_ParseError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	handler := order.NewOrderService(nil)
+
+	r := httptest.NewRequest(http.MethodPut, "/orders/status", bytes.NewReader([]byte("invalid-json")))
+	r.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	handler.UpdateStatus(w, r)
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+}
+
+func TestUpdateStatus_UsecaseError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockUsecase := mocks.NewMockIOrderUsecase(ctrl)
+	handler := order.NewOrderService(mockUsecase)
+
+	orderID := uuid.New()
+	req := dto.UpdateOrderStatusRequest{OrderID: orderID}
+	body, _ := json.Marshal(req)
+
+	mockUsecase.EXPECT().
+		UpdateStatus(gomock.Any(), req).
+		Return(errors.New("update error"))
+
+	r := httptest.NewRequest(http.MethodPut, "/orders/status", bytes.NewReader(body))
+	r.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	handler.UpdateStatus(w, r)
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+}
+
+func TestGetOrdersPlaced_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockUsecase := mocks.NewMockIOrderUsecase(ctrl)
+	handler := order.NewOrderService(mockUsecase)
+
+	expectedOrders := &[]dto.OrderPreviewDTO{}
+
+	mockUsecase.EXPECT().
+		GetOrdersPlaced(gomock.Any()).
+		Return(expectedOrders, nil)
+
+	r := httptest.NewRequest(http.MethodGet, "/orders/placed", nil)
+	w := httptest.NewRecorder()
+
+	handler.GetOrdersPlaced(w, r)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var resp []dto.OrderPreviewDTO
+	err := json.NewDecoder(w.Body).Decode(&resp)
+	assert.NoError(t, err)
+	assert.Equal(t, expectedOrders, &resp)
+}
