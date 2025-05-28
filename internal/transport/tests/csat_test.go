@@ -1,15 +1,19 @@
 package tests
 
 import (
-	csat2 "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/csat/http"
-	"github.com/gorilla/mux"
+	"bytes"
+	"github.com/google/uuid"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/csat/http"
 	"github.com/golang/mock/gomock"
+	"github.com/gorilla/mux"
+	"github.com/mailru/easyjson"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/dto"
 	generatedcsat "github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/generated/csat"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/generated/csat/mocks"
 )
@@ -19,7 +23,7 @@ func TestGetAllSurveys(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockClient := mocks.NewMockSurveyServiceClient(ctrl)
-	handler := csat2.NewCsatHandler(mockClient) // замените на фактический конструктор
+	handler := csat.NewCsatHandler(mockClient)
 
 	mockClient.EXPECT().
 		GetAllSurveys(gomock.Any(), gomock.Any()).
@@ -38,7 +42,7 @@ func TestGetSurvey(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockClient := mocks.NewMockSurveyServiceClient(ctrl)
-	handler := csat2.NewCsatHandler(mockClient)
+	handler := csat.NewCsatHandler(mockClient)
 
 	surveyName := "test-survey"
 	expectedResponse := &generatedcsat.SurveyWithQuestionsResponse{
@@ -63,12 +67,34 @@ func TestGetSurvey(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Result().StatusCode)
 }
 
+func TestGetSurvey_Error(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockClient := mocks.NewMockSurveyServiceClient(ctrl)
+	handler := csat.NewCsatHandler(mockClient)
+
+	surveyName := "test-survey"
+
+	mockClient.EXPECT().
+		GetSurveyWithQuestions(gomock.Any(), &generatedcsat.GetSurveyRequest{Name: surveyName}).
+		Return(nil, assert.AnError)
+
+	req := httptest.NewRequest(http.MethodGet, "/csat/survey/"+surveyName, nil)
+	req = mux.SetURLVars(req, map[string]string{"name": surveyName})
+	w := httptest.NewRecorder()
+
+	handler.GetSurvey(w, req)
+
+	assert.NotEqual(t, http.StatusOK, w.Result().StatusCode)
+}
+
 func TestGetSurveyStatistics(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	mockClient := mocks.NewMockSurveyServiceClient(ctrl)
-	handler := csat2.NewCsatHandler(mockClient)
+	handler := csat.NewCsatHandler(mockClient)
 
 	surveyID := "11111111-1111-1111-1111-111111111111"
 	expectedResp := &generatedcsat.SurveyStatisticsResponse{
@@ -93,4 +119,87 @@ func TestGetSurveyStatistics(t *testing.T) {
 	handler.GetSurveyStatistics(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Result().StatusCode)
+}
+
+func TestSubmitAnswer(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockClient := mocks.NewMockSurveyServiceClient(ctrl)
+	handler := csat.NewCsatHandler(mockClient)
+	qID := uuid.New()
+
+	answerReq := dto.SubmitAnswersRequest{
+		SurveyID: qID,
+		Answers: []dto.AnswerRequestDTO{
+			{
+				QuestionID: qID,
+				Value:      5,
+			},
+		},
+	}
+
+	mockClient.EXPECT().
+		SubmitAnswer(gomock.Any(), dto.ConvertToGrpcSubmitRequest(&answerReq)).
+		Return(nil, nil)
+
+	body, err := easyjson.Marshal(answerReq)
+	assert.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodPost, "/csat/submit", bytes.NewReader(body))
+	w := httptest.NewRecorder()
+
+	handler.SubmitAnswer(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Result().StatusCode)
+}
+
+func TestSubmitAnswer_InvalidRequest(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockClient := mocks.NewMockSurveyServiceClient(ctrl)
+	handler := csat.NewCsatHandler(mockClient)
+
+	invalidBody := []byte("{invalid json}")
+
+	req := httptest.NewRequest(http.MethodPost, "/csat/submit", bytes.NewReader(invalidBody))
+	w := httptest.NewRecorder()
+
+	handler.SubmitAnswer(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Result().StatusCode)
+}
+
+func TestSubmitAnswer_Error(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockClient := mocks.NewMockSurveyServiceClient(ctrl)
+	handler := csat.NewCsatHandler(mockClient)
+	qID := uuid.New()
+
+	answerReq := dto.SubmitAnswersRequest{
+		SurveyID: qID,
+		Answers: []dto.AnswerRequestDTO{
+			{
+				QuestionID: qID,
+				Value:      5,
+			},
+		},
+	}
+
+	mockClient.EXPECT().
+		SubmitAnswer(gomock.Any(), dto.ConvertToGrpcSubmitRequest(&answerReq)).
+		Return(nil, assert.AnError)
+
+	body, err := easyjson.Marshal(answerReq)
+	assert.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodPost, "/csat/submit", bytes.NewReader(body))
+	w := httptest.NewRecorder()
+
+	handler.SubmitAnswer(w, req)
+
+	assert.NotEqual(t, http.StatusOK, w.Result().StatusCode)
 }
