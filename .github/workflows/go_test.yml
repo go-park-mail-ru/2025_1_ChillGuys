@@ -23,5 +23,13 @@ jobs:
       - name: Install dependencies
         run: go mod tidy
 
+      - name: Install golint
+        run: go install golang.org/x/lint/golint@latest
+
+      - name: Run golint
+        run: |
+          export PATH=$PATH:$(go env GOPATH)/bin
+          golint ./...
+
       - name: Run tests
         run: make test
