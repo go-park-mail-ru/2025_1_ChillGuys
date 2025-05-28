@@ -3,7 +3,7 @@
 
 # Ссылки 
 
-+ [Деплой](http://90.156.217.63/)
++ [Деплой](https://bazaar-techpark.ru/)
 + [Фронтенд](https://github.com/frontend-park-mail-ru/2025_1_Chill_Guys)
 + [Макет в Фигме](https://www.figma.com/design/Pl0OU8Hrg2O9prMhrTiqrX/Bazaar_Chill_Guys_2025?node-id=0-1&p=f&t=59tFe8ABFlUZLsDP-0)
 
