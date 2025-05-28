@@ -2,8 +2,7 @@ name: Build, Push and Deploy
 on:
   push:
     branches:
-      - main
-      - develop
+      - master
 
 env:
   REGISTRY: "niknike"
