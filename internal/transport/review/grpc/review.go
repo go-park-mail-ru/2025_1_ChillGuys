@@ -2,6 +2,7 @@ package review
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/models/errs"
@@ -10,6 +11,8 @@ import (
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/middleware/logctx"
 	"github.com/go-park-mail-ru/2025_1_ChillGuys/internal/transport/review"
 	"github.com/google/uuid"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type ReviewGRPCServer struct {
@@ -48,7 +51,10 @@ func (s *ReviewGRPCServer) AddReview (ctx context.Context, req *gen.AddReviewReq
 	err = s.reviewUsecase.Add(ctx, request)
 	if err != nil {
 		logger.WithError(err).Error("add review")
-		return &gen.EmptyResponse{}, fmt.Errorf("%s: %w", op, errs.NewBusinessLogicError("failed add"))
+		if errors.Is(err, errs.ErrAlreadyExists) {
+			return &gen.EmptyResponse{}, status.Error(codes.AlreadyExists, "user has already reviewed this product")
+		}
+		return &gen.EmptyResponse{}, status.Error(codes.Internal, "internal server error")
 	}
 
 	return &gen.EmptyResponse{}, nil
