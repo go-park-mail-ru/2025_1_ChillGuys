@@ -91,29 +91,29 @@ func (h *AddressHandler) CreateAddress(w http.ResponseWriter, r *http.Request) {
 
 	logger = logger.WithField("user_id", userID)
 
-	var geoData *dto.GeoapifyResponse
-	geoData, err = h.geocodeAddress(r.Context(), createAddressReq)
-	if err != nil {
-		logger.WithError(err).Error("geoapify API error")
-		response.SendJSONError(r.Context(), w, http.StatusInternalServerError, "failed to validate address")
-		return
-	}
-
-	var bestMatch *dto.GeoapifyFeature
-	for _, feature := range geoData.Features {
-		if feature.Properties.ResultType == "building" && feature.Properties.Rank.Importance > 0.2 {
-			if bestMatch == nil || feature.Properties.Rank.Importance > bestMatch.Properties.Rank.Importance {
-				bestMatch = &feature
-				break
-			}
-		}
-	}
-
-	if bestMatch == nil {
-		logger.Warn("no valid building address found")
-		response.SendJSONError(r.Context(), w, http.StatusBadRequest, "no valid building address found")
-		return
-	}
+	//var geoData *dto.GeoapifyResponse
+	//geoData, err = h.geocodeAddress(r.Context(), createAddressReq)
+	//if err != nil {
+	//	logger.WithError(err).Error("geoapify API error")
+	//	response.SendJSONError(r.Context(), w, http.StatusInternalServerError, "failed to validate address")
+	//	return
+	//}
+	//
+	//var bestMatch *dto.GeoapifyFeature
+	//for _, feature := range geoData.Features {
+	//	if feature.Properties.ResultType == "building" && feature.Properties.Rank.Importance > 0.2 {
+	//		if bestMatch == nil || feature.Properties.Rank.Importance > bestMatch.Properties.Rank.Importance {
+	//			bestMatch = &feature
+	//			break
+	//		}
+	//	}
+	//}
+	//
+	//if bestMatch == nil {
+	//	logger.Warn("no valid building address found")
+	//	response.SendJSONError(r.Context(), w, http.StatusBadRequest, "no valid building address found")
+	//	return
+	//}
 
 	if err := h.addressService.CreateAddress(r.Context(), userID, createAddressReq); err != nil {
 		logger.WithError(err).Error("create address")
